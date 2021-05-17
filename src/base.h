@@ -23,3 +23,5 @@ typedef int64_t  b64;
 
 typedef float    f32;
 typedef double   f64;
+
+#define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }

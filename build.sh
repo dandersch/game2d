@@ -6,8 +6,10 @@
 # uncomment first line if you don't need a compile_commands.json
 bear -- \
 c++ main.cpp  \
+	-g \
 	-Wall \
-	./src/base.h \
+	-DIMGUI \
+	./src/*.cpp \
 	./dep/libSDL2.a \
 	./dep/libSDL2main.a \
 	./dep/libbox2d.a \
