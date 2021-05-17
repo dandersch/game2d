@@ -1,3 +1,4 @@
+#include "SDL_timer.h"
 #include "pch.h"
 
 #include "base.h"
@@ -13,7 +14,8 @@
 const int LEVEL_WIDTH  = 12800;
 const int LEVEL_HEIGHT = 9600;
 
-const int MAX_RENDER_LAYERS = 3;
+const int MAX_RENDER_LAYERS = 100;
+const f32 TIME_PER_FRAME = (f32) 1/60;
 
 int main(int argc, char* args[])
 {
@@ -28,23 +30,29 @@ int main(int argc, char* args[])
 
     Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
     // memset(ents, 0, sizeof(ents));
-    ents[0] = { .active = true, .freed = false, .flags = (u32) EntityFlag::PLAYER_CONTROLLED,
+    ents[0] = { .active = true, .freed = false,
+                .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
                 .position = {0,0,0}, .orient = 0, .renderLayer = 1,
-                .sprite{{0,0,16,32}, tex, {0,0}} };
+                .sprite{{0,0,16,32}, tex, {0,0}},
+                .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}}, 2.0f, true } };
     ents[1] = { .active = true, .freed = false, .flags = 0,
                 .position = {0,16,0}, .orient = 0, .renderLayer = 0,
-                .sprite{{32,32,32,16}, tiletex, {0,0}} };
+                .sprite{{32,32,32,16}, tiletex, {0,0}},
+                .anim = {0} };
     ents[2] = { .active = true, .freed = false, .flags = 0,
                 .position = {500,800,0}, .orient = 0, .renderLayer = 1,
-                .sprite{{64,64,16,32}, tex, {0,0}} };
+                .sprite{{64,64,16,32}, tex, {0,0}}, .anim = {0} };
 
     for (u32 i = 3; i < 100; i++)
     {
         for (u32 j = 1; j < 100; j++)
         {
-            ents[i*j] = { .active = true, .freed = false, .flags = 0,
+            ents[i*j] = { .active = true, .freed = false,
+                          .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
                           .position = {5 * i, 10 * j,0}, .orient = 3, .renderLayer = 1,
-                          .sprite{{0,0,16,32}, tex, {0,0}} };
+                          .sprite{{0,0,16,32}, tex, {0,0}},
+                          .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}}, 2.0f, true } };
+                          //.anim = {0} };
         }
     }
 
@@ -68,6 +76,9 @@ int main(int argc, char* args[])
 
     // main loop ///////////////////////////////////////////////////////////////
     bool run = true;
+    u32 time = 0;
+    f32 dt = 0;
+    f32 accumulator = 0;
     while (run)
     {
         // EVENT HANDLING //////////////////////////////////////////////////////
@@ -94,6 +105,22 @@ int main(int argc, char* args[])
             }
         }
 
+        dt = (SDL_GetTicks() - time) / 1000.f;
+        time = SDL_GetTicks();
+        accumulator += (time/1000.f);
+
+        // TODO not working
+        //while (accumulator > TIME_PER_FRAME) {
+        //    accumulator -= TIME_PER_FRAME;
+        //}
+
+        for (u32 i = 0; i < MAX_ENTITIES; i++)
+        {
+            if (!ents[i].active) continue;
+            if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
+                ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
+        }
+
 #ifdef IMGUI
         // DEAR IMGUI //////////////////////////////////////////////////////////
         ImGui_ImplSDL2_NewFrame(rw.window);
@@ -101,6 +128,9 @@ int main(int argc, char* args[])
 
         ImGui::ShowDemoWindow();
         ImGui::Begin("Hello World");
+        ImGui::Text("TICKS: %d", time);
+        ImGui::Text("ACCU: %f", accumulator);
+        ImGui::Text("DT: %f", dt);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                     1000.0f / ImGui::GetIO().Framerate,
                     ImGui::GetIO().Framerate);
@@ -110,6 +140,7 @@ int main(int argc, char* args[])
         // RENDERING ///////////////////////////////////////////////////////////
         SDL_RenderClear(rw.renderer);
 
+        u32 maxlayer = 0;
         for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
         {
             for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -117,7 +148,11 @@ int main(int argc, char* args[])
                 if (!ents[i].active) continue;
                 if (ents[i].renderLayer != l) continue;
                 rw.render(ents[i].sprite, ents[i].position);
+
+                if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
             }
+            // no need to go through all renderlayers
+            if (l > maxlayer) break;
         }
 
 

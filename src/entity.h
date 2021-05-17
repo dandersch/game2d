@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pch.h"
+#include "animation.h"
 
 struct Sprite
 {
@@ -13,6 +14,7 @@ enum class EntityFlag
 {
     NONE,
     PLAYER_CONTROLLED,
+    IS_ANIMATED,
     IS_COLLIDER
 };
 
@@ -26,6 +28,7 @@ struct Entity
     u32  renderLayer;
 
     Sprite sprite;
+    Animation anim;
 
     //SDL_Rect collider; // TODO box2d
     //EntityState  state;
