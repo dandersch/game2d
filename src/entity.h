@@ -1,14 +1,19 @@
 #pragma once
 
-#include "base.h"
-#include "glm/glm.hpp"
-#include <SDL.h>
+#include "pch.h"
 
 struct Sprite
 {
     SDL_Rect     box;
     SDL_Texture* tex;
     glm::vec2    pivot;
+};
+
+enum class EntityFlag
+{
+    NONE,
+    PLAYER_CONTROLLED,
+    IS_COLLIDER
 };
 
 struct Entity

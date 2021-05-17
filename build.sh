@@ -4,7 +4,7 @@
 # TODO use `sdl2-config --cflags`
 # TODO use `sdl2-config --libs`
 # uncomment first line if you don't need a compile_commands.json
-bear -- \
+#bear -- \
 c++ main.cpp  \
 	-g \
 	-Wall \

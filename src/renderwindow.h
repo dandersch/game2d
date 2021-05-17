@@ -1,7 +1,6 @@
 #pragma once
 
-#include <SDL.h>
-#include "base.h"
+#include "pch.h"
 #include "entity.h"
 
 class RenderWindow
