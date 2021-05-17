@@ -2,6 +2,7 @@
 
 #include "base.h"
 
+#include <string>
 #include <stdio.h>
 
 #ifdef IMGUI
@@ -15,6 +16,7 @@
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 #include <SDL_timer.h>
+#include <SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 #include <SDL_video.h>
 //#include "Box2D/Box2D.h"

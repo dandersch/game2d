@@ -1,4 +1,6 @@
+#include "SDL_pixels.h"
 #include "SDL_timer.h"
+#include "SDL_ttf.h"
 #include "pch.h"
 
 #include "base.h"
@@ -49,14 +51,24 @@ int main(int argc, char* args[])
         {
             ents[i*j] = { .active = true, .freed = false,
                           .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
-                          .position = {5 * i, 10 * j,0}, .orient = 3, .renderLayer = 1,
+                          .position = {13 * i, 10 * j,0}, .orient = 3, .renderLayer = 1,
                           .sprite{{0,0,16,32}, tex, {0,0}},
                           .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}}, 2.0f, true } };
                           //.anim = {0} };
         }
     }
 
-    Player player(&ents[0]);
+    // Font Test
+    TTF_Init();
+    TTF_Font* font        = TTF_OpenFont( "res/gothic.ttf", 40 );
+    std::string text      = "Ich bin Diego. Mich interessiert nicht wer du bist";
+    SDL_Color textColor   = {150,160,100,230};
+    //SDL_Surface* textSurf = TTF_RenderText_Solid(font, text.c_str(), textColor);
+    SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(font, text.c_str(),
+                                                           textColor, 210);
+    SDL_ERROR(textSurf);
+    SDL_Texture* txtTex   = SDL_CreateTextureFromSurface(rw.renderer, textSurf);
+    SDL_ERROR(txtTex);
 
 #ifdef IMGUI
     // IMGUI SETUP /////////////////////////////////////////////////////////////
@@ -155,6 +167,10 @@ int main(int argc, char* args[])
             if (l > maxlayer) break;
         }
 
+        int w,h;
+        SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
+        SDL_Rect dst{100,300,w,h};
+        SDL_RenderCopy(rw.renderer, txtTex, NULL, &dst);
 
 #ifdef IMGUI
         ImGui::Render();
@@ -170,6 +186,8 @@ int main(int argc, char* args[])
 #endif
     SDL_DestroyRenderer(rw.renderer);
     SDL_DestroyWindow(rw.window);
+    TTF_Quit();
+    IMG_Quit();
     SDL_Quit();
 
     return 0;

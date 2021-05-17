@@ -9,8 +9,6 @@ const f32 playerSpeed = 1.f;
 class Player
 {
 public:
-    Player(Entity* ent) : character(ent) {}
-
     // TODO remove imgui dependency
     static void handleEvent(const SDL_Event& evn, ImGuiIO& io, Entity& ent)
     {
@@ -37,13 +35,7 @@ public:
             ent.position = glm::vec3(evn.button.x, evn.button.y, 0);
             break;
         }
-
-
-
     }
-
-private:
-    Entity* character;
 };
 
 #endif // PLAYER_H_
