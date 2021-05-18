@@ -1,9 +1,6 @@
-#include "SDL_pixels.h"
-#include "SDL_timer.h"
-#include "SDL_ttf.h"
+#include "SDL_render.h"
 #include "pch.h"
 
-#include "base.h"
 #include "renderwindow.h"
 #include "entity.h"
 #include "player.h"
@@ -31,19 +28,17 @@ int main(int argc, char* args[])
     SDL_ERROR(tiletex);
 
     Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
-    // memset(ents, 0, sizeof(ents));
+    //memset(ents, 0, sizeof(ents));
     ents[0] = { .active = true, .freed = false,
-                .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
+                .flags = (u32) EntityFlag::PLAYER_CONTROLLED,
                 .position = {0,0,0}, .orient = 0, .renderLayer = 1,
-                .sprite{{0,0,16,32}, tex, {0,0}},
-                .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}}, 2.0f, true } };
+                .sprite{{0,0,16,32}, tex, {0,0}}};
     ents[1] = { .active = true, .freed = false, .flags = 0,
                 .position = {0,16,0}, .orient = 0, .renderLayer = 0,
-                .sprite{{32,32,32,16}, tiletex, {0,0}},
-                .anim = {0} };
+                .sprite{{32,32,352,224}, tiletex, {0,0}}};
     ents[2] = { .active = true, .freed = false, .flags = 0,
                 .position = {500,800,0}, .orient = 0, .renderLayer = 1,
-                .sprite{{64,64,16,32}, tex, {0,0}}, .anim = {0} };
+                .sprite{{64,64,16,32}, tex, {0,0}}};
 
     for (u32 i = 3; i < 100; i++)
     {
@@ -52,20 +47,23 @@ int main(int argc, char* args[])
             ents[i*j] = { .active = true, .freed = false,
                           .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
                           .position = {13 * i, 10 * j,0}, .orient = 3, .renderLayer = 1,
-                          .sprite{{0,0,16,32}, tex, {0,0}},
-                          .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}}, 2.0f, true } };
-                          //.anim = {0} };
+                          .sprite{{0,0,16,32}, tex, {0,0}, SDL_FLIP_VERTICAL},
+                          .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}, {48,0,16,32}},
+                                 1.0f, true } };
         }
     }
 
     // Font Test
     TTF_Init();
     TTF_Font* font        = TTF_OpenFont( "res/gothic.ttf", 40 );
-    std::string text      = "Ich bin Diego. Mich interessiert nicht wer du bist";
+    std::string text      = "Linebreaks are working.\nLook at all these perfect linebreaks.\n"
+                            "This is achieved wtih TTF_RenderText_Blended_Wrapped()\n"
+                            "Another line here.";
+
     SDL_Color textColor   = {150,160,100,230};
     //SDL_Surface* textSurf = TTF_RenderText_Solid(font, text.c_str(), textColor);
     SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(font, text.c_str(),
-                                                           textColor, 210);
+                                                           textColor, 800);
     SDL_ERROR(textSurf);
     SDL_Texture* txtTex   = SDL_CreateTextureFromSurface(rw.renderer, textSurf);
     SDL_ERROR(txtTex);
@@ -159,7 +157,7 @@ int main(int argc, char* args[])
             {
                 if (!ents[i].active) continue;
                 if (ents[i].renderLayer != l) continue;
-                rw.render(ents[i].sprite, ents[i].position);
+                rw.render(ents[i].sprite, ents[i].position, 1.5f, ents[i].sprite.flip);
 
                 if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
             }
@@ -169,7 +167,7 @@ int main(int argc, char* args[])
 
         int w,h;
         SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
-        SDL_Rect dst{100,300,w,h};
+        SDL_Rect dst{100,600,w,h};
         SDL_RenderCopy(rw.renderer, txtTex, NULL, &dst);
 
 #ifdef IMGUI
@@ -190,5 +188,4 @@ int main(int argc, char* args[])
     IMG_Quit();
     SDL_Quit();
 
-    return 0;
-}
+    return 0;}

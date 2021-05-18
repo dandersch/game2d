@@ -2,12 +2,14 @@
 
 #include "pch.h"
 #include "animation.h"
+#include "tile.h"
 
 struct Sprite
 {
-    SDL_Rect     box;
-    SDL_Texture* tex;
-    glm::vec2    pivot;
+    SDL_Rect         box;
+    SDL_Texture*     tex;
+    glm::vec2        pivot;
+    SDL_RendererFlip flip = SDL_FLIP_NONE;
 };
 
 enum class EntityFlag
@@ -15,6 +17,7 @@ enum class EntityFlag
     NONE,
     PLAYER_CONTROLLED,
     IS_ANIMATED,
+    IS_TILE,
     IS_COLLIDER
 };
 
@@ -24,11 +27,14 @@ struct Entity
     b32  freed;  // determines if can be replaced with new entity
     u32  flags;
     glm::vec3 position;
+    f32  scale = 1.0f;
     u32  orient;
     u32  renderLayer;
 
     Sprite sprite;
     Animation anim;
+
+    //Tile tile;
 
     //SDL_Rect collider; // TODO box2d
     //EntityState  state;
@@ -44,17 +50,11 @@ struct Entity
         f32 animTime;
     };
     HashMap[int, Animation*] currentAnim;
-
     u32 charID;
-    u32 tileID;
+
 
     // P.I.T. contains pos, state, orient, active
     PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
-
-    struct Tile
-    {
-        u32 tileType;
-    };
 
     SoundBuffer sfx[];
     */

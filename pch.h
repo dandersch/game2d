@@ -3,6 +3,7 @@
 #include "base.h"
 
 #include <string>
+#include <vector>
 #include <stdio.h>
 
 #ifdef IMGUI
@@ -17,6 +18,8 @@
 #include <SDL_keycode.h>
 #include <SDL_timer.h>
 #include <SDL_ttf.h>
+#include "SDL_pixels.h"
+#include "SDL_render.h"
 #include <SDL2/SDL_image.h>
 #include <SDL_video.h>
 //#include "Box2D/Box2D.h"

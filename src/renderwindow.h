@@ -11,8 +11,10 @@ public:
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
             printf("SDL init failed: %s\n", SDL_GetError());
 
-        window = SDL_CreateWindow("SDL2 Game", SDL_WINDOWPOS_UNDEFINED,
-                                  SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight,
+        window = SDL_CreateWindow("SDL2 Game",
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  screenWidth, screenHeight,
                                   SDL_WINDOW_RESIZABLE);
         SDL_ERROR(window);
 
@@ -21,11 +23,15 @@ public:
     };
 
     // TODO take in camera pos
-    void render(const Sprite& spr, glm::vec3 position)
+    void render(const Sprite& spr, glm::vec3 position, f32 scale = 1.0f,
+                SDL_RendererFlip flip = SDL_FLIP_NONE)
     {
         SDL_Rect dst = {(int) position.x, (int) position.y,
-                        spr.box.w, spr.box.h};
-        SDL_RenderCopy(renderer, spr.tex, &spr.box, &dst);
+                        (i32) (scale * spr.box.w), (i32) (scale * spr.box.h)};
+
+        // NOTE: flipping seems expensive, maybe just store flipped sprites in
+        // the spritesheet & add dedicated animations for those
+        SDL_RenderCopyEx(renderer, spr.tex, &spr.box, &dst, 0, NULL, flip);
     };
 
     SDL_Renderer* renderer;
