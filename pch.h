@@ -1,5 +1,11 @@
 #pragma once
 
+// (mostly) temporary globals
+struct RenderWindow;
+static RenderWindow* rw;
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT  960
+
 #include "base.h"
 
 #include <string>
@@ -24,3 +30,7 @@
 #include <SDL_image.h>
 #include <SDL_video.h>
 //#include "Box2D/Box2D.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif

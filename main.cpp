@@ -1,28 +1,20 @@
-#include "SDL_render.h"
 #include "pch.h"
 
-#include "renderwindow.h"
 #include "entity.h"
 #include "player.h"
+#include "layer.h"
+#include "renderwindow.h"
+#include "imguilayer.h"
 
-#define SCREEN_WIDTH  1280
-#define SCREEN_HEIGHT  960
 #define MAX_ENTITIES  10000
-//
+
 //The dimensions of the level
 const int LEVEL_WIDTH  = 12800;
 const int LEVEL_HEIGHT = 9600;
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 const int MAX_RENDER_LAYERS = 100;
 const f32 TIME_PER_FRAME = (f32) 1/60;
 
-void main_loop();
-
-RenderWindow* rw;
 SDL_Texture* tex;
 SDL_Texture* tiletex;
 Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
@@ -31,6 +23,11 @@ u32 g_time;
 f32 dt;
 f32 accumulator;
 bool run;
+
+std::vector<Layer*> layerStack;
+ImGuiLayer* igLayer;
+
+void main_loop();
 
 int main(int argc, char* args[])
 {
@@ -84,17 +81,9 @@ int main(int argc, char* args[])
     SDL_ERROR(txtTex);
 
 #ifdef IMGUI
-    // IMGUI SETUP /////////////////////////////////////////////////////////////
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiSDL::Initialize(rw->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
-    // don't call an init function, but all of them require a rendering api
-    // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
-    // eventhandling. We expose the internal function below to circumvent that.
-    ImGui_ImplSDL2_Init(rw->window);
-    ImGui::StyleColorsDark();
+    igLayer = new ImGuiLayer();
+    layerStack.push_back(igLayer);
+    igLayer->OnAttach();
 #endif
 
     // main loop ///////////////////////////////////////////////////////////////
@@ -110,9 +99,9 @@ int main(int argc, char* args[])
 
     // CLEANUP /////////////////////////////////////////////////////////////////
 #ifdef IMGUI
-    ImGuiSDL::Deinitialize();
-    ImGui::DestroyContext();
+    igLayer->OnDetach();
 #endif
+
     SDL_DestroyRenderer(rw->renderer);
     SDL_DestroyWindow(rw->window);
     TTF_Quit();
@@ -137,13 +126,20 @@ void main_loop()
         //    accumulator -= TIME_PER_FRAME;
         //}
         // EVENT HANDLING //////////////////////////////////////////////////////
-        SDL_Event evn;
-        while (SDL_PollEvent(&evn))
+        Event evn;
+        while (SDL_PollEvent(&evn.evn))
         {
 #ifdef IMGUI
-            ImGui_ImplSDL2_ProcessEvent(&evn);
+            igLayer->OnEvent(evn);
 #endif
-
+            // TODO use layerstack to revere iterate and propagate events:
+            /*
+		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
+		{
+            (e.Handled) break;
+			(*it)->OnEvent(e);
+		}
+		*/
             for (u32 i = 0; i < MAX_ENTITIES; i++)
             {
                 if (!ents[i].active) continue;
@@ -151,11 +147,11 @@ void main_loop()
                   Player::handleEvent(evn, /*io,*/ ents[i]); // TODO remove imgui dependency
             }
 
-            switch (evn.type) {
+            switch (evn.evn.type) {
             case SDL_QUIT: run = false;
                 break;
             case SDL_WINDOWEVENT:
-                if (evn.window.type == SDL_WINDOWEVENT_CLOSE) run = false;
+                if (evn.evn.window.type == SDL_WINDOWEVENT_CLOSE) run = false;
                 break;
             }
         }
@@ -169,8 +165,7 @@ void main_loop()
 
 #ifdef IMGUI
         // DEAR IMGUI //////////////////////////////////////////////////////////
-        ImGui_ImplSDL2_NewFrame(rw->window);
-        ImGui::NewFrame();
+        igLayer->Begin();
 
         ImGui::ShowDemoWindow();
         ImGui::Begin("Hello World");
@@ -207,8 +202,9 @@ void main_loop()
         SDL_RenderCopy(rw->renderer, txtTex, NULL, &dst);
 
 #ifdef IMGUI
-        ImGui::Render();
-        ImGuiSDL::Render(ImGui::GetDrawData());
+        for (auto l : layerStack)
+            l->OnImGuiRender();
+        igLayer->End();
 #endif
         SDL_RenderPresent(rw->renderer);
     }
