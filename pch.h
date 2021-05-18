@@ -20,6 +20,7 @@
 #include <SDL_ttf.h>
 #include "SDL_pixels.h"
 #include "SDL_render.h"
-#include <SDL2/SDL_image.h>
+//#include <SDL2/SDL_image.h>
+#include <SDL_image.h>
 #include <SDL_video.h>
 //#include "Box2D/Box2D.h"

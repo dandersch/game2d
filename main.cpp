@@ -13,10 +13,27 @@
 const int LEVEL_WIDTH  = 12800;
 const int LEVEL_HEIGHT = 9600;
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 const int MAX_RENDER_LAYERS = 100;
 const f32 TIME_PER_FRAME = (f32) 1/60;
 
+void main_loop();
+
 int main(int argc, char* args[])
+{
+#ifdef __EMSCRIPTEN__
+    printf("HELLO EMSCRIPTEN\n");
+    //emscripten_set_main_loop(em_callback_func func, -1, int simulate_infinite_loop)
+    emscripten_set_main_loop(main_loop, -1, 0);
+#endif
+
+    main_loop();
+}
+
+void main_loop()
 {
     // SDL SETUP ///////////////////////////////////////////////////////////////
     RenderWindow rw(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -54,6 +71,7 @@ int main(int argc, char* args[])
     }
 
     // Font Test
+#ifdef false
     TTF_Init();
     TTF_Font* font        = TTF_OpenFont( "res/gothic.ttf", 40 );
     std::string text      = "Linebreaks are working.\nLook at all these perfect linebreaks.\n"
@@ -67,6 +85,7 @@ int main(int argc, char* args[])
     SDL_ERROR(textSurf);
     SDL_Texture* txtTex   = SDL_CreateTextureFromSurface(rw.renderer, textSurf);
     SDL_ERROR(txtTex);
+#endif
 
 #ifdef IMGUI
     // IMGUI SETUP /////////////////////////////////////////////////////////////
@@ -81,8 +100,6 @@ int main(int argc, char* args[])
     ImGui_ImplSDL2_Init(rw.window);
     ImGui::StyleColorsDark();
 #endif
-
-    // LOAD TEXTURE ////////////////////////////////////////////////////////////
 
     // main loop ///////////////////////////////////////////////////////////////
     bool run = true;
@@ -103,7 +120,7 @@ int main(int argc, char* args[])
             {
                 if (!ents[i].active) continue;
                 if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-                  Player::handleEvent(evn, io, ents[i]); // TODO remove imgui dependency
+                  Player::handleEvent(evn, /*io,*/ ents[i]); // TODO remove imgui dependency
             }
 
             switch (evn.type) {
@@ -165,10 +182,12 @@ int main(int argc, char* args[])
             if (l > maxlayer) break;
         }
 
+#ifdef false
         int w,h;
         SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
         SDL_Rect dst{100,600,w,h};
         SDL_RenderCopy(rw.renderer, txtTex, NULL, &dst);
+#endif
 
 #ifdef IMGUI
         ImGui::Render();
@@ -188,4 +207,5 @@ int main(int argc, char* args[])
     IMG_Quit();
     SDL_Quit();
 
-    return 0;}
+    //return 0;
+}
