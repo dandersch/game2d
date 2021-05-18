@@ -22,29 +22,27 @@ const f32 TIME_PER_FRAME = (f32) 1/60;
 
 void main_loop();
 
+RenderWindow* rw;
+SDL_Texture* tex;
+SDL_Texture* tiletex;
+Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
+SDL_Texture* txtTex;
+u32 g_time;
+f32 dt;
+f32 accumulator;
+bool run;
+
 int main(int argc, char* args[])
 {
-#ifdef __EMSCRIPTEN__
-    printf("HELLO EMSCRIPTEN\n");
-    //emscripten_set_main_loop(em_callback_func func, -1, int simulate_infinite_loop)
-    emscripten_set_main_loop(main_loop, -1, 0);
-#endif
-
-    main_loop();
-}
-
-void main_loop()
-{
     // SDL SETUP ///////////////////////////////////////////////////////////////
-    RenderWindow rw(SCREEN_WIDTH, SCREEN_HEIGHT);
+    rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    SDL_Texture* tex = IMG_LoadTexture(rw.renderer, "res/character.png");
+    tex = IMG_LoadTexture(rw->renderer, "res/character.png");
     SDL_ERROR(tex);
 
-    SDL_Texture* tiletex = IMG_LoadTexture(rw.renderer, "res/gravetiles.png");
+    tiletex = IMG_LoadTexture(rw->renderer, "res/gravetiles.png");
     SDL_ERROR(tiletex);
 
-    Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
     //memset(ents, 0, sizeof(ents));
     ents[0] = { .active = true, .freed = false,
                 .flags = (u32) EntityFlag::PLAYER_CONTROLLED,
@@ -71,7 +69,6 @@ void main_loop()
     }
 
     // Font Test
-#ifdef false
     TTF_Init();
     TTF_Font* font        = TTF_OpenFont( "res/gothic.ttf", 40 );
     std::string text      = "Linebreaks are working.\nLook at all these perfect linebreaks.\n"
@@ -83,31 +80,62 @@ void main_loop()
     SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(font, text.c_str(),
                                                            textColor, 800);
     SDL_ERROR(textSurf);
-    SDL_Texture* txtTex   = SDL_CreateTextureFromSurface(rw.renderer, textSurf);
+    txtTex   = SDL_CreateTextureFromSurface(rw->renderer, textSurf);
     SDL_ERROR(txtTex);
-#endif
 
 #ifdef IMGUI
     // IMGUI SETUP /////////////////////////////////////////////////////////////
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiSDL::Initialize(rw.renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    ImGuiSDL::Initialize(rw->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
     // don't call an init function, but all of them require a rendering api
     // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
     // eventhandling. We expose the internal function below to circumvent that.
-    ImGui_ImplSDL2_Init(rw.window);
+    ImGui_ImplSDL2_Init(rw->window);
     ImGui::StyleColorsDark();
 #endif
 
     // main loop ///////////////////////////////////////////////////////////////
-    bool run = true;
-    u32 time = 0;
-    f32 dt = 0;
-    f32 accumulator = 0;
+    g_time = 0;
+    dt = 0;
+    accumulator = 0;
+    run = true;
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, -1, 1);
+#else
+    main_loop();
+#endif
+
+    // CLEANUP /////////////////////////////////////////////////////////////////
+#ifdef IMGUI
+    ImGuiSDL::Deinitialize();
+    ImGui::DestroyContext();
+#endif
+    SDL_DestroyRenderer(rw->renderer);
+    SDL_DestroyWindow(rw->window);
+    TTF_Quit();
+    IMG_Quit();
+    SDL_Quit();
+
+    return 0;
+}
+
+void main_loop()
+{
+#ifndef __EMSCRIPTEN__
     while (run)
+#endif
     {
+        dt = (SDL_GetTicks() - g_time) / 1000.f;
+        g_time = SDL_GetTicks();
+        accumulator += (g_time/1000.f);
+
+        // TODO not working
+        //while (accumulator > TIME_PER_FRAME) {
+        //    accumulator -= TIME_PER_FRAME;
+        //}
         // EVENT HANDLING //////////////////////////////////////////////////////
         SDL_Event evn;
         while (SDL_PollEvent(&evn))
@@ -132,15 +160,6 @@ void main_loop()
             }
         }
 
-        dt = (SDL_GetTicks() - time) / 1000.f;
-        time = SDL_GetTicks();
-        accumulator += (time/1000.f);
-
-        // TODO not working
-        //while (accumulator > TIME_PER_FRAME) {
-        //    accumulator -= TIME_PER_FRAME;
-        //}
-
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
             if (!ents[i].active) continue;
@@ -150,12 +169,12 @@ void main_loop()
 
 #ifdef IMGUI
         // DEAR IMGUI //////////////////////////////////////////////////////////
-        ImGui_ImplSDL2_NewFrame(rw.window);
+        ImGui_ImplSDL2_NewFrame(rw->window);
         ImGui::NewFrame();
 
         ImGui::ShowDemoWindow();
         ImGui::Begin("Hello World");
-        ImGui::Text("TICKS: %d", time);
+        ImGui::Text("TICKS: %d", g_time);
         ImGui::Text("ACCU: %f", accumulator);
         ImGui::Text("DT: %f", dt);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
@@ -165,7 +184,7 @@ void main_loop()
 #endif
 
         // RENDERING ///////////////////////////////////////////////////////////
-        SDL_RenderClear(rw.renderer);
+        SDL_RenderClear(rw->renderer);
 
         u32 maxlayer = 0;
         for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
@@ -174,7 +193,7 @@ void main_loop()
             {
                 if (!ents[i].active) continue;
                 if (ents[i].renderLayer != l) continue;
-                rw.render(ents[i].sprite, ents[i].position, 1.5f, ents[i].sprite.flip);
+                rw->render(ents[i].sprite, ents[i].position, 1.5f, ents[i].sprite.flip);
 
                 if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
             }
@@ -182,30 +201,16 @@ void main_loop()
             if (l > maxlayer) break;
         }
 
-#ifdef false
         int w,h;
         SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
         SDL_Rect dst{100,600,w,h};
-        SDL_RenderCopy(rw.renderer, txtTex, NULL, &dst);
-#endif
+        SDL_RenderCopy(rw->renderer, txtTex, NULL, &dst);
 
 #ifdef IMGUI
         ImGui::Render();
         ImGuiSDL::Render(ImGui::GetDrawData());
 #endif
-        SDL_RenderPresent(rw.renderer);
+        SDL_RenderPresent(rw->renderer);
     }
 
-    // CLEANUP /////////////////////////////////////////////////////////////////
-#ifdef IMGUI
-    ImGuiSDL::Deinitialize();
-    ImGui::DestroyContext();
-#endif
-    SDL_DestroyRenderer(rw.renderer);
-    SDL_DestroyWindow(rw.window);
-    TTF_Quit();
-    IMG_Quit();
-    SDL_Quit();
-
-    //return 0;
 }
