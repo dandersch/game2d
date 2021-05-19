@@ -14,8 +14,7 @@ struct Sprite
 
 enum class EntityFlag
 {
-    NONE,
-    PLAYER_CONTROLLED,
+    NONE, PLAYER_CONTROLLED,
     IS_ANIMATED,
     IS_TILE,
     IS_COLLIDER
@@ -36,7 +35,7 @@ struct Entity
 
     MyTile tile;
 
-    //SDL_Rect collider; // TODO box2d
+    SDL_Rect collider; // TODO box2d?
     //EntityState  state;
 
     /*

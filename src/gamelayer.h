@@ -25,26 +25,33 @@ public:
         tiletex = IMG_LoadTexture(rw->renderer, "res/gravetiles.png");
         SDL_ERROR(tiletex);
 
-        //memset(ents, 0, sizeof(ents));
+        // ENTITY GENERATION ///////////////////////////////////////////////////
         ents[0] = { .active = true, .freed = false,
-                    .flags = (u32) EntityFlag::PLAYER_CONTROLLED,
+                    .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+                             (u32) EntityFlag::IS_COLLIDER,
                     .position = {0,0,0}, .orient = 0, .renderLayer = 1,
                     .sprite{{0,0,16,32}, tex, {0,0}}};
+        ents[0].collider  = { 0, 0, 16, 32};
+
+        //memset(ents, 0, sizeof(ents));
 
         for (u32 i = 1; i < 100; i++)
         {
             for (u32 j = 1; j < 100; j++)
             {
                 ents[i*j] = { .active = true, .freed = false,
-                              .flags = (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_ANIMATED,
-                              .position = {13 * i, 10 * j,0}, .orient = 3, .renderLayer = 1,
-                              .sprite{{0,0,16,32}, tex, {0,0}, SDL_FLIP_VERTICAL},
-                              .anim{ {{0,0,16,32}, {16,0,16,32}, {32,0,16,32}, {48,0,16,32}},
-                                     1.0f, true } };
+                              .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+                                       (u32) EntityFlag::IS_ANIMATED,
+                              .position = {13 * i, 10 * j,0},
+                              .orient = 3, .renderLayer = 1,
+                              .sprite{{0,0,16,32}, tex, {0,0}, SDL_FLIP_NONE},
+                              .anim{ {{0,0,16,32}, {16,0,16,32},
+                                      {32,0,16,32}, {48,0,16,32}}, 1.0f, true } };
+                ents[i*j].collider  = { 0, 0, 16, 32};
             }
         }
 
-        // TEST TILE GENERATION
+        // TEST TILE GENERATION ////////////////////////////////////////////////
         tmx::Map map;
         if (!map.load("res/tiletest.tmx")) { printf("map didnt load"); exit(1); }
 
@@ -62,6 +69,14 @@ public:
                 //read out tile set properties, load textures etc...
             }
 
+            for (const auto& t : ts.getTiles())
+            {
+                if (!t.objectGroup.getObjects().empty())
+                {
+                    const auto collAABB = t.objectGroup.getObjects().at(0).getAABB();
+                }
+            }
+
             if(layer->getType() == tmx::Layer::Type::Tile)
             {
                 const auto& tileLayer = layer->getLayerAs<tmx::TileLayer>();
@@ -74,11 +89,21 @@ public:
                             u32 y = testingcount / tilecountXY.x;
                             u32 x = testingcount % tilecountXY.y;
 
+                            // TODO collision box data uses pixels as units, we
+                            // might want to convert this to a 0-1 range
                             auto tile = ts.getTile(t.ID);
                             SDL_Rect bb = {(i32) tile->imagePosition.x,
                                            (i32) tile->imagePosition.y,
                                            (i32) tile->imageSize.x,
                                            (i32) tile->imageSize.y};
+
+                            if (!tile->objectGroup.getObjects().empty())
+                            {
+                                const auto& aabb = tile->objectGroup.getObjects().at(0).getAABB();
+                                ents[i].collider    = {(i32) aabb.left,  (i32) aabb.top,
+                                                       (i32) aabb.width, (i32) aabb.height};
+                                ents[i].flags        = (u32) EntityFlag::IS_COLLIDER;
+                            }
 
                             ents[i].active       = true;
                             ents[i].freed        = false;
@@ -126,6 +151,13 @@ public:
             if (!ents[i].active) continue;
             if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
                 ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
+        }
+
+        for (u32 i = 0; i < MAX_ENTITIES; i++)
+        {
+            if (!ents[i].active) continue;
+            if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+                player.update(dt, ents[i]);
         }
     }
 
@@ -176,7 +208,7 @@ public:
         {
             if (!ents[i].active) continue;
             if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-                Player::handleEvent(event, ents[i]);
+                player.handleEvent(event, ents[i]);
         }
     }
 
@@ -184,8 +216,9 @@ private:
     SDL_Texture* tex;
     SDL_Texture* tiletex;
     SDL_Texture* txtTex;
+    Player player;
 
+public:
     // compile times blow up when this is not static and MAX_ENTITIES is large
-     Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
-    //static Entity ents[MAX_ENTITIES];
+    static Entity ents[MAX_ENTITIES];
 };

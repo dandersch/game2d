@@ -3,6 +3,7 @@
 # builds js app & start local webserver on localhost:8000
 /usr/lib/emscripten/emcc -v \
     ../main.cpp \
+    ../src/*.cpp \
     ../dep/libtmxlite_ems.a \
     -I../dep/imgui-1.82/ \
     -I../ -I../dep/ -I../src/ \
