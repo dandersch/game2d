@@ -24,7 +24,7 @@ enum class EntityFlag
 struct Entity
 {
     b32  active; // determines if needs updating
-    b32  freed;  // determines if can be replaced with new entity
+    b32  freed = true;  // determines if can be replaced with new entity
     u32  flags;
     glm::vec3 position;
     f32  scale = 1.0f;
@@ -34,7 +34,7 @@ struct Entity
     Sprite sprite;
     Animation anim;
 
-    //Tile tile;
+    MyTile tile;
 
     //SDL_Rect collider; // TODO box2d
     //EntityState  state;

@@ -27,6 +27,9 @@ include_directories("dep/glm/")
 include_directories("dep/imgui-1.82/")
 file(GLOB imgui_src "dep/imgui-1.82/imgui*.cpp")
 
+# tmxlite
+include_directories("dep/")
+
 # Internal
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 include_directories("src/")
@@ -40,4 +43,5 @@ target_link_libraries(megastruct
                       SDL2
                       SDL2_image
                       SDL2_ttf
+                      "${CMAKE_CURRENT_SOURCE_DIR}/dep/libtmxlite.a"
                       )
