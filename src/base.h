@@ -25,3 +25,23 @@ typedef float    f32;
 typedef double   f64;
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
+
+// ASSERTIONS //////////////////////////////////////////////////////////////////
+#include <signal.h> // for debug breaking
+#ifdef ENABLE_ASSERTS
+#define REPORT_ASSERT(expr, file, line)                                        \
+    printf("Assert failed for '%s' in file '%s' at line '%d'\n", expr, file, line)
+
+// TODO make platform indepent
+#define DEBUG_BREAK() raise(SIGTRAP)
+
+#define ASSERT(expr)                                        \
+    if (expr) { }                                           \
+    else                                                    \
+    {                                                       \
+        REPORT_ASSERT(#expr, __FILE__, __LINE__);           \
+        DEBUG_BREAK();                                      \
+    }
+#else
+#define ASSERT(expr)
+#endif

@@ -17,6 +17,7 @@ public:
     virtual void OnAttach() {} // init stuff goes in here
     virtual void OnDetach() {} // cleanup stuff goes in here
     virtual void OnUpdate(f32 dt) {}
+    virtual void OnRender() {}
     virtual void OnImGuiRender() {}
     virtual void OnEvent(Event& event) {}
 
