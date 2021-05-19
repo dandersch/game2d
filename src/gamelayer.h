@@ -8,7 +8,7 @@
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
 
-#define MAX_ENTITIES  1000000
+#define MAX_ENTITIES  10000
 const int MAX_RENDER_LAYERS = 100;
 
 class GameLayer : public Layer
@@ -68,11 +68,9 @@ public:
                 const auto& tiles =  tileLayer.getTiles();
                 for (const auto& t : tiles)
                 {
-                    testingcount++;
                     for (u32 i = 0; i < MAX_ENTITIES; i++) {
                         if (ents[i].freed)
                         {
-                            // TODO convert from tileID to position
                             u32 y = testingcount / tilecountXY.x;
                             u32 x = testingcount % tilecountXY.y;
 
@@ -94,6 +92,8 @@ public:
                             break;
                         }
                     }
+                    // TODO better name / there might be an equivalent in tmx
+                    testingcount++;
                 }
             }
         }
@@ -186,5 +186,6 @@ private:
     SDL_Texture* txtTex;
 
     // compile times blow up when this is not static and MAX_ENTITIES is large
-    static Entity ents[MAX_ENTITIES]; // TODO does this zero out the array?
+     Entity ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
+    //static Entity ents[MAX_ENTITIES];
 };
