@@ -5,7 +5,7 @@
 struct Event
 {
     SDL_Event evn;
-    b32 handled;
+    b32 handled = false;
 };
 
 class Layer

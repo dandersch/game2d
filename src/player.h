@@ -11,8 +11,6 @@ class Player
 public:
     static void handleEvent(const Event& e,  Entity& ent)
     {
-        if (e.handled) return;
-
         SDL_Event evn = e.evn;
 
         switch (evn.type) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef IMGUI
+#include "SDL_events.h"
 #include "pch.h"
 #include "layer.h"
 #include "renderwindow.h"
@@ -53,3 +55,4 @@ public:
 
     // bool m_BlockEvents = true;
 };
+#endif
