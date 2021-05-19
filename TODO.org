@@ -1,0 +1,23 @@
+
+
+
+
+- [ ] camera with scrolling
+- [ ] worldToScreen() and screenToWorld() functions
+- [ ] camera with zooming
+- [ ] application class that provides a main loop for emscripten
+- [ ] support layers when reading in a tmx
+- [ ] eventsystem
+- [ ] clickable entities
+- [ ] use states & orientations for entities
+- [ ] import character/items sprite with tmx
+- [ ] import animations in tmx
+- [ ] entities have animation[]
+- [ ] use commands for the playercontroller
+- [ ] have a commands[] for every entity
+- [ ] fixed deltatime timestep
+- [ ] timeloop
+- [ ] timerewind
+- [ ] sound
+- [ ] inputmapper
+- [ ] ui & menu

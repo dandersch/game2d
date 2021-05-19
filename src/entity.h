@@ -20,6 +20,18 @@ enum class EntityFlag
     IS_COLLIDER
 };
 
+enum class EntityState
+{
+    IDLE, MOVE, ATTACK,
+    COUNT
+};
+
+enum class Orientation
+{
+    DOWN, RIGHT, UP, LEFT,
+    COUNT
+};
+
 struct Entity
 {
     b32  active; // determines if needs updating
@@ -31,12 +43,14 @@ struct Entity
     u32  renderLayer;
 
     Sprite sprite;
-    Animation anim;
+    Animation anim; // TODO use an index that accesses into anims instead
 
     MyTile tile;
 
     SDL_Rect collider; // TODO box2d?
-    //EntityState  state;
+    EntityState  state;
+
+    Animation anims[(u32) EntityState::COUNT * (u32) Orientation::COUNT];
 
     /*
     Command* cmds = new Command[maxCmdCount]; // command array for replay

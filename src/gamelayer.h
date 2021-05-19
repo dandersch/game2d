@@ -7,8 +7,9 @@
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
+#include "tmxlite/Tileset.hpp"
 
-#define MAX_ENTITIES  10000
+#define MAX_ENTITIES  100000
 const int MAX_RENDER_LAYERS = 100;
 
 class GameLayer : public Layer
@@ -28,6 +29,7 @@ public:
         // ENTITY GENERATION ///////////////////////////////////////////////////
         ents[0] = { .active = true, .freed = false,
                     .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+                             (u32) EntityFlag::IS_ANIMATED |
                              (u32) EntityFlag::IS_COLLIDER,
                     .position = {0,0,0}, .orient = 0, .renderLayer = 1,
                     .sprite{{0,0,16,32}, tex, {0,0}}};
@@ -40,7 +42,7 @@ public:
             for (u32 j = 1; j < 100; j++)
             {
                 ents[i*j] = { .active = true, .freed = false,
-                              .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+                              .flags = /*(u32) EntityFlag::PLAYER_CONTROLLED |*/
                                        (u32) EntityFlag::IS_ANIMATED,
                               .position = {13 * i, 10 * j,0},
                               .orient = 3, .renderLayer = 1,
@@ -52,16 +54,44 @@ public:
         }
 
         // TEST TILE GENERATION ////////////////////////////////////////////////
+        tmx::Map charMap;
+        if (!charMap.load("res/character.tmx")) { printf("charmap didnt load"); exit(1); }
+        printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
+
+        // testing loading animations from .tmx (/.tsx) files
+        u32 animIndex = 0;
+        for (auto anim : charMap.getAnimatedTiles())
+        {
+            for (auto frame : anim.second.animation.frames)
+            {
+                //auto tileID = anim.second.animation.frames.at(0).tileID;
+                auto tileID = frame.tileID;
+                //printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
+                auto pos    = charMap.getTilesets().at(0).getTile(tileID)->imagePosition;
+                auto size   = charMap.getTilesets().at(0).getTile(tileID)->imageSize;
+                //printf("pos: %u, %u\n", pos.x, pos.y);
+                //printf("size: %u, %u\n", size.x, size.y);
+                SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
+                ents[0].anims[animIndex].frames.push_back(bb);
+                ents[0].anims[animIndex].loop = true;
+                ents[0].anims[animIndex].length = 1.0f;
+            }
+            animIndex++;
+        }
+        ents[0].anim = ents[0].anims[0];
+
         tmx::Map map;
         if (!map.load("res/tiletest.tmx")) { printf("map didnt load"); exit(1); }
 
         const auto& tilecountXY = map.getTileCount();
         u32 max_tiles = tilecountXY.x * tilecountXY.y;
 
+        u32 layercount   = 0;
         u32 testingcount = 0;
         const auto& layers = map.getLayers();
         for(const auto& layer : layers)
         {
+            testingcount = 0;
             const auto& tilesets = map.getTilesets();
             const auto& ts = tilesets.at(0);
             for(const auto& tileset : tilesets)
@@ -92,6 +122,7 @@ public:
                             // TODO collision box data uses pixels as units, we
                             // might want to convert this to a 0-1 range
                             auto tile = ts.getTile(t.ID);
+                            if (!tile) break;
                             SDL_Rect bb = {(i32) tile->imagePosition.x,
                                            (i32) tile->imagePosition.y,
                                            (i32) tile->imageSize.x,
@@ -107,7 +138,7 @@ public:
 
                             ents[i].active       = true;
                             ents[i].freed        = false;
-                            ents[i].renderLayer  = 0;
+                            ents[i].renderLayer  = layercount;
                             // TODO why does this have to be 24...
                             ents[i].position     = {x * 24.f, y * 24.f, 0};
                             ents[i].tile         = { t.ID, TileType::GRASS };
@@ -121,6 +152,7 @@ public:
                     testingcount++;
                 }
             }
+            layercount++;
         }
 
         // Font Test
