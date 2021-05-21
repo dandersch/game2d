@@ -4,40 +4,30 @@
 #include "renderwindow.h"
 #include "gamelayer.h"
 #include "entity.h"
+#include "resourcemgr.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
 #include "tmxlite/Tileset.hpp"
 
-
-// TODO loading in textures on demand here
-
 class LevelGenerator
 {
 public:
-    LevelGenerator() {}
+    LevelGenerator() : texMgr(".png") {}
     ~LevelGenerator() = default;
 
     bool loadLevel(const std::string& file, Entity* ents, u32 max_ents)
     {
-        // TODO get texture paths from tmx files
-        // TODO we probably need some kind of asset/resourcemanager for this
-        tex = IMG_LoadTexture(rw->renderer, "res/character.png");
-        SDL_ERROR(tex);
-
-        tiletex = IMG_LoadTexture(rw->renderer, "res/gravetiles.png");
-        SDL_ERROR(tiletex);
-
         // ENTITY GENERATION ///////////////////////////////////////////////////
+        // TODO load in from tmx
+        SDL_Texture* chartex = texMgr.get("res/character.png");
         ents[0] = { .active = true, .freed = false,
         .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
         (u32) EntityFlag::IS_ANIMATED |
         (u32) EntityFlag::IS_COLLIDER,
         .position = {0,0,0}, .orient = 0, .renderLayer = 1,
-        .sprite{{0,0,16,32}, tex, {0,0}}};
+        .sprite{{0,0,16,32}, chartex, {0,0}}};
         ents[0].collider  = { 0, 0, 16, 32};
-
-        //memset(ents, 0, sizeof(ents));
 
         for (u32 i = 1; i < 100; i++)
         {
@@ -49,7 +39,7 @@ public:
                 (u32) EntityFlag::IS_ANIMATED,
                 .position = {13 * i, 10 * j,0},
                 .orient = 3, .renderLayer = 1,
-                .sprite{{0,0,16,32}, tex, {0,0}, SDL_FLIP_NONE},
+                .sprite{{0,0,16,32}, chartex, {0,0}, SDL_FLIP_NONE},
                 .anim{ {{0,0,16,32}, {16,0,16,32},
                         {32,0,16,32}, {48,0,16,32}}, 1.0f, true } };
                 ents[i*j].collider  = { 0, 0, 16, 32};
@@ -70,6 +60,8 @@ public:
             tilecount = 0;
             const auto& tilesets = map.getTilesets();
             const auto& ts       = tilesets.at(0);
+
+            SDL_Texture* tiletex = texMgr.get(ts.getImagePath());
 
             if(layer->getType() == tmx::Layer::Type::Tile)
             {
@@ -127,7 +119,6 @@ public:
         // Loading in animations
         tmx::Map charMap;
         if (!charMap.load("res/character.tmx")) { printf("charmap didnt load"); exit(1); }
-        //printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
 
         // testing loading animations from .tmx (/.tsx) files
         u32 animIndex = 0;
@@ -135,13 +126,9 @@ public:
         {
             for (auto frame : anim.second.animation.frames)
             {
-                //auto tileID = anim.second.animation.frames.at(0).tileID;
                 auto tileID = frame.tileID;
-                //printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
                 auto pos    = charMap.getTilesets().at(0).getTile(tileID)->imagePosition;
                 auto size   = charMap.getTilesets().at(0).getTile(tileID)->imageSize;
-                //printf("pos: %u, %u\n", pos.x, pos.y);
-                //printf("size: %u, %u\n", size.x, size.y);
                 SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
                 ents[0].anims[animIndex].frames.push_back(bb);
                 ents[0].anims[animIndex].loop = true;
@@ -155,6 +142,5 @@ public:
     }
 
 private:
-    SDL_Texture* tex;
-    SDL_Texture* tiletex;
+    ResourceManager<SDL_Texture*> texMgr;
 };

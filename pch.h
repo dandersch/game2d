@@ -11,6 +11,8 @@ extern f32 accumulator;
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT  960
 
+#include <memory>
+#include <unordered_map>
 #include <map>
 #include <functional>
 #include <string>
