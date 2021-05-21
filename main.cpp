@@ -19,6 +19,7 @@ std::vector<Layer*> layerStack;
 #endif
 
 // global because we need it in the "main_loop" used for emscripten
+RenderWindow* rw;
 u32 g_time;
 f32 dt;
 f32 accumulator;

@@ -1,12 +1,15 @@
 #pragma once
 
-// (mostly) temporary globals
-struct RenderWindow;
-static RenderWindow* rw;
+#include "base.h"
+
+// temporary globals
+class RenderWindow;
+extern RenderWindow* rw;
+extern u32 g_time;
+extern f32 dt;
+extern f32 accumulator;
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT  960
-
-#include "base.h"
 
 #include <map>
 #include <functional>
@@ -31,6 +34,7 @@ static RenderWindow* rw;
 #include <SDL_keyboard.h>
 #include <SDL_image.h>
 #include <SDL_video.h>
+#include "SDL_thread.h"
 //#include "Box2D/Box2D.h"
 
 #ifdef __EMSCRIPTEN__
