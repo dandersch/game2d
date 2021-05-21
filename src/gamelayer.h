@@ -191,30 +191,30 @@ public:
         {
             if (!ents[i].active) continue;
 
+            // player input
             if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
                 player.update(dt, ents[i]);
 
-            // NOTE animation should probably be last after input & collision etc.
-            if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
-                ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
-        }
-
-        // collision checking
-        for (u32 i = 0; i < MAX_ENTITIES; i++)
-        {
+            // collision checking
             bool collided = false;
             Entity& e1 = ents[i];
-            if (!e1.active) continue;
-            if (!((e1.flags & (u32) EntityFlag::IS_COLLIDER) &&
-                  (e1.flags & (u32) EntityFlag::PLAYER_CONTROLLED))) continue;
-            for (u32 j = i; j < MAX_ENTITIES; j++)
+            if ((e1.flags & (u32) EntityFlag::IS_COLLIDER) &&
+                (e1.flags & (u32) EntityFlag::PLAYER_CONTROLLED))
             {
-                Entity& e2 = ents[j];
-                if (!e2.active) continue;
-                if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&e1 != &e2))
-                    collided = Collision::checkCollision(e1, e2);
+                for (u32 j = i; j < MAX_ENTITIES; j++)
+                {
+                    Entity& e2 = ents[j];
+                    if (!e2.active) continue;
+                    if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&e1 != &e2))
+                        collided = Collision::checkCollision(e1, e2);
+                }
             }
             if (!collided) ents[i].position += ents[i].movement;
+
+            // NOTE animation should probably be last after input & collision etc.
+            // animation
+            if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
+                ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
         }
     }
 
