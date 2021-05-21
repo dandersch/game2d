@@ -32,4 +32,5 @@ public:
 private:
     // compile times blow up when this is not static and MAX_ENTITIES is large
     static Entity ents[MAX_ENTITIES];
+    bool debugDraw = false;
 };

@@ -119,7 +119,14 @@ void GameLayer::OnRender()
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
             rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
-                       1.5f, ents[i].sprite.flip);
+                       1.0f, ents[i].sprite.flip);
+
+            // DEBUG DRAW TODO enable with button press, maybe add DRAW_DEBUG
+            // flag to ents
+            if (debugDraw)
+            {
+                rw->debugDraw(ents[i], cam.worldToScreen(ents[i].position));
+            }
 
             if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
         }
@@ -145,7 +152,7 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
-    ImGui::Button("Button Test");
+    ImGui::Checkbox("ENABLE DEBUG DRAW", &debugDraw);
     ImGui::End();
 #endif
 }

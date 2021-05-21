@@ -9,7 +9,7 @@ extern u32 g_time;
 extern f32 dt;
 extern f32 accumulator;
 #define SCREEN_WIDTH  1280
-#define SCREEN_HEIGHT  960
+#define SCREEN_HEIGHT 960
 
 #include <memory>
 #include <unordered_map>
@@ -27,6 +27,7 @@ extern f32 accumulator;
 
 #include <glm/glm.hpp>
 #include <SDL.h>
+#include "SDL_hints.h"
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 #include <SDL_timer.h>

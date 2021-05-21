@@ -11,7 +11,7 @@ void Player::handleEvent(const Event& e,  Entity& ent, const Camera& cam)
     switch (evn.type) {
     case SDL_MOUSEBUTTONDOWN:
         auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
-        ent.position = glm::vec3(click.x, click.y, 0);
+        ent.setPivPos(glm::vec3(click.x, click.y, 0));
         break;
     }
 }
