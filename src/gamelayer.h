@@ -1,10 +1,9 @@
 #pragma once
 
-#include "collision.h"
 #include "pch.h"
 #include "layer.h"
+#include "collision.h"
 #include "player.h"
-#include "renderwindow.h"
 #include "camera.h"
 
 // NOTE emscript build fails when entity array is too large...
@@ -26,8 +25,6 @@ public:
     virtual void OnImGuiRender() override;
 
 public:
-    SDL_Texture* tex;
-    static SDL_Texture* tiletex;
     SDL_Texture* txtTex;
     Player player;
     Camera cam;

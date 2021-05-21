@@ -2,6 +2,7 @@
 
 
 
+- [ ] resourcemanager (just for textures for now)
 - [ ] camera with scrolling
 - [ ] worldToScreen() and screenToWorld() functions
 - [ ] camera with zooming
@@ -16,9 +17,13 @@
 - [ ] entities have animation[]
 - [ ] use commands for the playercontroller
 - [ ] have a commands[] for every entity
+- [ ] commandProcessor that records to/replays from array
 - [ ] fixed deltatime timestep
 - [ ] timeloop
 - [ ] timerewind
-- [ ] sound
+- [ ] "AI"controller subsystem
+- [ ] sound/audiosystem
 - [ ] inputmapper
 - [ ] ui & menu
+- [ ] tilemap culling
+- [ ] entitymanager (handles entity array & can ask for free slot etc.)
