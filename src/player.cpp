@@ -4,13 +4,14 @@
 #include "gamelayer.h"
 #include "entity.h"
 
-void Player::handleEvent(const Event& e,  Entity& ent)
+void Player::handleEvent(const Event& e,  Entity& ent, const Camera& cam)
 {
     SDL_Event evn = e.evn;
 
     switch (evn.type) {
     case SDL_MOUSEBUTTONDOWN:
-        ent.position = glm::vec3(evn.button.x, evn.button.y, 0);
+        auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
+        ent.position = glm::vec3(click.x, click.y, 0);
         break;
     }
 }
@@ -52,29 +53,5 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
         ent.anim   = ent.anims[ent.orient]; // TODO support states
     }
 
-    // temp. collision code
-    // TODO variable dt creates tunneling effect
-    for (int i = 0; i < MAX_ENTITIES; i++)
-    {
-        if (!GameLayer::ents[i].active) continue;
-        if ((GameLayer::ents[i].flags & (u32) EntityFlag::IS_COLLIDER) &&
-            &GameLayer::ents[i] != &ent)
-        {
-            SDL_Rect a = {(i32) (ent.position.x + movement.x) + ent.collider.x,
-                          (i32) (ent.position.y + movement.y) + ent.collider.y,
-                          ent.collider.w, ent.collider.h,} ;
-            const auto& entB = GameLayer::ents[i];
-            SDL_Rect b = {(i32) entB.position.x + entB.collider.x,
-                          (i32) entB.position.y + entB.collider.y,
-                          entB.collider.w, entB.collider.h,} ;
-
-            if (Collision::AABB(a, b))
-            {
-                //printf("COLLISION\n");
-                movement = {0,0,0};
-            }
-        }
-    }
-
-    ent.position += movement;
+    ent.movement = movement;
 }

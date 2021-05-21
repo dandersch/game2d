@@ -1,9 +1,12 @@
 #pragma once
 
+#include "SDL_thread.h"
+#include "collision.h"
 #include "pch.h"
 #include "layer.h"
 #include "player.h"
 #include "renderwindow.h"
+#include "camera.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
@@ -42,7 +45,8 @@ public:
             for (u32 j = 1; j < 100; j++)
             {
                 ents[i*j] = { .active = true, .freed = false,
-                              .flags = /*(u32) EntityFlag::PLAYER_CONTROLLED |*/
+                              .flags = //(u32) EntityFlag::PLAYER_CONTROLLED |
+                                       (u32) EntityFlag::IS_COLLIDER |
                                        (u32) EntityFlag::IS_ANIMATED,
                               .position = {13 * i, 10 * j,0},
                               .orient = 3, .renderLayer = 1,
@@ -54,9 +58,14 @@ public:
         }
 
         // TEST TILE GENERATION ////////////////////////////////////////////////
+        // TODO LevelGenerator that can fill the entityarray with static tiles &
+        // (items &) characters (maybe without sprites), afterwards fill
+        // characters (i.e. entities with flag IS_CHARACTER or sth.) and fill
+        // e.g animations of entities with CharacterType SKELETON with
+        // "skeleton.tmx"
         tmx::Map charMap;
         if (!charMap.load("res/character.tmx")) { printf("charmap didnt load"); exit(1); }
-        printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
+        //printf("%u\n", charMap.getTilesets().at(0).getTile(1)->ID);
 
         // testing loading animations from .tmx (/.tsx) files
         u32 animIndex = 0;
@@ -163,13 +172,11 @@ public:
                                 "Another line here.";
 
         SDL_Color textColor   = {150,160,100,230};
-        //SDL_Surface* textSurf = TTF_RenderText_Solid(font, text.c_str(), textColor);
         SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(font, text.c_str(),
                                                                textColor, 800);
         SDL_ERROR(textSurf);
         txtTex   = SDL_CreateTextureFromSurface(rw->renderer, textSurf);
         SDL_ERROR(txtTex);
-
     }
 
     virtual void OnDetach() override
@@ -178,18 +185,36 @@ public:
 
     virtual void OnUpdate(f32 dt) override
     {
+        // TODO find out if it matters if we do everything in one loop for one
+        // entity vs. every "system" has its own loop
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
             if (!ents[i].active) continue;
+
+            if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+                player.update(dt, ents[i]);
+
+            // NOTE animation should probably be last after input & collision etc.
             if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
                 ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
         }
 
+        // collision checking
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
-            if (!ents[i].active) continue;
-            if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-                player.update(dt, ents[i]);
+            bool collided = false;
+            Entity& e1 = ents[i];
+            if (!e1.active) continue;
+            if (!((e1.flags & (u32) EntityFlag::IS_COLLIDER) &&
+                  (e1.flags & (u32) EntityFlag::PLAYER_CONTROLLED))) continue;
+            for (u32 j = i; j < MAX_ENTITIES; j++)
+            {
+                Entity& e2 = ents[j];
+                if (!e2.active) continue;
+                if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&e1 != &e2))
+                    collided = Collision::checkCollision(e1, e2);
+            }
+            if (!collided) ents[i].position += ents[i].movement;
         }
     }
 
@@ -202,7 +227,8 @@ public:
             {
                 if (!ents[i].active) continue;
                 if (ents[i].renderLayer != l) continue;
-                rw->render(ents[i].sprite, ents[i].position, 1.5f, ents[i].sprite.flip);
+                rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
+                           1.5f, ents[i].sprite.flip);
 
                 if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
             }
@@ -236,11 +262,40 @@ public:
 
     virtual void OnEvent(Event& event) override
     {
+        SDL_Event evn = event.evn;
+
+        switch (evn.type) {
+        case SDL_KEYDOWN:
+            switch (evn.key.keysym.sym)
+            {
+            case SDLK_UP:
+                cam.cameraRect.y -= 5;
+                break;
+            case SDLK_DOWN:
+                cam.cameraRect.y += 5;
+                break;
+            case SDLK_LEFT:
+                cam.cameraRect.x -= 5;
+                break;
+            case SDLK_RIGHT:
+                cam.cameraRect.x += 5;
+                break;
+            }
+            break;
+        case SDL_MOUSEMOTION:
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
+            cam.cameraRect.x = click.x - (cam.cameraRect.w/2);
+            cam.cameraRect.y = click.y - (cam.cameraRect.h/2);
+            break;
+        }
+
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
             if (!ents[i].active) continue;
             if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-                player.handleEvent(event, ents[i]);
+                player.handleEvent(event, ents[i], cam);
         }
     }
 
@@ -249,6 +304,8 @@ private:
     SDL_Texture* tiletex;
     SDL_Texture* txtTex;
     Player player;
+    Camera cam;
+
 
 public:
     // compile times blow up when this is not static and MAX_ENTITIES is large

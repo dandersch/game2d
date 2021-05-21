@@ -2,34 +2,21 @@
 
 #include "pch.h"
 
+
+struct Entity;
 namespace Collision {
 
-static bool AABB(const SDL_Rect& recA, const SDL_Rect& recB)
-{
-    if (recA.x + recA.w >= recB.x &&
-        recB.x + recB.w >= recA.x &&
-        recA.y + recA.h >= recB.y &&
-        recB.y + recB.h >= recA.y)
-    {
-        return true;
-    }
+bool AABB(const SDL_Rect& recA, const SDL_Rect& recB);
 
-    return false;
-}
+// TODO for all entities collect their desired movement in one update loop,
+// then have one loop for collision detection with that movement vec
 
-/*
-static bool AABB(const ColliderComponent& colA, const ColliderComponent& colB)
-{
-    if (AABB(colA.collider, colB.collider))
-    {
-        //std::cout << colA.tag << " hit: " << colB.tag << std::endl;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-*/
+// map for callback functions because we access into it with a bitmask, e.g.
+// when enemy & character collide, we do
+// callbacks[TYPE_ENEMY & TYPECHARACTER](e1, e2)
+// and maybe also pass in a struct collisionInfo
+static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks;
+
+bool checkCollision(Entity& e1, Entity& e2);
 
 } // namespace Collision

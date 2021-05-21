@@ -11,6 +11,7 @@
 - [ ] clickable entities
 - [ ] use states & orientations for entities
 - [ ] import character/items sprite with tmx
+- [ ] use & read in pivots
 - [ ] import animations in tmx
 - [ ] entities have animation[]
 - [ ] use commands for the playercontroller

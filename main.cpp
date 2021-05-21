@@ -29,6 +29,7 @@ int main(int argc, char* args[])
 {
     // SDL SETUP ///////////////////////////////////////////////////////////////
     rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
+    //SDL_RenderSetScale(rw->renderer, 2.f, 2.f); // use for zooming?
 
     layerStack.push_back(new GameLayer());
 

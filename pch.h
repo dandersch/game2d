@@ -8,6 +8,8 @@ static RenderWindow* rw;
 
 #include "base.h"
 
+#include <map>
+#include <functional>
 #include <string>
 #include <vector>
 #include <stdio.h>

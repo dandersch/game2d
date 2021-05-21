@@ -2,8 +2,6 @@
 
 #include "pch.h"
 
-#define NUMBER_OF_FRAMES 3
-
 struct Animation
 {
     //b32 done = true;

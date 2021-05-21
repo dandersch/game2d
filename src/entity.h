@@ -51,24 +51,14 @@ struct Entity
     EntityState  state;
 
     Animation anims[(u32) EntityState::COUNT * (u32) Orientation::COUNT];
+    glm::vec3 movement; // desired movement for this frame, used by collision.h
 
     /*
+    u32 charID; // TODO read in from .tmx
     Command* cmds = new Command[maxCmdCount]; // command array for replay
     u32 cmdIdx    = 0;
-
-    struct Animation
-    {
-        std::vector<SDL_Rect> clips;
-        f32 speed    = 1.f;
-        f32 animTime;
-    };
-    HashMap[int, Animation*] currentAnim;
-    u32 charID;
-
-
-    // P.I.T. contains pos, state, orient, active
+    // contains pos, state, orient, active
     PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
-
     SoundBuffer sfx[];
     */
 };
