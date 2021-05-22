@@ -33,11 +33,10 @@ void Player::update(f32 dt, Entity &ent)
     if (input & ACTION_MOVE_DOWN) movement = glm::vec3( 0, 1,0) * playerSpeed * dt;
     if (input & ACTION_MOVE_RIGHT) movement = glm::vec3( 1, 0,0) * playerSpeed * dt;
 
-    tryMove(movement, ent);
-
-    // TODO use commands
-    //auto moveCmd = new MoveCommand(movement);
-    //CommandProcessor::record(ent, moveCmd);
+    // use commands instead of calling tryMove directly
+    auto moveCmd = new MoveCommand(movement);
+    CommandProcessor::record(ent, moveCmd);
+    //tryMove(movement, ent);
 }
 
 void Player::tryMove(glm::vec3 movement, Entity& ent)

@@ -75,6 +75,7 @@ struct Entity
     Animation anims[(u32) EntityState::COUNT * (u32) Orientation::COUNT];
     glm::vec3 movement; // desired movement for this frame, used by collision.h
 
+    // TODO fill up with nullcommands at start
     Command* cmds[MAX_CMD_COUNT]; // command array for replay
     u32 cmdIdx = 0;
 

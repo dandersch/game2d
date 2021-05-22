@@ -95,7 +95,7 @@ void GameLayer::OnUpdate(f32 dt)
         // command replay
         if (ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)
         {
-            //CommandProcessor::replay(ents[i]);
+            CommandProcessor::replay(ents[i]);
         }
 
         // collision checking
@@ -163,14 +163,24 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("TICKS: %d", g_time);
     ImGui::Text("ACCU: %f", accumulator);
     ImGui::Text("DT: %f", dt);
+    ImGui::Text("CMD IDX: %u", ents[0].cmdIdx);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
     if (ImGui::Button("TOGGLE PLAYER/CMD CONTROL"))
     {
         printf("TOGGLED\n");
-        ents[0].flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
-        ents[0].flags |= (u32) EntityFlag::CMD_CONTROLLED;
+        // TODO better way to toggle these bits...
+        if (ents[0].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+        {
+            ents[0].flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
+            ents[0].flags |= (u32) EntityFlag::CMD_CONTROLLED;
+        }
+        else if (ents[0].flags & (u32) EntityFlag::CMD_CONTROLLED)
+        {
+            ents[0].flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
+            ents[0].flags ^= (u32) EntityFlag::CMD_CONTROLLED;
+        }
         ents[0].cmdIdx = 0;
     }
 

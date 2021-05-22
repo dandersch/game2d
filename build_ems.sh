@@ -13,6 +13,7 @@
     -s SDL2_IMAGE_FORMATS='[bmp,png,xpm]' \
     -s USE_SDL_TTF=2 \
     -s LLD_REPORT_UNDEFINED \
+    -s TOTAL_MEMORY=1310720000 \
     -ldl \
     -lpthread \
     -o sdl_test.html \
