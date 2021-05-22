@@ -3,6 +3,9 @@
 #include "pch.h"
 #include "animation.h"
 #include "tile.h"
+#include "command.h"
+
+#define MAX_CMD_COUNT 1000
 
 struct Sprite
 {
@@ -12,12 +15,16 @@ struct Sprite
     SDL_RendererFlip flip = SDL_FLIP_NONE;
 };
 
-enum class EntityFlag
+// TODO use regular enum...
+enum class EntityFlag : u32
 {
-    NONE, PLAYER_CONTROLLED,
-    IS_ANIMATED,
-    IS_TILE,
-    IS_COLLIDER
+    NONE               = 0,
+    PLAYER_CONTROLLED  = (1 << 0),
+    CMD_CONTROLLED     = (1 << 1),
+    IS_ANIMATED        = (1 << 2),
+    IS_TILE            = (1 << 3),
+    IS_COLLIDER        = (1 << 4),
+    IS_ENEMY           = (1 << 5),
 };
 
 enum class EntityState
@@ -68,10 +75,11 @@ struct Entity
     Animation anims[(u32) EntityState::COUNT * (u32) Orientation::COUNT];
     glm::vec3 movement; // desired movement for this frame, used by collision.h
 
+    Command* cmds[MAX_CMD_COUNT]; // command array for replay
+    u32 cmdIdx = 0;
+
     /*
     u32 charID; // TODO read in from .tmx
-    Command* cmds = new Command[maxCmdCount]; // command array for replay
-    u32 cmdIdx    = 0;
     // contains pos, state, orient, active
     PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
     SoundBuffer sfx[];

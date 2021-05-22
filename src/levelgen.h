@@ -25,11 +25,11 @@ public:
                     .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
                              (u32) EntityFlag::IS_ANIMATED |
                              (u32) EntityFlag::IS_COLLIDER,
-                    .position = {0,0,0}, .orient = 0, .renderLayer = 1,
+                    .position = {150,150,0}, .orient = 0, .renderLayer = 1,
                     .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}}};
         ents[0].collider  = { 0, 0, 16, 32};
 
-#ifndef stress // stress test
+        // stress test
         for (u32 i = 1; i < 100; i++)
         {
             for (u32 j = 1; j < 100; j++)
@@ -46,7 +46,6 @@ public:
                 ents[i*j].collider  = { 0, 0, 16, 32};
             }
         }
-#endif
 
         tmx::Map map;
         if (!map.load(file)) { printf("map didnt load"); return false; }
@@ -97,7 +96,6 @@ public:
                     newEnt.active       = true;
                     newEnt.freed        = false;
                     newEnt.renderLayer  = layercount;
-                    // TODO why does this have to be 24...
                     newEnt.setPivPos({x * 16.f, y * 16.f, 0});
                     //newEnt.position     = ;
                     newEnt.tile         = { t.ID, TileType::GRASS };

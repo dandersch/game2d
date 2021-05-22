@@ -1,10 +1,7 @@
 
-
-
-
-- [ ] resourcemanager (just for textures for now)
-- [ ] camera with scrolling
-- [ ] worldToScreen() and screenToWorld() functions
+- [X] resourcemanager (just for textures for now)
+- [X] camera with scrolling
+- [X] worldToScreen() and screenToWorld() functions
 - [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
 - [ ] support layers when reading in a tmx
@@ -12,12 +9,15 @@
 - [ ] clickable entities
 - [ ] use states & orientations for entities
 - [ ] import character/items sprite with tmx
-- [ ] use & read in pivots
+- [ ] Tiles should prob. not be entites and have their own array instead
+- [ ] tilemap culling
+- [X] use & read in pivots
 - [ ] import animations in tmx
-- [ ] entities have animation[]
+- [X] entities have animation[]
 - [ ] use commands for the playercontroller
 - [ ] have a commands[] for every entity
 - [ ] commandProcessor that records to/replays from array
+- [ ] profiling tools
 - [ ] fixed deltatime timestep
 - [ ] timeloop
 - [ ] timerewind
@@ -25,5 +25,6 @@
 - [ ] sound/audiosystem
 - [ ] inputmapper
 - [ ] ui & menu
-- [ ] tilemap culling
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
+- [ ] serializing (of cmds[])
+- [ ] implement composite colliders

@@ -26,7 +26,6 @@ public:
 
 public:
     SDL_Texture* txtTex;
-    Player player;
     Camera cam;
 
 private:

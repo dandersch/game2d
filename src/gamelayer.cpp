@@ -1,4 +1,6 @@
 #include "gamelayer.h"
+#include "command.h"
+#include "input.h"
 #include "levelgen.h"
 #include "renderwindow.h"
 
@@ -69,21 +71,32 @@ void GameLayer::OnEvent(Event& event)
     {
         if (!ents[i].active) continue;
         if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-            player.handleEvent(event, ents[i], cam);
+            Player::handleEvent(event, ents[i], cam);
     }
 }
 
 void GameLayer::OnUpdate(f32 dt)
 {
+    // update input
+    Input::update();
+
     // TODO find out if it matters if we do everything in one loop for one
     // entity vs. every "system" has its own loop
     for (u32 i = 0; i < MAX_ENTITIES; i++)
     {
         if (!ents[i].active) continue;
 
-        // player input
+        // player controller
         if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-            player.update(dt, ents[i]);
+        {
+            Player::update(dt, ents[i]);
+        }
+
+        // command replay
+        if (ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)
+        {
+            //CommandProcessor::replay(ents[i]);
+        }
 
         // collision checking
         bool collided = false;
@@ -99,6 +112,7 @@ void GameLayer::OnUpdate(f32 dt)
                     collided = Collision::checkCollision(e1, e2);
             }
         }
+        // TODO should we set movement to zero here if collided?
         if (!collided) ents[i].position += ents[i].movement;
 
         // NOTE animation should probably be last after input & collision etc.
@@ -152,6 +166,14 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
+    if (ImGui::Button("TOGGLE PLAYER/CMD CONTROL"))
+    {
+        printf("TOGGLED\n");
+        ents[0].flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
+        ents[0].flags |= (u32) EntityFlag::CMD_CONTROLLED;
+        ents[0].cmdIdx = 0;
+    }
+
     ImGui::Checkbox("ENABLE DEBUG DRAW", &debugDraw);
     ImGui::End();
 #endif

@@ -27,7 +27,8 @@ extern f32 accumulator;
 
 #include <glm/glm.hpp>
 #include <SDL.h>
-#include "SDL_hints.h"
+#include <SDL_hints.h>
+#include <SDL_rect.h>
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 #include <SDL_timer.h>
@@ -37,7 +38,7 @@ extern f32 accumulator;
 #include <SDL_keyboard.h>
 #include <SDL_image.h>
 #include <SDL_video.h>
-#include "SDL_thread.h"
+#include <SDL_thread.h>
 //#include "Box2D/Box2D.h"
 
 #ifdef __EMSCRIPTEN__

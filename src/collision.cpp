@@ -1,13 +1,42 @@
 #include "collision.h"
 #include "entity.h"
 
+static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
+{ (u32) EntityFlag::IS_ENEMY | (u32) EntityFlag::IS_TILE,
+  [](Entity* e1, Entity* e2)
+  {
+      printf("Yes\n");
+      // do something
+  }},
+{ (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_COLLIDER,
+  [](Entity* e1, Entity* e2)
+  {
+      // do something
+  }}
+};
+
+// NOTE built-in sdl function seems faster
 bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB)
 {
-    if (recA.x + recA.w >= recB.x &&
-        recB.x + recB.w >= recA.x &&
-        recA.y + recA.h >= recB.y &&
-        recB.y + recB.h >= recA.y)
+    // if (recA.x + recA.w >= recB.x &&
+    //     recB.x + recB.w >= recA.x &&
+    //     recA.y + recA.h >= recB.y &&
+    //     recB.y + recB.h >= recA.y)
+    // {
+    //     return true;
+    // }
+
+    //SDL_Rect intersect;
+    //if (SDL_IntersectRect(&recA, &recB, NULL))
+    if (SDL_HasIntersection(&recA, &recB))
     {
+        // TODO use callbacks like this:
+        auto cb = callbacks.find((u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_TILE);
+        if (cb != callbacks.end())
+        {
+            cb->second(nullptr,nullptr);
+        }
+
         return true;
     }
 

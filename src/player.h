@@ -9,10 +9,13 @@ struct Camera;
 class Player
 {
 public:
-    void handleEvent(const Event& e,  Entity& ent, const Camera& cam);
-    void update(f32 dt, Entity& ent);
-    void tryMove(glm::vec3 movement, Entity& ent);
+    Player() = delete;
+    static void handleEvent(const Event& e,  Entity& ent, const Camera& cam);
+    static void update(f32 dt, Entity& ent);
+    static void tryMove(glm::vec3 movement, Entity& ent);
+
+friend class GameLayer;
 
 private:
-    const f32 playerSpeed = 150.f;
+    static const f32 playerSpeed;
 };
