@@ -44,7 +44,7 @@ int main(int argc, char* args[])
 
     // main loop ///////////////////////////////////////////////////////////////
     g_time      = SDL_GetTicks();
-    dt          = 0;
+    dt          = 0.f;
     accumulator = 0;
     run         = true;
 
@@ -77,6 +77,8 @@ void main_loop()
         dt = (SDL_GetTicks() - g_time) / 1000.f;
         g_time = SDL_GetTicks();
         accumulator += (g_time/1000.f);
+
+        dt = 1/60.f; // TODO
 
         // TODO not working
         //while (accumulator > TIME_PER_FRAME) {

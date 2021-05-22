@@ -4,6 +4,7 @@
 #include "levelgen.h"
 #include "renderwindow.h"
 #include "reset.h"
+#include "rewind.h"
 
 Entity GameLayer::ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
 
@@ -89,19 +90,21 @@ void GameLayer::OnUpdate(f32 dt)
     {
         if (!ents[i].active) continue;
 
-        // player controller
+    if (!Reset::isRewinding) // TODO
+    {
+        // PLAYER CONTROLLER ///////////////////////////////////////////////////
         if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
         {
             Player::update(dt, ents[i]);
         }
 
-        // command replay
+        // COMMAND REPLAY //////////////////////////////////////////////////////
         if (ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)
         {
             CommandProcessor::replay(ents[i]);
         }
 
-        // collision checking
+        // COLLISION CHECKING //////////////////////////////////////////////////
         bool collided = false;
         Entity& e1 = ents[i];
         if ((e1.flags & (u32) EntityFlag::IS_COLLIDER) &&
@@ -118,11 +121,20 @@ void GameLayer::OnUpdate(f32 dt)
         // TODO should we set movement to zero here if collided?
         if (!collided) ents[i].position += ents[i].movement;
 
+    }
+        // TIME REWIND /////////////////////////////////////////////////////////
+        if ((ents[i].flags & (u32) EntityFlag::IS_REWINDABLE))
+        {
+            Rewind::update(dt, ents[i]);
+        }
+
         // NOTE animation should probably be last after input & collision etc.
         // TODO animation can crash if IS_ANIMATED entities don't have filled
         // arrays..
         if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
+        {
             ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
+        }
     }
 }
 
@@ -168,6 +180,7 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("DT: %f", dt);
     ImGui::Text("CMD IDX: %u", ents[0].cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);
+    ImGui::Text("IS REWINDING: %u", Reset::isRewinding);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);

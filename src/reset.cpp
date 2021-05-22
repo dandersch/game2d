@@ -9,8 +9,7 @@ void StartRewind();
 bool Reset::isRewinding         = false;
 const f32 Reset::rewindFactor   = 3.0f; // can slow down/speed up rewind
 f32 Reset::loopTime             = 0.f;
-
-static const f32 TIME_FOR_LOOP  = 10.f;
+const f32 Reset::TIME_FOR_LOOP  = 10.f;
 
 void Reset::update(f32 dt)
 {
@@ -38,6 +37,6 @@ void StartRewind()
     printf("REWIND INIT\n");
     Event evn(EventType::EVENT_REWIND);
     evn.args["speed"] = (void*) &Reset::rewindFactor; // TODO
-    Reset::loopTime    = TIME_FOR_LOOP;
+    Reset::loopTime    = Reset::TIME_FOR_LOOP;
     Reset::isRewinding = true;
 }

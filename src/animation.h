@@ -16,6 +16,8 @@ struct Animation
     f32 time = 0;
 };
 
+
+// TODO support backwards playing animations for rewinding
 class Animator
 {
 public:

@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "animation.h"
+#include "rewind.h"
 #include "tile.h"
 #include "command.h"
 
@@ -25,18 +26,19 @@ enum class EntityFlag : u32
     IS_TILE            = (1 << 3),
     IS_COLLIDER        = (1 << 4),
     IS_ENEMY           = (1 << 5),
+    IS_REWINDABLE      = (1 << 6),
 };
 
-enum class EntityState
+enum EntityState
 {
-    IDLE, MOVE, ATTACK,
-    COUNT
+    STATE_IDLE, STATE_MOVE, STATE_ATTACK,
+    STATE_COUNT
 };
 
-enum class Orientation
+enum Orientation
 {
-    DOWN, RIGHT, UP, LEFT,
-    COUNT
+    ORIENT_DOWN, ORIENT_RIGHT, ORIENT_UP, ORIENT_LEFT,
+    ORIENT_COUNT
 };
 
 struct Entity
@@ -70,19 +72,23 @@ struct Entity
     MyTile tile;
 
     SDL_Rect collider; // TODO box2d?
-    EntityState  state;
+    u32  state;
 
-    Animation anims[(u32) EntityState::COUNT * (u32) Orientation::COUNT];
+    Animation anims[STATE_COUNT * ORIENT_COUNT];
     glm::vec3 movement; // desired movement for this frame, used by collision.h
 
     // TODO fill up with nullcommands at start
     Command* cmds[MAX_CMD_COUNT]; // command array for replay
     u32 cmdIdx = 0;
 
+    // contains pos, state, orient, active
+    PointInTime* frames = nullptr;
+    //PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
+
     /*
     u32 charID; // TODO read in from .tmx
-    // contains pos, state, orient, active
-    PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
+
+
     SoundBuffer sfx[];
     */
 };

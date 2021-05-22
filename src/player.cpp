@@ -42,19 +42,19 @@ void Player::update(f32 dt, Entity &ent)
 void Player::tryMove(glm::vec3 movement, Entity& ent)
 {
     Orientation newOrient = (Orientation) ent.orient;
-    if      (movement.y < 0.0f) newOrient = Orientation::UP;
-    else if (movement.y > 0.0f) newOrient = Orientation::DOWN;
-    else if (movement.x > 0.0f) newOrient = Orientation::RIGHT;
-    else if (movement.x < 0.0f) newOrient = Orientation::LEFT;
-    EntityState newState = (EntityState) ent.state;
-    if (movement != glm::vec3{0,0,0})  newState = EntityState::MOVE;
-    else newState = EntityState::IDLE;
+    if      (movement.y < 0.0f) newOrient = ORIENT_UP;
+    else if (movement.y > 0.0f) newOrient = ORIENT_DOWN;
+    else if (movement.x > 0.0f) newOrient = ORIENT_RIGHT;
+    else if (movement.x < 0.0f) newOrient = ORIENT_LEFT;
+    u32 newState = ent.state;
+    if (movement != glm::vec3{0,0,0})  newState = STATE_MOVE;
+    else newState = STATE_IDLE;
 
     //ChangeAnimationState(newAnim, newOrient);
     ent.state  = newState;
-    if (ent.orient != (u32) newOrient)
+    if (ent.orient != newOrient)
     {
-        ent.orient = (u32) newOrient;
+        ent.orient = newOrient;
         ent.anim   = ent.anims[ent.orient]; // TODO support states
     }
 

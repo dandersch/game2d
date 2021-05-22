@@ -5,6 +5,7 @@
 #include "gamelayer.h"
 #include "entity.h"
 #include "resourcemgr.h"
+#include "rewind.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
@@ -24,10 +25,12 @@ public:
         ents[0] = { .active = true, .freed = false,
                     .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
                              (u32) EntityFlag::IS_ANIMATED |
+                             (u32) EntityFlag::IS_REWINDABLE |
                              (u32) EntityFlag::IS_COLLIDER,
                     .position = {150,150,0}, .orient = 0, .renderLayer = 1,
                     .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}}};
         ents[0].collider  = { 0, 0, 16, 32};
+        Rewind::initializeFrames(ents[0]);
 
         // stress test
         for (u32 i = 1; i < 100; i++)
