@@ -10,7 +10,8 @@ enum Action
     ACTION_MOVE_LEFT  = (1 << 3),
     ACTION_PICKUP     = (1 << 4),
     ACTION_ATTACK     = (1 << 5),
-    ACTION_COUNT      = 6
+    ACTION_RESTART    = (1 << 6),
+    ACTION_COUNT      = 7
 };
 
 namespace Input

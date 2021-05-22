@@ -3,6 +3,7 @@
 #include "input.h"
 #include "levelgen.h"
 #include "renderwindow.h"
+#include "reset.h"
 
 Entity GameLayer::ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
 
@@ -79,6 +80,8 @@ void GameLayer::OnUpdate(f32 dt)
 {
     // update input
     Input::update();
+
+    Reset::update(dt); // TODO fixed delta time
 
     // TODO find out if it matters if we do everything in one loop for one
     // entity vs. every "system" has its own loop
@@ -164,6 +167,7 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("ACCU: %f", accumulator);
     ImGui::Text("DT: %f", dt);
     ImGui::Text("CMD IDX: %u", ents[0].cmdIdx);
+    ImGui::Text("LOOP TIME: %f", Reset::loopTime);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);

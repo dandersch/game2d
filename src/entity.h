@@ -5,7 +5,7 @@
 #include "tile.h"
 #include "command.h"
 
-#define MAX_CMD_COUNT 1000
+#define MAX_CMD_COUNT 10000
 
 struct Sprite
 {
