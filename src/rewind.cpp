@@ -27,6 +27,7 @@ void Rewind::record(f32 dt, Entity& e)
     e.frames[TimeToIndex(dt)].state  = e.state;
     e.frames[TimeToIndex(dt)].orient = e.orient;
     e.frames[TimeToIndex(dt)].active = e.active;
+    e.frames[TimeToIndex(dt)].wasSet = true;
 }
 
 u32 Rewind::TimeToIndex(f32 dt)
@@ -40,6 +41,8 @@ u32 Rewind::TimeToIndex(f32 dt)
 
 void Rewind::rewind(f32 dt, Entity& e)
 {
+    ASSERT(e.frames[TimeToIndex(dt)].wasSet);
+
     e.position = e.frames[TimeToIndex(dt)].pos     ;
     e.state    = e.frames[TimeToIndex(dt)].state   ;
     e.orient   = e.frames[TimeToIndex(dt)].orient  ;

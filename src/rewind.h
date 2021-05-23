@@ -10,6 +10,7 @@ struct PointInTime
     u32        state  = 0;       //  4b
     u32        orient = 0;       //  4b
     b32        active = true;    //  4b
+    b8         wasSet = false;   // NOTE for debugging
 
     // int health;
     // TODO use flags bitfield for animstate & orientation & dead

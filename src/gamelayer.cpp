@@ -88,52 +88,64 @@ void GameLayer::OnUpdate(f32 dt)
     // entity vs. every "system" has its own loop
     for (u32 i = 0; i < MAX_ENTITIES; i++)
     {
-        if (!ents[i].active) continue;
+        auto& ent = ents[i];
 
-    if (!Reset::isRewinding) // TODO
-    {
         // PLAYER CONTROLLER ///////////////////////////////////////////////////
-        if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+        if (!Reset::isRewinding && ent.active)
         {
-            Player::update(dt, ents[i]);
+            if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+            {
+              Player::update(dt, ent);
+            }
         }
 
         // COMMAND REPLAY //////////////////////////////////////////////////////
-        if (ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)
+        if (!Reset::isRewinding && ent.active)
         {
-            CommandProcessor::replay(ents[i]);
+            if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
+            {
+                CommandProcessor::replay(ent);
+            }
         }
 
         // COLLISION CHECKING //////////////////////////////////////////////////
-        bool collided = false;
-        Entity& e1 = ents[i];
-        if ((e1.flags & (u32) EntityFlag::IS_COLLIDER) &&
-            (e1.flags & (u32) EntityFlag::PLAYER_CONTROLLED))
+        if (!Reset::isRewinding && ent.active)
         {
-            for (u32 j = i; j < MAX_ENTITIES; j++)
+            bool collided = false;
+            if ((ent.flags & (u32) EntityFlag::IS_COLLIDER) &&
+                (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED))
             {
-                Entity& e2 = ents[j];
-                if (!e2.active) continue;
-                if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&e1 != &e2))
-                    collided = Collision::checkCollision(e1, e2);
+                for (u32 j = i; j < MAX_ENTITIES; j++)
+                {
+                    Entity& e2 = ents[j];
+                    if (!e2.active) continue;
+                    if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
+                        collided = Collision::checkCollision(ent, e2);
+                }
+            }
+            // TODO should we set movement to zero here if collided?
+            if (!collided)
+            {
+                ent.position += ent.movement;
+                // TODO interpolate here
+                // start = ent.position;
+                // end   = ent.position + ent.movement;
+                // ent.position = glm::mix(start, end, interpolant)
             }
         }
-        // TODO should we set movement to zero here if collided?
-        if (!collided) ents[i].position += ents[i].movement;
 
-    }
         // TIME REWIND /////////////////////////////////////////////////////////
-        if ((ents[i].flags & (u32) EntityFlag::IS_REWINDABLE))
+        if ((ent.flags & (u32) EntityFlag::IS_REWINDABLE))
         {
-            Rewind::update(dt, ents[i]);
+            Rewind::update(dt, ent);
         }
 
         // NOTE animation should probably be last after input & collision etc.
         // TODO animation can crash if IS_ANIMATED entities don't have filled
         // arrays..
-        if (ents[i].flags & (u32) EntityFlag::IS_ANIMATED)
+        if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
         {
-            ents[i].sprite.box = Animator::animate(dt, ents[i].anim);
+            ent.sprite.box = Animator::animate(dt, ent.anim);
         }
     }
 }
@@ -150,8 +162,6 @@ void GameLayer::OnRender()
             rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
                        1.0f, ents[i].sprite.flip);
 
-            // DEBUG DRAW TODO enable with button press, maybe add DRAW_DEBUG
-            // flag to ents
             if (debugDraw)
             {
                 rw->debugDraw(ents[i], cam.worldToScreen(ents[i].position));

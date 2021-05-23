@@ -1,30 +1,31 @@
-
 - [X] resourcemanager (just for textures for now)
 - [X] camera with scrolling
 - [X] worldToScreen() and screenToWorld() functions
-- [ ] camera with zooming
-- [ ] application class that provides a main loop for emscripten
-- [ ] support layers when reading in a tmx
-- [ ] eventsystem
-- [ ] clickable entities
-- [ ] use states & orientations for entities
-- [ ] import character/items sprite with tmx
+- [X] eventsystem
+- [X] use states & orientations for entities
+- [X] use & read in pivots
+- [X] entities have animation[]
+- [X] use commands for the playercontroller
+- [X] have a commands[] for every entity
+- [X] commandProcessor that records to/replays from array
+- [X] timeloop
+- [X] timerewind
+- [X] inputmapper
+- [ ] fixed deltatime timestep
+- [ ] use interpolation for movement
 - [ ] Tiles should prob. not be entites and have their own array instead
 - [ ] tilemap culling
-- [X] use & read in pivots
+- [ ] import character/items sprite with tmx
+- [ ] support layers when reading in a tmx
 - [ ] import animations in tmx
-- [X] entities have animation[]
-- [ ] use commands for the playercontroller
-- [ ] have a commands[] for every entity
-- [ ] commandProcessor that records to/replays from array
+- [ ] camera with zooming
+- [ ] clickable entities
+- [ ] application class that provides a main loop for emscripten
 - [ ] profiling tools
-- [ ] fixed deltatime timestep
-- [ ] timeloop
-- [ ] timerewind
+- [ ] serializing (of cmds[])
+- [ ] entitymanager (handles entity array & can ask for free slot etc.)
+- [ ] implement composite colliders
+- [ ] ui & menu
 - [ ] "AI"controller subsystem
 - [ ] sound/audiosystem
-- [ ] inputmapper
-- [ ] ui & menu
-- [ ] entitymanager (handles entity array & can ask for free slot etc.)
-- [ ] serializing (of cmds[])
-- [ ] implement composite colliders
+- [ ] threadpool
