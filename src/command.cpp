@@ -1,29 +1,48 @@
 #include "command.h"
 #include "entity.h"
-#include "player.h"
 
-MoveCommand::MoveCommand(glm::vec3 movement) : move(movement) {}
+#define MAX_CMD_COUNT 10000
 
-void MoveCommand::execute(Entity& e)
-{
-    Player::tryMove(move, e);
-}
+u32 CommandProcessor::cmdIdx = 0;
 
 // TODO use move semantics?
-void CommandProcessor::record(Entity& ent, Command* cmd)
+void CommandProcessor::record(Entity& ent, Command cmd)
 {
-    ASSERT(ent.cmdIdx <= MAX_CMD_COUNT - 1);
+    ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
 
-    ent.cmds[ent.cmdIdx] = cmd;
-    ent.cmds[ent.cmdIdx]->execute(ent); // NOTE we execute after recording
-    ent.cmdIdx++;
+    ent.cmds[cmdIdx] = cmd;
+    execute(ent, ent.cmds[cmdIdx]);
+    cmdIdx++;
 }
 
 void CommandProcessor::replay(Entity& ent)
 {
-    ASSERT(ent.cmdIdx <= MAX_CMD_COUNT - 1);
+    ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
 
-    if (ent.cmds[ent.cmdIdx] != nullptr)
-        ent.cmds[ent.cmdIdx]->execute(ent);
-    ent.cmdIdx++;
+    execute(ent, ent.cmds[cmdIdx]);
+    cmdIdx++;
+}
+
+// TODO use move semantics?
+void CommandProcessor::execute(Entity& ent, Command cmd)
+{
+    switch (cmd.type)
+    {
+    case Command::MOVE:
+        Player::tryMove(cmd.movement, ent);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void CommandProcessor::initialize(Entity& ent)
+{
+    ent.cmds = new Command[MAX_CMD_COUNT];
+}
+
+void CommandProcessor::onEndUpdate()
+{
+    cmdIdx++;
 }

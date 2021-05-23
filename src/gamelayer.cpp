@@ -81,7 +81,6 @@ void GameLayer::OnUpdate(f32 dt)
 {
     // update input
     Input::update();
-
     Reset::update(dt); // TODO fixed delta time
 
     // TODO find out if it matters if we do everything in one loop for one
@@ -148,6 +147,9 @@ void GameLayer::OnUpdate(f32 dt)
             ent.sprite.box = Animator::animate(dt, ent.anim);
         }
     }
+
+    // after loop update
+    CommandProcessor::onEndUpdate();
 }
 
 void GameLayer::OnRender()
@@ -188,7 +190,7 @@ void GameLayer::OnImGuiRender()
     ImGui::Text("TICKS: %d", g_time);
     ImGui::Text("ACCU: %f", accumulator);
     ImGui::Text("DT: %f", dt);
-    ImGui::Text("CMD IDX: %u", ents[0].cmdIdx);
+    ImGui::Text("CMD IDX: %u", CommandProcessor::cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);
     ImGui::Text("IS REWINDING: %u", Reset::isRewinding);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
@@ -208,7 +210,6 @@ void GameLayer::OnImGuiRender()
             ents[0].flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
             ents[0].flags ^= (u32) EntityFlag::CMD_CONTROLLED;
         }
-        ents[0].cmdIdx = 0;
     }
 
     ImGui::Checkbox("ENABLE DEBUG DRAW", &debugDraw);

@@ -6,6 +6,7 @@
 #include "entity.h"
 #include "resourcemgr.h"
 #include "rewind.h"
+#include "command.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
@@ -31,6 +32,7 @@ public:
                     .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}}};
         ents[0].collider  = { 0, 0, 16, 32};
         Rewind::initializeFrames(ents[0]);
+        CommandProcessor::initialize(ents[0]);
 
         // stress test
         for (u32 i = 1; i < 100; i++)

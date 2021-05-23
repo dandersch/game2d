@@ -2,6 +2,7 @@
 
 #include "input.h"
 #include "event.h"
+#include "command.h"
 
 void RewindFinished();
 void StartRewind();
@@ -39,4 +40,6 @@ void StartRewind()
     evn.args["speed"] = (void*) &Reset::rewindFactor; // TODO
     Reset::loopTime    = Reset::TIME_FOR_LOOP;
     Reset::isRewinding = true;
+
+    CommandProcessor::cmdIdx = 0;
 }

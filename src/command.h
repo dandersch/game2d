@@ -1,9 +1,11 @@
 #pragma once
 
 #include "pch.h"
+#include "player.h"
 
 struct Entity;
 
+/*
 class Command
 {
 public:
@@ -21,12 +23,18 @@ public:
 private:
     glm::vec3 move;
 };
+*/
 
 namespace CommandProcessor
 {
 
 // TODO use move semantics?
-void record(Entity& ent, Command* cmd);
+void record(Entity& ent, Command cmd);
 void replay(Entity& ent);
+void initialize(Entity& ent);
+void execute(Entity& ent, Command cmd);
+void onEndUpdate();
+
+extern u32 cmdIdx;
 
 } // namespace CommandProcessor

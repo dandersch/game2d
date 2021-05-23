@@ -6,8 +6,6 @@
 #include "tile.h"
 #include "command.h"
 
-#define MAX_CMD_COUNT 10000
-
 struct Sprite
 {
     SDL_Rect         box;
@@ -77,18 +75,16 @@ struct Entity
     Animation anims[STATE_COUNT * ORIENT_COUNT];
     glm::vec3 movement; // desired movement for this frame, used by collision.h
 
-    // TODO fill up with nullcommands at start
-    Command* cmds[MAX_CMD_COUNT]; // command array for replay
-    u32 cmdIdx = 0;
+    // TODO fill up with nullcommands at start?
+    //Command* cmds[MAX_CMD_COUNT]; // command array for replay
+    Command* cmds = nullptr; // command array for replay
+    //u32 cmdIdx = 0;
 
     // contains pos, state, orient, active
     PointInTime* frames = nullptr;
-    //PointInTime* frames = new PointInTime[FPS * LOOPLENGTH + TOLERANCE];
 
     /*
     u32 charID; // TODO read in from .tmx
-
-
     SoundBuffer sfx[];
     */
 };

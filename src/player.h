@@ -2,6 +2,19 @@
 
 #include "pch.h"
 
+struct Command
+{
+    enum Type
+    {
+        MOVE,
+        PICKUP,
+        ATTACK
+    } type = MOVE;
+
+    // TODO use union in case we need more parameters
+    glm::vec3 movement = {0,0,0};
+};
+
 struct Event;
 struct Entity;
 struct Camera;

@@ -41,7 +41,7 @@ u32 Rewind::TimeToIndex(f32 dt)
 
 void Rewind::rewind(f32 dt, Entity& e)
 {
-    ASSERT(e.frames[TimeToIndex(dt)].wasSet);
+    ASSERT(e.frames[TimeToIndex(dt)-1].wasSet);
 
     e.position = e.frames[TimeToIndex(dt)].pos     ;
     e.state    = e.frames[TimeToIndex(dt)].state   ;
