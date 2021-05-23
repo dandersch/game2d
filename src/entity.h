@@ -23,8 +23,9 @@ enum class EntityFlag : u32
     IS_ANIMATED        = (1 << 2),
     IS_TILE            = (1 << 3),
     IS_COLLIDER        = (1 << 4),
-    IS_ENEMY           = (1 << 5),
-    IS_REWINDABLE      = (1 << 6),
+    PICKUP_BOX         = (1 << 5),
+    IS_ENEMY           = (1 << 6),
+    IS_REWINDABLE      = (1 << 7),
 };
 
 enum EntityState

@@ -18,4 +18,5 @@ void Input::update()
     if (keystate[SDL_SCANCODE_RIGHT]) actionState |= ACTION_MOVE_RIGHT;
 
     if (keystate[SDL_SCANCODE_R]) actionState |= ACTION_RESTART;
+    if (keystate[SDL_SCANCODE_F]) actionState |= ACTION_PICKUP;
 }

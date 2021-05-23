@@ -42,9 +42,9 @@ public:
             for (u32 j = 1; j < 10; j++)
             {
                 Entity ent({ .active = true, .freed = false,
-                .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+                .flags = // (u32) EntityFlag::PLAYER_CONTROLLED |
                 (u32) EntityFlag::IS_COLLIDER |
-                (u32) EntityFlag::IS_REWINDABLE |
+                // (u32) EntityFlag::IS_REWINDABLE |
                 (u32) EntityFlag::IS_ANIMATED,
                 .position = {13 * i, 10 * j,0},
                 .orient = 3, .renderLayer = 1,
@@ -52,9 +52,10 @@ public:
                 .anim{ {{0,0,16,32}, {16,0,16,32},
                         {32,0,16,32}, {48,0,16,32}}, 1.0f, true },
                 .collider  = { 0, 0, 16, 32}});
-                Rewind::initializeFrames(ent);
-                CommandProcessor::initialize(ent);
+                // Rewind::initializeFrames(ent);
+                // CommandProcessor::initialize(ent);
                 EntityMgr::copyEntity(ent);
+
             }
         }
 

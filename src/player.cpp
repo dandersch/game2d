@@ -21,9 +21,23 @@ void Player::handleEvent(const Event& e,  Entity& ent, const Camera& cam)
     }
 }
 
+glm::vec3 getDirectionFrom(u32 orient)
+{
+    glm::vec3 dir = {0,0,0};
+    switch (orient) {
+    case ORIENT_UP:    dir = {  0,-16,0}; break;
+    case ORIENT_DOWN:  dir = {  0, 32,0}; break;
+    case ORIENT_LEFT:  dir = {-16, 16,0}; break;
+    case ORIENT_RIGHT: dir = { 16, 16,0}; break;
+    }
+
+    return dir;
+}
+
 void Player::update(f32 dt, Entity &ent)
 {
     // TODO we shouldnt move entities in here, just record the input
+    Command::Type cmdtype = Command::MOVE;
     glm::vec3 movement = {0,0,0};
 
     // use inputhandler
@@ -33,8 +47,13 @@ void Player::update(f32 dt, Entity &ent)
     if (input & ACTION_MOVE_DOWN) movement = glm::vec3( 0, 1,0) * playerSpeed * dt;
     if (input & ACTION_MOVE_RIGHT) movement = glm::vec3( 1, 0,0) * playerSpeed * dt;
 
-    // use commands instead of calling tryMove directly
-    CommandProcessor::record(ent, {Command::MOVE, movement});
+    if (input & ACTION_PICKUP)
+    {
+        movement = getDirectionFrom(ent.orient);
+        cmdtype  = Command::PICKUP;
+    }
+// use commands instead of calling tryMove directly
+    CommandProcessor::record(ent, {cmdtype, movement});
 }
 
 void Player::tryMove(glm::vec3 movement, Entity& ent)
@@ -62,4 +81,13 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
 void Player::tryPickUp(glm::vec3 direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
+    glm::vec3 pickupPos = ent.position + direction;
+    Entity pickupBox;
+    pickupBox.active = true;
+    pickupBox.freed  = false;
+    pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
+    pickupBox.collider = { .x = (int) pickupPos.x ,
+                           .y = (int) pickupPos.y,
+                           .w = 16, .h = 16};
+    EntityMgr::copyEntity(pickupBox);
 }
