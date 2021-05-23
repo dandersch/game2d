@@ -7,6 +7,7 @@
 #include "resourcemgr.h"
 #include "rewind.h"
 #include "command.h"
+#include "entitymgr.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/TileLayer.hpp"
@@ -23,32 +24,37 @@ public:
         // ENTITY GENERATION ///////////////////////////////////////////////////
         // TODO load in from tmx
         SDL_Texture* chartex = texMgr.get("res/character.png");
-        ents[0] = { .active = true, .freed = false,
-                    .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
+        Entity ent0 = { .active = true, .freed = false,
+                        .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
                              (u32) EntityFlag::IS_ANIMATED |
                              (u32) EntityFlag::IS_REWINDABLE |
                              (u32) EntityFlag::IS_COLLIDER,
                     .position = {150,150,0}, .orient = 0, .renderLayer = 1,
-                    .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}}};
-        ents[0].collider  = { 0, 0, 16, 32};
-        Rewind::initializeFrames(ents[0]);
-        CommandProcessor::initialize(ents[0]);
+                    .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}},
+                    .collider  = { 0, 0, 16, 32}};
+        Rewind::initializeFrames(ent0);
+        CommandProcessor::initialize(ent0);
+        EntityMgr::copyEntity(ent0);
 
         // stress test
-        for (u32 i = 1; i < 100; i++)
+        for (u32 i = 1; i < 10; i++)
         {
-            for (u32 j = 1; j < 100; j++)
+            for (u32 j = 1; j < 10; j++)
             {
-                ents[i*j] = { .active = true, .freed = false,
-                .flags = //(u32) EntityFlag::PLAYER_CONTROLLED |
+                Entity ent({ .active = true, .freed = false,
+                .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
                 (u32) EntityFlag::IS_COLLIDER |
+                (u32) EntityFlag::IS_REWINDABLE |
                 (u32) EntityFlag::IS_ANIMATED,
                 .position = {13 * i, 10 * j,0},
                 .orient = 3, .renderLayer = 1,
                 .sprite{{0,0,16,32}, chartex, {0,0}, SDL_FLIP_NONE},
                 .anim{ {{0,0,16,32}, {16,0,16,32},
-                        {32,0,16,32}, {48,0,16,32}}, 1.0f, true } };
-                ents[i*j].collider  = { 0, 0, 16, 32};
+                        {32,0,16,32}, {48,0,16,32}}, 1.0f, true },
+                .collider  = { 0, 0, 16, 32}});
+                Rewind::initializeFrames(ent);
+                CommandProcessor::initialize(ent);
+                EntityMgr::copyEntity(ent);
             }
         }
 
@@ -109,6 +115,8 @@ public:
                     newEnt.sprite.tex   = tiletex; // TODO
 
                     // copy new entity into array TODO slow
+                    EntityMgr::copyEntity(newEnt);
+                    /*
                     for (u32 i = 0; i < max_ents; i++)
                     {
                         if (ents[i].freed) {
@@ -116,6 +124,7 @@ public:
                             break;
                         }
                     }
+                    */
                     tilecount++;
                 } // tile loop
             } // tilelayer
@@ -128,6 +137,7 @@ public:
 
         // testing loading animations from .tmx (/.tsx) files
         u32 animIndex = 0;
+        auto& ent = EntityMgr::getArray()[0];
         for (auto anim : charMap.getAnimatedTiles())
         {
             for (auto frame : anim.second.animation.frames)
@@ -136,13 +146,13 @@ public:
                 auto pos    = charMap.getTilesets().at(0).getTile(tileID)->imagePosition;
                 auto size   = charMap.getTilesets().at(0).getTile(tileID)->imageSize;
                 SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
-                ents[0].anims[animIndex].frames.push_back(bb);
-                ents[0].anims[animIndex].loop = true;
-                ents[0].anims[animIndex].length = 1.0f;
+                ent.anims[animIndex].frames.push_back(bb);
+                ent.anims[animIndex].loop = true;
+                ent.anims[animIndex].length = 1.0f;
             }
             animIndex++;
         }
-        ents[0].anim = ents[0].anims[0];
+        ent.anim = ent.anims[0];
 
         return true;
     }

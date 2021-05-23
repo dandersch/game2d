@@ -6,7 +6,7 @@
 #include "reset.h"
 #include "rewind.h"
 
-Entity GameLayer::ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
+//Entity GameLayer::ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
 
 void GameLayer::OnAttach()
 {
@@ -16,7 +16,7 @@ void GameLayer::OnAttach()
     // (i.e. entities with flag IS_CHARACTER or sth.) and fill e.g animations of
     // entities with CharacterType SKELETON with "skeleton.tmx"
     LevelGenerator levelgen;
-    if (!levelgen.loadLevel("res/tiletest.tmx", ents, MAX_ENTITIES))
+    if (!levelgen.loadLevel("res/tiletest.tmx", nullptr, MAX_ENTITIES))
         exit(1);
 
     // Font Test
@@ -71,6 +71,7 @@ void GameLayer::OnEvent(Event& event)
 
     for (u32 i = 0; i < MAX_ENTITIES; i++)
     {
+        auto ents = EntityMgr::getArray();
         if (!ents[i].active) continue;
         if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
             Player::handleEvent(event, ents[i], cam);
@@ -87,7 +88,7 @@ void GameLayer::OnUpdate(f32 dt)
     // entity vs. every "system" has its own loop
     for (u32 i = 0; i < MAX_ENTITIES; i++)
     {
-        auto& ent = ents[i];
+        auto& ent = EntityMgr::getArray()[i];
 
         // PLAYER CONTROLLER ///////////////////////////////////////////////////
         if (!Reset::isRewinding && ent.active)
@@ -116,7 +117,7 @@ void GameLayer::OnUpdate(f32 dt)
             {
                 for (u32 j = i; j < MAX_ENTITIES; j++)
                 {
-                    Entity& e2 = ents[j];
+                    Entity& e2 = EntityMgr::getArray()[j];
                     if (!e2.active) continue;
                     if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
                         collided = Collision::checkCollision(ent, e2);
@@ -159,6 +160,7 @@ void GameLayer::OnRender()
     {
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
+            auto ents = EntityMgr::getArray();
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
             rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
@@ -185,6 +187,8 @@ void GameLayer::OnRender()
 void GameLayer::OnImGuiRender()
 {
 #ifdef IMGUI
+    auto& ent = EntityMgr::getArray()[0];
+
     ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
     ImGui::Text("TICKS: %d", g_time);
@@ -200,15 +204,15 @@ void GameLayer::OnImGuiRender()
     {
         printf("TOGGLED\n");
         // TODO better way to toggle these bits...
-        if (ents[0].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+        if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
         {
-            ents[0].flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
-            ents[0].flags |= (u32) EntityFlag::CMD_CONTROLLED;
+            ent.flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
+            ent.flags |= (u32) EntityFlag::CMD_CONTROLLED;
         }
-        else if (ents[0].flags & (u32) EntityFlag::CMD_CONTROLLED)
+        else if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
         {
-            ents[0].flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
-            ents[0].flags ^= (u32) EntityFlag::CMD_CONTROLLED;
+            ent.flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
+            ent.flags ^= (u32) EntityFlag::CMD_CONTROLLED;
         }
     }
 

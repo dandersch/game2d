@@ -26,6 +26,7 @@ public:
     static void handleEvent(const Event& e,  Entity& ent, const Camera& cam);
     static void update(f32 dt, Entity& ent);
     static void tryMove(glm::vec3 movement, Entity& ent);
+    static void tryPickUp(glm::vec3 direction, Entity& ent);
 
 friend class GameLayer;
 

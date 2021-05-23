@@ -67,9 +67,9 @@ struct Entity
     Sprite sprite;
     Animation anim; // TODO use an index that accesses into anims instead
 
+    SDL_Rect collider; // TODO box2d?
     MyTile tile;
 
-    SDL_Rect collider; // TODO box2d?
     u32  state;
 
     Animation anims[STATE_COUNT * ORIENT_COUNT];

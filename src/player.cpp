@@ -58,3 +58,8 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
 
     ent.movement = movement;
 }
+
+void Player::tryPickUp(glm::vec3 direction, Entity& ent)
+{
+    // create a collision box at playerpos + direction
+}
