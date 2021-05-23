@@ -3,7 +3,8 @@
 #include "pch.h"
 #include "entity.h"
 
-#define MAX_ENTITIES  15000
+#define MAX_ENTITIES          16000
+#define MAX_ENTITIES_WO_TEMP  15000
 
 // TODO all allocations & deallocations of entities should go through here
 // NOTE maybe use implementation of pool w/ free lists:
@@ -14,5 +15,6 @@ public:
     // TODO std::move?
     static bool copyEntity(const Entity ent);
     static Entity* getArray();
-    static u32 getFreeSlot();
+    static void freeTemporaryStorage();
+    static bool copyTempEntity(const Entity ent);
 };

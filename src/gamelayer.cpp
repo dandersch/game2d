@@ -80,6 +80,8 @@ void GameLayer::OnEvent(Event& event)
 
 void GameLayer::OnUpdate(f32 dt)
 {
+    EntityMgr::freeTemporaryStorage();
+
     // update input
     Input::update();
     Reset::update(dt); // TODO fixed delta time

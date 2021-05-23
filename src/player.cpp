@@ -86,8 +86,9 @@ void Player::tryPickUp(glm::vec3 direction, Entity& ent)
     pickupBox.active = true;
     pickupBox.freed  = false;
     pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
+    pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
     pickupBox.collider = { .x = (int) pickupPos.x ,
                            .y = (int) pickupPos.y,
                            .w = 16, .h = 16};
-    EntityMgr::copyEntity(pickupBox);
+    EntityMgr::copyTempEntity(pickupBox);
 }
