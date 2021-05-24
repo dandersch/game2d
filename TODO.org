@@ -13,6 +13,8 @@
 - [X] inputmapper
 - [ ] segfault when going fullscreen
 - [ ] fixed deltatime timestep
+- [ ] add EntityHandles and use them instead of raw pointers
+- [ ] timer utility
 - [ ] use interpolation for movement
 - [ ] Tiles should prob. not be entites and have their own array instead
 - [ ] tilemap culling

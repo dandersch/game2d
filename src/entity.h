@@ -86,6 +86,9 @@ struct Entity
     // contains pos, state, orient, active
     PointInTime* frames = nullptr;
 
+    Entity* owner = nullptr; // for items
+    Entity* item  = nullptr;
+
     /*
     u32 charID; // TODO read in from .tmx
     SoundBuffer sfx[];

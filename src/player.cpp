@@ -34,8 +34,20 @@ glm::vec3 getDirectionFrom(u32 orient)
     return dir;
 }
 
+// TESTING SDL TIMER CALLBACKS /////////////////////////////
+bool isPickingUp = false;
+Uint32 callback( Uint32 interval, void* param )
+{
+    printf( "Callback called back with message: %s\n", (char*)param );
+    isPickingUp = false;
+    return 0;
+}
+
 void Player::update(f32 dt, Entity &ent)
 {
+    // TODO block input while picking up, attacking etc.
+    if (isPickingUp) return;
+
     // TODO we shouldnt move entities in here, just record the input
     Command::Type cmdtype = Command::MOVE;
     glm::vec3 movement = {0,0,0};
@@ -58,6 +70,11 @@ void Player::update(f32 dt, Entity &ent)
         movement = getDirectionFrom(ent.orient);
         cmdtype  = Command::ATTACK;
     }
+
+    // attach item to player TODO doesn't run when replaying cmds
+    if (ent.item != nullptr)
+        ent.item->setPivPos({ent.position + glm::vec3{8,-8,0}});
+
 // use commands instead of calling tryMove directly
     CommandProcessor::record(ent, {cmdtype, movement});
 }
@@ -86,10 +103,27 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
 
 void Player::tryPickUp(glm::vec3 direction, Entity& ent)
 {
-    // create a collision box at playerpos + direction
+    isPickingUp = true;
+    SDL_TimerID timerID = SDL_AddTimer( 3 * 1000,
+                                        callback, (void*) "3 seconds waited!" );
+    printf("HELLO\n");
+
     glm::vec3 pickupPos = ent.position + direction;
+
+    // put already held item down
+    if (ent.item)
+    {
+        ent.item->setPivPos(pickupPos);
+        ent.item->flags |= (u32) EntityFlag::IS_COLLIDER;
+        ent.item = nullptr;
+        return;
+    }
+
+    // create a collision box at playerpos + direction
+    // TODO try to check for collisions directly
     Entity pickupBox;
     pickupBox.active = true;
+    pickupBox.owner  = &ent;
     pickupBox.freed  = false;
     pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
     pickupBox.flags |= (u32) EntityFlag::PICKUP_BOX;

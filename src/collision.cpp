@@ -12,6 +12,8 @@ static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
   [](Entity* e1, Entity* e2)
   {
       printf("ITEM PICKUP\n");
+      e1->owner->item  = e2;
+      e2->flags ^= (u32) EntityFlag::IS_COLLIDER;
       // do something
   }}
 };

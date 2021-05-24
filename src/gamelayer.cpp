@@ -5,6 +5,7 @@
 #include "renderwindow.h"
 #include "reset.h"
 #include "rewind.h"
+#include "item.h"
 
 void GameLayer::OnAttach()
 {
@@ -100,6 +101,15 @@ void GameLayer::OnUpdate(f32 dt)
             if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
             {
                 CommandProcessor::replay(ent);
+            }
+        }
+
+        // ITEM SYSTEM /////////////////////////////////////////////////////////
+        if (!Reset::isRewinding && ent.active)
+        {
+            if (ent.flags & (u32) EntityFlag::IS_ITEM)
+            {
+                Item::update(dt, ent);
             }
         }
 

@@ -48,7 +48,7 @@ public:
                              (u32) EntityFlag::IS_ANIMATED |
                              (u32) EntityFlag::IS_REWINDABLE |
                              (u32) EntityFlag::IS_COLLIDER,
-                    .position = {150,150,0}, .orient = 0, .renderLayer = 1,
+                    .position = {600,600,0}, .orient = 0, .renderLayer = 1,
                     .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}},
                     .collider  = { 0, 0, 16, 32}};
         Rewind::initializeFrames(ent0);
@@ -105,7 +105,7 @@ public:
                 {
                     const std::string& type = o.getType();
                     const std::string& name = o.getName();
-                    Entity newEnt;
+                    Entity newEnt = {0};
                     newEnt.active       = true;
                     newEnt.freed        = false;
                     newEnt.renderLayer  = layercount;
@@ -114,7 +114,7 @@ public:
                     auto t = ts.getTile(o.getTileID());
 
                     // to create the spritebox
-                    SDL_Rect spritebox;
+                    SDL_Rect spritebox = {0};
                     ASSERT(t != nullptr);
                     spritebox = { (i32) t->imagePosition.x, (i32) t->imagePosition.y,
                                   (i32) t->imageSize.x,     (i32) t->imageSize.y };
@@ -146,6 +146,8 @@ public:
                                                (i32) aabb.width, (i32) aabb.height};
                         newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
                         newEnt.flags       |= (u32) EntityFlag::IS_ITEM;
+                        newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
+                        Rewind::initializeFrames(newEnt);
                     }
 
                     // copy new entity into array TODO slow
