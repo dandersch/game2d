@@ -10,6 +10,7 @@
 #include "entitymgr.h"
 
 #include "tmxlite/Map.hpp"
+#include "tmxlite/ObjectGroup.hpp"
 #include "tmxlite/TileLayer.hpp"
 #include "tmxlite/Tileset.hpp"
 
@@ -19,6 +20,24 @@ public:
     LevelGenerator() : texMgr(".png") {}
     ~LevelGenerator() = default;
 
+    // TODO internal
+    // TODO needed?
+    const tmx::Tileset& getTilesetByName(const std::string& name,
+                                         const std::vector<tmx::Tileset, std::allocator<tmx::Tileset>> tilesets)
+    {
+        for (auto& ts : tilesets)
+        {
+            if (ts.getName() == name)
+                return ts;
+        }
+        ASSERT(false); // TODO
+    };
+
+    // TEST TILE GENERATION ////////////////////////////////////////////////
+    // TODO LevelGenerator that can fill the entityarray with static tiles &
+    // (items &) characters (maybe without sprites), afterwards fill characters
+    // (i.e. entities with flag IS_CHARACTER or sth.) and fill e.g animations of
+    // entities with CharacterType SKELETON with "skeleton.tmx"
     bool loadLevel(const std::string& file, Entity* ents, u32 max_ents)
     {
         // ENTITY GENERATION ///////////////////////////////////////////////////
@@ -44,7 +63,7 @@ public:
                 Entity ent({ .active = true, .freed = false,
                 .flags = // (u32) EntityFlag::PLAYER_CONTROLLED |
                 (u32) EntityFlag::IS_COLLIDER |
-                // (u32) EntityFlag::IS_REWINDABLE |
+                (u32) EntityFlag::IS_ITEM |
                 (u32) EntityFlag::IS_ANIMATED,
                 .position = {13 * i, 10 * j,0},
                 .orient = 3, .renderLayer = 1,
@@ -72,14 +91,72 @@ public:
         {
             tilecount = 0;
             const auto& tilesets = map.getTilesets();
-            const auto& ts       = tilesets.at(0);
+            auto& ts = tilesets.at(0); // TODO
 
             SDL_Texture* tiletex = texMgr.get(ts.getImagePath());
 
+            // for items & characters
+            if(layer->getType() == tmx::Layer::Type::Object)
+            {
+                const auto& objs = layer->getLayerAs<tmx::ObjectGroup>().getObjects();
+                printf("%zu\n", objs.size());
+                auto& ts       = tilesets.at(1); //TODO hardcoded
+                for (const auto& o : objs)
+                {
+                    const std::string& type = o.getType();
+                    const std::string& name = o.getName();
+                    Entity newEnt;
+                    newEnt.active       = true;
+                    newEnt.freed        = false;
+                    newEnt.renderLayer  = layercount;
+
+                    // get tileset
+                    auto t = ts.getTile(o.getTileID());
+
+                    // to create the spritebox
+                    SDL_Rect spritebox;
+                    ASSERT(t != nullptr);
+                    spritebox = { (i32) t->imagePosition.x, (i32) t->imagePosition.y,
+                                  (i32) t->imageSize.x,     (i32) t->imageSize.y };
+
+                    // TODO load in anims in here
+                    if (type == "Character")
+                    {
+                        // TODO charID
+                        newEnt.sprite.box   = spritebox;
+                        newEnt.sprite.pivot = {0.5f, 0.5f};
+                        // TODO why -24
+                        newEnt.setPivPos( {o.getPosition().x,
+                                           o.getPosition().y - 24, 0});
+                        newEnt.sprite.tex   = chartex; // TODO
+                        const auto& aabb    = o.getAABB();
+                        newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
+                                               (i32) aabb.width, (i32) aabb.height};
+                        newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
+
+                    } else if (type == "Item") {
+                        newEnt.sprite.box   = spritebox;
+                        newEnt.sprite.pivot = {0.5f, 0.5f};
+                        // TODO why -24
+                        newEnt.setPivPos( {o.getPosition().x,
+                                           o.getPosition().y - 24, 0});
+                        newEnt.sprite.tex   = chartex; // TODO
+                        const auto& aabb    = o.getAABB();
+                        newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
+                                               (i32) aabb.width, (i32) aabb.height};
+                        newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
+                        newEnt.flags       |= (u32) EntityFlag::IS_ITEM;
+                    }
+
+                    // copy new entity into array TODO slow
+                    EntityMgr::copyEntity(newEnt);
+                } // object loop
+            } // objectlayer
+
+            // for static tiles w/ and w/o colliders
             if(layer->getType() == tmx::Layer::Type::Tile)
             {
-                const auto& tileLayer = layer->getLayerAs<tmx::TileLayer>();
-                const auto& tiles     = tileLayer.getTiles();
+                const auto& tiles = layer->getLayerAs<tmx::TileLayer>().getTiles();
 
                 for (const auto& t : tiles)
                 {
@@ -108,24 +185,15 @@ public:
                     newEnt.active       = true;
                     newEnt.freed        = false;
                     newEnt.renderLayer  = layercount;
-                    newEnt.setPivPos({x * 16.f, y * 16.f, 0});
                     //newEnt.position     = ;
                     newEnt.tile         = { t.ID, TileType::GRASS };
                     newEnt.sprite.box   = bb;
                     newEnt.sprite.pivot = {0.5f, 0.5f};
                     newEnt.sprite.tex   = tiletex; // TODO
+                    newEnt.setPivPos({x * 16.f, y * 16.f, 0});
 
                     // copy new entity into array TODO slow
                     EntityMgr::copyEntity(newEnt);
-                    /*
-                    for (u32 i = 0; i < max_ents; i++)
-                    {
-                        if (ents[i].freed) {
-                            ents[i] = newEnt;
-                            break;
-                        }
-                    }
-                    */
                     tilecount++;
                 } // tile loop
             } // tilelayer
