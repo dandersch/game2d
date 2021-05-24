@@ -34,6 +34,10 @@ void CommandProcessor::execute(Entity& ent, Command cmd)
         Player::tryPickUp(cmd.movement, ent);
         break;
 
+    case Command::ATTACK:
+        Player::tryAttack(cmd.movement, ent);
+        break;
+
     default:
         break;
     }

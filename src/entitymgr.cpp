@@ -3,6 +3,8 @@
 static Entity ents[MAX_ENTITIES] = {0};
 static u32 temp_count = 0;
 
+// std::vector<Entity*> toDestroy;
+
 // TODO std::move?
 bool EntityMgr::copyEntity(const Entity ent)
 {

@@ -6,15 +6,8 @@
 #include "reset.h"
 #include "rewind.h"
 
-//Entity GameLayer::ents[MAX_ENTITIES] = {0}; // TODO does this zero out the array?
-
 void GameLayer::OnAttach()
 {
-    // TEST TILE GENERATION ////////////////////////////////////////////////
-    // TODO LevelGenerator that can fill the entityarray with static tiles &
-    // (items &) characters (maybe without sprites), afterwards fill characters
-    // (i.e. entities with flag IS_CHARACTER or sth.) and fill e.g animations of
-    // entities with CharacterType SKELETON with "skeleton.tmx"
     LevelGenerator levelgen;
     if (!levelgen.loadLevel("res/tiletest.tmx", nullptr, MAX_ENTITIES))
         exit(1);
@@ -115,9 +108,10 @@ void GameLayer::OnUpdate(f32 dt)
         {
             bool collided = false;
             if ((ent.flags & (u32) EntityFlag::IS_COLLIDER) &&
-                (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED))
+                ((ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED) ||
+                 (ent.flags & (u32) EntityFlag::PICKUP_BOX)))
             {
-                for (u32 j = i; j < MAX_ENTITIES; j++)
+                for (u32 j = 0; j < MAX_ENTITIES; j++)
                 {
                     Entity& e2 = EntityMgr::getArray()[j];
                     if (!e2.active) continue;
@@ -170,7 +164,14 @@ void GameLayer::OnRender()
 
             if (debugDraw)
             {
+                // change color depending on entity flags
+                SDL_Color c = {0,0,0,255};
+                if (ents[i].flags & (u32) EntityFlag::ATTACK_BOX) c = {255,100,100,255};
+                if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
+
+                SDL_SetRenderDrawColor(rw->renderer, c.r, c.g, c.b, c.a);
                 rw->debugDraw(ents[i], cam.worldToScreen(ents[i].position));
+                SDL_SetRenderDrawColor(rw->renderer, 0,0,0,255);
             }
 
             if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;

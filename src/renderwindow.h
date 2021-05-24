@@ -1,7 +1,5 @@
 #pragma once
 
-#include "SDL_rect.h"
-#include "SDL_render.h"
 #include "pch.h"
 #include "entity.h"
 
@@ -21,7 +19,9 @@ public:
                      // | SDL_INIT_NOPARACHUTE
                      // | SDL_INIT_EVERYTHING
             ) != 0)
+        {
             printf("SDL init failed: %s\n", SDL_GetError());
+        }
 
 
         window = SDL_CreateWindow("SDL2 Game",

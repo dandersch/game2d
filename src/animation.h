@@ -2,6 +2,7 @@
 
 #include "pch.h"
 
+// TODO animation shouldn't have internal state like time & index
 struct Animation
 {
     //b32 done = true;

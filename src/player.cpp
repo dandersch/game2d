@@ -52,6 +52,12 @@ void Player::update(f32 dt, Entity &ent)
         movement = getDirectionFrom(ent.orient);
         cmdtype  = Command::PICKUP;
     }
+
+    if (input & ACTION_ATTACK)
+    {
+        movement = getDirectionFrom(ent.orient);
+        cmdtype  = Command::ATTACK;
+    }
 // use commands instead of calling tryMove directly
     CommandProcessor::record(ent, {cmdtype, movement});
 }
@@ -86,9 +92,24 @@ void Player::tryPickUp(glm::vec3 direction, Entity& ent)
     pickupBox.active = true;
     pickupBox.freed  = false;
     pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
-    pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
+    pickupBox.flags |= (u32) EntityFlag::PICKUP_BOX;
     pickupBox.collider = { .x = (int) pickupPos.x ,
                            .y = (int) pickupPos.y,
                            .w = 16, .h = 16};
     EntityMgr::copyTempEntity(pickupBox);
+}
+
+void Player::tryAttack(glm::vec3 direction, Entity& ent)
+{
+    // create a collision box at playerpos + direction
+    glm::vec3 attackpos = ent.position + direction;
+    Entity attackBox;
+    attackBox.active = true;
+    attackBox.freed  = false;
+    attackBox.flags |= (u32) EntityFlag::IS_COLLIDER;
+    attackBox.flags |= (u32) EntityFlag::ATTACK_BOX;
+    attackBox.collider = { .x = (int) attackpos.x ,
+                           .y = (int) attackpos.y,
+                           .w = 16, .h = 16};
+    EntityMgr::copyTempEntity(attackBox);
 }

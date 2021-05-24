@@ -8,9 +8,10 @@ static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
       printf("Yes\n");
       // do something
   }},
-{ (u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_COLLIDER,
+{ (u32) EntityFlag::PICKUP_BOX | (u32) EntityFlag::IS_ITEM,
   [](Entity* e1, Entity* e2)
   {
+      printf("ITEM PICKUP\n");
       // do something
   }}
 };
@@ -30,17 +31,20 @@ bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB)
     //if (SDL_IntersectRect(&recA, &recB, NULL))
     if (SDL_HasIntersection(&recA, &recB))
     {
-        // TODO use callbacks like this:
-        auto cb = callbacks.find((u32) EntityFlag::PLAYER_CONTROLLED | (u32) EntityFlag::IS_TILE);
-        if (cb != callbacks.end())
-        {
-            cb->second(nullptr,nullptr);
-        }
-
         return true;
     }
 
     return false;
+}
+
+void collisionCallback(Entity* e1, Entity* e2, u32 flagCombination)
+{
+    // TODO use callbacks like this:
+    auto cb = callbacks.find(flagCombination);
+    if (cb != callbacks.end())
+    {
+        cb->second(e1, e2);
+    }
 }
 
 bool Collision::checkCollision(Entity& e1, Entity& e2)
@@ -57,7 +61,20 @@ bool Collision::checkCollision(Entity& e1, Entity& e2)
                   e2.collider.w, e2.collider.h,} ;
 
     bool collided = Collision::AABB(a, b);
-    if (collided) e1.movement = {0,0,0};
+    if (collided)
+    {
+        e1.movement = {0,0,0};
+        if ((e1.flags & (u32) EntityFlag::PICKUP_BOX) &&
+            (e2.flags & (u32) EntityFlag::IS_ITEM))
+        {
+            collisionCallback(&e1, &e2,
+                              (u32) EntityFlag::PICKUP_BOX |
+                              (u32) EntityFlag::IS_ITEM);
+        }
+    }
+
+
 
     return collided;
 }
+

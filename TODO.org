@@ -11,6 +11,7 @@
 - [X] timeloop
 - [X] timerewind
 - [X] inputmapper
+- [ ] segfault when going fullscreen
 - [ ] fixed deltatime timestep
 - [ ] use interpolation for movement
 - [ ] Tiles should prob. not be entites and have their own array instead
