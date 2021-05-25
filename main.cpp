@@ -18,13 +18,21 @@ std::vector<Layer*> layerStack;
     ImGuiLayer* igLayer;
 #endif
 
+// TIMESTEP constants
+#define MAXIMUM_FRAME_RATE 60
+#define MINIMUM_FRAME_RATE 60
+#define UPDATE_INTERVAL (1.0 / MAXIMUM_FRAME_RATE)
+#define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
+
 // global because we need it in the "main_loop" used for emscripten
-RenderWindow* rw;
-u32 g_time;
-f32 dt;
-f32 accumulator;
 bool run;
+f32 dt;
+f32 lastFrameTime;
+f32 cyclesLeftOver;
+f32 currentTime;
+f32 updateIterations;
 void main_loop();
+RenderWindow* rw;
 
 int main(int argc, char* args[])
 {
@@ -43,10 +51,9 @@ int main(int argc, char* args[])
         (*it)->OnAttach();
 
     // main loop ///////////////////////////////////////////////////////////////
-    g_time      = SDL_GetTicks();
-    dt          = 0.f;
-    accumulator = 0;
     run         = true;
+    lastFrameTime = 0.0;
+    cyclesLeftOver = 0.0;
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, -1, 1);
@@ -74,40 +81,45 @@ void main_loop()
 #endif
     {
         // TIMESTEP ////////////////////////////////////////////////////////////
-        dt = (SDL_GetTicks() - g_time) / 1000.f;
-        g_time = SDL_GetTicks();
-        accumulator += (g_time/1000.f);
+        currentTime = SDL_GetTicks()/ 1000.f;
+        updateIterations = ((currentTime - lastFrameTime) + cyclesLeftOver);
+        dt = UPDATE_INTERVAL;
 
-        dt = 1/60.f; // TODO
-
-        // TODO not working
-        //while (accumulator > TIME_PER_FRAME) {
-        //    accumulator -= TIME_PER_FRAME;
-        //}
-
-        // EVENT HANDLING //////////////////////////////////////////////////////
-        Event evn;
-        while (SDL_PollEvent(&evn.evn))
-        {
-            for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
-            {
-                if (evn.handled) break; // TODO doesnt work
-                (*it)->OnEvent(evn);
-            }
-
-            switch (evn.evn.type) {
-            case SDL_QUIT: run = false;
-                break;
-            case SDL_WINDOWEVENT:
-                if (evn.evn.window.type == SDL_WINDOWEVENT_CLOSE) run = false;
-                break;
-            }
+        if (updateIterations > (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL)) {
+            updateIterations = (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL);
         }
 
-        // UPDATE LOOP /////////////////////////////////////////////////////////
-        // TODO update back to front or front to back?
-        for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
-            (*it)->OnUpdate(dt);
+        while (updateIterations > UPDATE_INTERVAL) {
+            updateIterations -= UPDATE_INTERVAL;
+
+            // EVENT HANDLING //////////////////////////////////////////////////
+            Event evn;
+            while (SDL_PollEvent(&evn.evn))
+            {
+                for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
+                {
+                    if (evn.handled) break;
+                    (*it)->OnEvent(evn);
+                }
+
+                switch (evn.evn.type) {
+                    case SDL_QUIT: run = false;
+                        break;
+                    case SDL_WINDOWEVENT:
+                        if (evn.evn.window.type == SDL_WINDOWEVENT_CLOSE)
+                            run = false;
+                        break;
+                }
+            }
+
+            // UPDATE LOOP /////////////////////////////////////////////////////
+            // TODO update back to front or front to back?
+            for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
+                (*it)->OnUpdate(dt);
+        }
+
+        cyclesLeftOver = updateIterations;
+        lastFrameTime = currentTime;
 
         // RENDERING ///////////////////////////////////////////////////////////
         SDL_RenderClear(rw->renderer);

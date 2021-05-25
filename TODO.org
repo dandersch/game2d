@@ -11,8 +11,8 @@
 - [X] timeloop
 - [X] timerewind
 - [X] inputmapper
+- [X] fixed deltatime timestep
 - [ ] segfault when going fullscreen
-- [ ] fixed deltatime timestep
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] timer utility
 - [ ] use interpolation for movement

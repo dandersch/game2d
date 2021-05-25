@@ -136,7 +136,7 @@ public:
 
                     } else if (type == "Item") {
                         newEnt.sprite.box   = spritebox;
-                        newEnt.sprite.pivot = {0.5f, 0.5f};
+                        newEnt.sprite.pivot = {0.5f, 0.75f};
                         // TODO why -24
                         newEnt.setPivPos( {o.getPosition().x,
                                            o.getPosition().y - 24, 0});

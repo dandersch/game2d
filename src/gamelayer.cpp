@@ -204,8 +204,7 @@ void GameLayer::OnImGuiRender()
 
     ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
-    ImGui::Text("TICKS: %d", g_time);
-    ImGui::Text("ACCU: %f", accumulator);
+    ImGui::Text("TICKS: %d", SDL_GetTicks());
     ImGui::Text("DT: %f", dt);
     ImGui::Text("CMD IDX: %u", CommandProcessor::cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);

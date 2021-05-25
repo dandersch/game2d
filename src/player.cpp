@@ -38,7 +38,7 @@ glm::vec3 getDirectionFrom(u32 orient)
 bool isPickingUp = false;
 Uint32 callback( Uint32 interval, void* param )
 {
-    printf( "Callback called back with message: %s\n", (char*)param );
+    printf( "PICKUP DONE AFTER: %s\n", (char*)param );
     isPickingUp = false;
     return 0;
 }
@@ -104,16 +104,16 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
 void Player::tryPickUp(glm::vec3 direction, Entity& ent)
 {
     isPickingUp = true;
-    SDL_TimerID timerID = SDL_AddTimer( 3 * 1000,
-                                        callback, (void*) "3 seconds waited!" );
-    printf("HELLO\n");
+    SDL_TimerID timerID = SDL_AddTimer( 1 * 1000,
+                                        callback, (void*) "1 second!" );
 
     glm::vec3 pickupPos = ent.position + direction;
 
     // put already held item down
     if (ent.item)
     {
-        ent.item->setPivPos(pickupPos);
+        //pickupPos = ent.position + direction;
+        ent.item->setPivPos(pickupPos); // TODO
         ent.item->flags |= (u32) EntityFlag::IS_COLLIDER;
         ent.item = nullptr;
         return;
@@ -121,15 +121,20 @@ void Player::tryPickUp(glm::vec3 direction, Entity& ent)
 
     // create a collision box at playerpos + direction
     // TODO try to check for collisions directly
-    Entity pickupBox;
+    // TODO add flag to not render this
+    Entity pickupBox = {0};
     pickupBox.active = true;
     pickupBox.owner  = &ent;
     pickupBox.freed  = false;
     pickupBox.flags |= (u32) EntityFlag::IS_COLLIDER;
     pickupBox.flags |= (u32) EntityFlag::PICKUP_BOX;
-    pickupBox.collider = { .x = (int) pickupPos.x ,
-                           .y = (int) pickupPos.y,
+    pickupBox.sprite.pivot = {0.5f, 0.5f};
+    pickupBox.setPivPos({pickupPos});
+    pickupBox.collider = { .x = 0, //(int) pickupPos.x ,
+                           .y = 0, //(int) pickupPos.y,
                            .w = 16, .h = 16};
+    pickupBox.renderLayer = 1;
+    pickupBox.movement = {0,0,0};
     EntityMgr::copyTempEntity(pickupBox);
 }
 
@@ -137,7 +142,7 @@ void Player::tryAttack(glm::vec3 direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
     glm::vec3 attackpos = ent.position + direction;
-    Entity attackBox;
+    Entity attackBox = {0};
     attackBox.active = true;
     attackBox.freed  = false;
     attackBox.flags |= (u32) EntityFlag::IS_COLLIDER;
