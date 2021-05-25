@@ -6,6 +6,7 @@
 #include "renderwindow.h"
 #include "imguilayer.h"
 #include "gamelayer.h"
+#include "menulayer.h"
 
 //The dimensions of the level
 const int LEVEL_WIDTH  = 12800;
@@ -14,6 +15,8 @@ const int LEVEL_HEIGHT = 9600;
 const f32 TIME_PER_FRAME = (f32) 1/60;
 
 std::vector<Layer*> layerStack;
+Layer* menuLayer;
+bool renderImgui = false;
 #ifdef IMGUI
     ImGuiLayer* igLayer;
 #endif
@@ -41,6 +44,9 @@ int main(int argc, char* args[])
     SDL_RenderSetScale(rw->renderer, 1.f, 1.f); // use for zooming?
 
     layerStack.push_back(new GameLayer());
+    menuLayer = new MenuLayer();
+    menuLayer->active = false;
+    layerStack.push_back(menuLayer);
 
 #ifdef IMGUI
     igLayer = new ImGuiLayer();
@@ -98,12 +104,24 @@ void main_loop()
             {
                 for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
                 {
-                    if (!(*it)->active) return;
+                    if (!(*it)->active) continue;
                     if (evn.handled) break;
                     (*it)->OnEvent(evn);
                 }
 
                 switch (evn.evn.type) {
+                    case SDL_KEYDOWN:
+                        // TODO hardcoded
+                        // toggle testmenu
+                        if (evn.evn.key.keysym.sym == SDLK_ESCAPE)
+                        {
+                            menuLayer->active = !menuLayer->active;
+                        }
+                        if (evn.evn.key.keysym.sym == SDLK_F1)
+                        {
+                            renderImgui = !renderImgui;
+                        }
+                        break;
                     case SDL_QUIT: run = false;
                         break;
                     case SDL_WINDOWEVENT:
@@ -117,7 +135,7 @@ void main_loop()
             // TODO update back to front or front to back?
             for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
             {
-                if (!(*it)->active) return;
+                if (!(*it)->active) continue;
                 (*it)->OnUpdate(dt);
             }
         }
@@ -130,14 +148,17 @@ void main_loop()
 
         for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
         {
-            if (!(*it)->active) return;
+            if (!(*it)->active) continue;
             (*it)->OnRender();
         }
 
 #ifdef IMGUI
-        igLayer->Begin(); // TODO can be put further down?
-        for (auto l : layerStack) l->OnImGuiRender();
-        igLayer->End();
+        if (renderImgui)
+        {
+            igLayer->Begin();
+            for (auto l : layerStack) l->OnImGuiRender();
+            igLayer->End();
+        }
 #endif
         SDL_RenderPresent(rw->renderer);
     }
