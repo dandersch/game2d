@@ -12,20 +12,6 @@ void GameLayer::OnAttach()
     LevelGenerator levelgen;
     if (!levelgen.loadLevel("res/tiletest.tmx", nullptr, MAX_ENTITIES))
         exit(1);
-
-    // Font Test
-    TTF_Init();
-    TTF_Font* font        = TTF_OpenFont( "res/gothic.ttf", 40 );
-    std::string text      = "Linebreaks are working.\nLook at all these perfect linebreaks.\n"
-                            "This is achieved wtih TTF_RenderText_Blended_Wrapped()\n"
-                            "Another line here.";
-
-    SDL_Color textColor   = {150,160,100,230};
-    SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(font, text.c_str(),
-                                                           textColor, 800);
-    SDL_ERROR(textSurf);
-    txtTex   = SDL_CreateTextureFromSurface(rw->renderer, textSurf);
-    SDL_ERROR(txtTex);
 }
 
 void GameLayer::OnDetach()
@@ -189,12 +175,6 @@ void GameLayer::OnRender()
         // no need to go through all renderlayers
         if (l > maxlayer) break;
     }
-
-    // testing text
-    int w,h;
-    SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
-    SDL_Rect dst{100,600,w,h};
-    SDL_RenderCopy(rw->renderer, txtTex, NULL, &dst);
 }
 
 void GameLayer::OnImGuiRender()

@@ -5,11 +5,8 @@
 #include "collision.h"
 #include "player.h"
 #include "camera.h"
-
 #include "entitymgr.h"
 
-// NOTE emscript build fails when entity array is too large...
-// currently this happens at around 20k
 const int MAX_RENDER_LAYERS = 100;
 
 class GameLayer : public Layer
@@ -26,11 +23,8 @@ public:
     virtual void OnImGuiRender() override;
 
 public:
-    SDL_Texture* txtTex;
     Camera cam;
 
 private:
-    // compile times blow up when this is not static and MAX_ENTITIES is large
-    //static Entity ents[MAX_ENTITIES];
     bool debugDraw = false;
 };

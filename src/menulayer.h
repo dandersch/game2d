@@ -2,6 +2,9 @@
 
 #include "SDL_image.h"
 #include "SDL_rect.h"
+#include "SDL_render.h"
+#include "SDL_surface.h"
+#include "SDL_ttf.h"
 #include "pch.h"
 #include "layer.h"
 #include "resourcemgr.h"
@@ -13,7 +16,10 @@ struct Button
     SDL_Rect     box;
     // TODO maybe use 1 tex w/ an array of sdl_rects
     SDL_Texture* tex[COUNT];
+    SDL_Texture* txtTex;
+    SDL_Rect     txtBox;
     // TODO callback
+    std::function<void(void)> callback;
 };
 
 class MenuLayer : public Layer
@@ -24,15 +30,38 @@ public:
     {
         // TODO use a resourcemgr or similar
         btn_inactive_tex = IMG_LoadTexture(rw->renderer, "res/button.png");
+        SDL_ERROR(btn_inactive_tex);
         btn_hover_tex    = IMG_LoadTexture(rw->renderer, "res/button_hover.png");
+        SDL_ERROR(btn_hover_tex);
         btn_pressed_tex  = IMG_LoadTexture(rw->renderer, "res/button_pressed.png");
+        SDL_ERROR(btn_pressed_tex);
 
-        Button b1 = { .label = "CLICK1", .state = Button::NONE, .box = {800, 475,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
-        Button b2 = { .label = "CLICK2", .state = Button::NONE, .box = {800, 600,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
-        Button b3 = { .label = "CLICK3", .state = Button::NONE, .box = {800, 725,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+        Button b1 = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+        Button b2 = { .label = "OPTIONS", .state = Button::NONE, .box = {800, 600,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+        Button b3 = { .label = "EXIT", .state = Button::NONE, .box = {800, 725,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+
+        // ADD CALLBACKS
+        b1.callback = [&]() { active = false; };
+        b2.callback = []()  { printf("Pressed options button!\n"); };
+        b3.callback = []()  { exit(1); };
+
         btns.push_back(b1);
         btns.push_back(b2);
         btns.push_back(b3);
+
+        // ADD TEXT TO BUTTONS
+        TTF_Init();
+        btnFont = TTF_OpenFont( "res/ubuntumono.ttf", 50 );
+        SDL_Color textColor   = {200,200,200,230};
+        for (auto& b : btns)
+        {
+            SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(btnFont, b.label.c_str(), textColor, 400);
+            SDL_ERROR(textSurf);
+            b.txtTex = SDL_CreateTextureFromSurface(rw->renderer, textSurf);
+            SDL_ERROR(b.txtTex);
+            SDL_QueryTexture(b.txtTex, NULL, NULL, &b.txtBox.w, &b.txtBox.h);
+            SDL_FreeSurface(textSurf);
+        }
     }
 
     virtual void OnDetach() {}
@@ -66,6 +95,7 @@ public:
                 {
                     event.handled = true;
                     b.state = Button::PRESSED;
+                    b.callback();
                 }
             }
             break;
@@ -79,11 +109,18 @@ public:
     {
         // TODO dont call sdl render functions ourselves
         for (auto& b : btns)
+        {
             SDL_RenderCopy(rw->renderer, b.tex[b.state], NULL, &b.box);
+            SDL_Rect textDst = { b.box.x + b.box.w/2 - b.txtBox.w/2,
+                                 b.box.y + b.box.h/2 - b.txtBox.h/2,
+                                 b.txtBox.w, b.txtBox.h};
+            SDL_RenderCopy(rw->renderer, b.txtTex, NULL, &textDst);
+        }
     }
 
     std::vector<Button> btns;
     SDL_Texture* btn_inactive_tex;
     SDL_Texture* btn_hover_tex;
     SDL_Texture* btn_pressed_tex;
+    TTF_Font* btnFont;
 };
