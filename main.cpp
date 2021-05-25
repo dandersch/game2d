@@ -107,6 +107,14 @@ void main_loop()
                     if (!(*it)->active) continue;
                     if (evn.handled) break;
                     (*it)->OnEvent(evn);
+
+                    // TODO hardcoded, implements 'pause' functionality
+                    if (menuLayer->active)
+                    {
+                        if (evn.handled) break;
+                        menuLayer->OnEvent(evn);
+                        break;
+                    }
                 }
 
                 switch (evn.evn.type) {
@@ -133,10 +141,17 @@ void main_loop()
 
             // UPDATE LOOP /////////////////////////////////////////////////////
             // TODO update back to front or front to back?
-            for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
+            for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
             {
                 if (!(*it)->active) continue;
                 (*it)->OnUpdate(dt);
+
+                // TODO hardcoded, implements 'pause' functionality
+                if (menuLayer->active)
+                {
+                    menuLayer->OnUpdate(dt);
+                    break;
+                }
             }
         }
 
