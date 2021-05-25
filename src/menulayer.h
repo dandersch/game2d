@@ -1,10 +1,5 @@
 #pragma once
 
-#include "SDL_image.h"
-#include "SDL_rect.h"
-#include "SDL_render.h"
-#include "SDL_surface.h"
-#include "SDL_ttf.h"
 #include "pch.h"
 #include "layer.h"
 #include "resourcemgr.h"
@@ -37,17 +32,24 @@ public:
         SDL_ERROR(btn_pressed_tex);
 
         Button b1 = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
-        Button b2 = { .label = "OPTIONS", .state = Button::NONE, .box = {800, 600,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
-        Button b3 = { .label = "EXIT", .state = Button::NONE, .box = {800, 725,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+        Button b2 = { .label = "OPTIONS",  .state = Button::NONE, .box = {800, 600,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
+        Button b3 = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
 
         // ADD CALLBACKS
         b1.callback = [&]() { active = false; };
-        b2.callback = []()  { printf("Pressed options button!\n"); };
+        b2.callback = []()  { printf("Trying to set VSYNC. Set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
+                              SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "0", SDL_HINT_OVERRIDE);
+                              printf("Now set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
+                            };
         b3.callback = []()  { exit(1); };
 
         btns.push_back(b1);
         btns.push_back(b2);
         btns.push_back(b3);
+
+        // for greying out game in the background when paused
+        greyout_tex = IMG_LoadTexture(rw->renderer, "res/greyout.png");
+        SDL_ERROR(greyout_tex);
 
         // ADD TEXT TO BUTTONS
         TTF_Init();
@@ -107,6 +109,9 @@ public:
 
     virtual void OnRender()
     {
+        // grey out background
+        SDL_RenderCopy(rw->renderer, greyout_tex, NULL, NULL);
+
         // TODO dont call sdl render functions ourselves
         for (auto& b : btns)
         {
@@ -123,4 +128,6 @@ public:
     SDL_Texture* btn_hover_tex;
     SDL_Texture* btn_pressed_tex;
     TTF_Font* btnFont;
+
+    SDL_Texture* greyout_tex;
 };

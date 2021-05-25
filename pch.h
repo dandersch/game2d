@@ -33,6 +33,7 @@ extern f32 accumulator;
 #include <SDL_keycode.h>
 #include <SDL_timer.h>
 #include <SDL_ttf.h>
+#include <SDL_surface.h>
 #include <SDL_pixels.h>
 #include <SDL_render.h>
 #include <SDL_keyboard.h>
