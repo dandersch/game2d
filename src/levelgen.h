@@ -17,21 +17,8 @@
 class LevelGenerator
 {
 public:
-    LevelGenerator() : texMgr(".png") {}
+    LevelGenerator() {}
     ~LevelGenerator() = default;
-
-    // TODO internal
-    // TODO needed?
-    const tmx::Tileset& getTilesetByName(const std::string& name,
-                                         const std::vector<tmx::Tileset, std::allocator<tmx::Tileset>> tilesets)
-    {
-        for (auto& ts : tilesets)
-        {
-            if (ts.getName() == name)
-                return ts;
-        }
-        ASSERT(false); // TODO
-    };
 
     // TEST TILE GENERATION ////////////////////////////////////////////////
     // TODO LevelGenerator that can fill the entityarray with static tiles &
@@ -42,7 +29,8 @@ public:
     {
         // ENTITY GENERATION ///////////////////////////////////////////////////
         // TODO load in from tmx
-        SDL_Texture* chartex = texMgr.get("res/character.png");
+        SDL_Texture* chartex = ResourceManager<SDL_Texture*>::get("res/character.png");
+
         Entity ent0 = { .active = true, .freed = false,
                         .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
                              (u32) EntityFlag::IS_ANIMATED |
@@ -93,7 +81,7 @@ public:
             const auto& tilesets = map.getTilesets();
             auto& ts = tilesets.at(0); // TODO
 
-            SDL_Texture* tiletex = texMgr.get(ts.getImagePath());
+            SDL_Texture* tiletex = ResourceManager<SDL_Texture*>::get(ts.getImagePath());
 
             // for items & characters
             if(layer->getType() == tmx::Layer::Type::Object)
@@ -227,7 +215,4 @@ public:
 
         return true;
     }
-
-private:
-    ResourceManager<SDL_Texture*> texMgr;
 };

@@ -98,6 +98,7 @@ void main_loop()
             {
                 for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
                 {
+                    if (!(*it)->active) return;
                     if (evn.handled) break;
                     (*it)->OnEvent(evn);
                 }
@@ -115,7 +116,10 @@ void main_loop()
             // UPDATE LOOP /////////////////////////////////////////////////////
             // TODO update back to front or front to back?
             for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
+            {
+                if (!(*it)->active) return;
                 (*it)->OnUpdate(dt);
+            }
         }
 
         cyclesLeftOver = updateIterations;
@@ -125,7 +129,10 @@ void main_loop()
         SDL_RenderClear(rw->renderer);
 
         for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
+        {
+            if (!(*it)->active) return;
             (*it)->OnRender();
+        }
 
 #ifdef IMGUI
         igLayer->Begin(); // TODO can be put further down?

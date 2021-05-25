@@ -58,8 +58,8 @@ void GameLayer::OnEvent(Event& event)
         break;
     case SDL_MOUSEBUTTONDOWN:
         auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
-        cam.cameraRect.x = click.x - (cam.cameraRect.w/2);
-        cam.cameraRect.y = click.y - (cam.cameraRect.h/2);
+        cam.cameraRect.x = click.x - (cam.cameraRect.w/2.f);
+        cam.cameraRect.y = click.y - (cam.cameraRect.h/2.f);
         break;
     }
 

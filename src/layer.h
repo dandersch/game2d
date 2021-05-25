@@ -22,6 +22,9 @@ public:
     virtual void OnEvent(Event& event) {}
 
     const std::string& GetName() const { return m_DebugName; }
+
+    b32 active = true;
+
 protected:
     std::string m_DebugName;
 };

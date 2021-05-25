@@ -25,10 +25,10 @@ public:
 
 
         window = SDL_CreateWindow("SDL2 Game",
-                                  SDL_WINDOWPOS_UNDEFINED,
-                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_CENTERED,
+                                  SDL_WINDOWPOS_CENTERED,
                                   screenWidth, screenHeight,
-                                  SDL_WINDOW_RESIZABLE);
+                                  0);
         SDL_ERROR(window);
 
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED
@@ -70,7 +70,7 @@ public:
 
         // TODO isn't where it's expected
         // Draw pivot point
-        //SDL_RenderDrawPointF(rw->renderer, pos.x, pos.y);
+        SDL_RenderDrawPointF(rw->renderer, pos.x, pos.y);
     };
 
     SDL_Renderer* renderer;

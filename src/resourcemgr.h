@@ -2,23 +2,14 @@
 #include "pch.h"
 #include "renderwindow.h"
 
-// TODO make more robust w/o ext
 // TODO use unique_ptr
 // TODO if we want to use templates here we probably need to wrap SDL_Textures,
 // fonts etc.
-// TODO turn into singleton
 template<typename Resource>
 class ResourceManager
 {
 public:
-    ResourceManager(const std::string& ext)
-    {
-        std::string path = "res/missing" + ext;
-        pool["missing"] = IMG_LoadTexture(rw->renderer, path.c_str());
-        SDL_ERROR(pool["missing"]);
-    }
-
-    Resource get(const std::string& file)
+    static Resource get(const std::string& file)
     {
         if (pool.find(file) != pool.end()) // found
         {
@@ -34,6 +25,8 @@ public:
     }
 
 private:
-    //std::unordered_map<std::string, std::unique_ptr<Resource>> pool;
-    std::unordered_map<std::string, Resource> pool;
+    static std::unordered_map<std::string, Resource> pool;
 };
+
+template <typename Resource>
+std::unordered_map<std::string, Resource> ResourceManager<Resource>::pool{};
