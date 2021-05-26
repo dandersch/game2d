@@ -33,12 +33,12 @@ public:
 
         Entity ent0 = { .active = true, .freed = false,
                         .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
-                             (u32) EntityFlag::IS_ANIMATED |
-                             (u32) EntityFlag::IS_REWINDABLE |
-                             (u32) EntityFlag::IS_COLLIDER,
-                    .position = {600,600,0}, .orient = 0, .renderLayer = 1,
-                    .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}},
-                    .collider  = { 0, 0, 16, 32}};
+                                 (u32) EntityFlag::IS_ANIMATED |
+                                 (u32) EntityFlag::IS_REWINDABLE |
+                                 (u32) EntityFlag::IS_COLLIDER,
+                        .position = {600,600,0}, .orient = 0, .renderLayer = 1,
+                        .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}},
+                        .collider  = { 0, 0, 16, 32}};
         Rewind::initializeFrames(ent0);
         CommandProcessor::initialize(ent0);
         EntityMgr::copyEntity(ent0);
@@ -49,16 +49,16 @@ public:
             for (u32 j = 1; j < 10; j++)
             {
                 Entity ent({ .active = true, .freed = false,
-                .flags = // (u32) EntityFlag::PLAYER_CONTROLLED |
-                (u32) EntityFlag::IS_COLLIDER |
-                (u32) EntityFlag::IS_ITEM |
-                (u32) EntityFlag::IS_ANIMATED,
-                .position = {13 * i, 10 * j,0},
-                .orient = 3, .renderLayer = 1,
-                .sprite{{0,0,16,32}, chartex, {0,0}, SDL_FLIP_NONE},
-                .anim{ {{0,0,16,32}, {16,0,16,32},
-                        {32,0,16,32}, {48,0,16,32}}, 1.0f, true },
-                .collider  = { 0, 0, 16, 32}});
+                             .flags = // (u32) EntityFlag::PLAYER_CONTROLLED |
+                                      (u32) EntityFlag::IS_COLLIDER |
+                                      (u32) EntityFlag::IS_ITEM |
+                                      (u32) EntityFlag::IS_ANIMATED,
+                             .position = {13 * i, 10 * j,0},
+                             .orient = 3, .renderLayer = 1,
+                             .sprite{{0,0,16,32}, chartex, {0,0}, SDL_FLIP_NONE},
+                             .anim{ {{0,0,16,32}, {16,0,16,32},
+                                     {32,0,16,32}, {48,0,16,32}}, 1.0f, true },
+                             .collider  = { 0, 0, 16, 32}});
                 // Rewind::initializeFrames(ent);
                 // CommandProcessor::initialize(ent);
                 EntityMgr::copyEntity(ent);

@@ -4,7 +4,7 @@
 
 struct Event
 {
-    SDL_Event evn;
+    SDL_Event sdl;
     b32 handled = false;
 };
 

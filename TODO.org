@@ -12,6 +12,7 @@
 - [X] timerewind
 - [X] inputmapper
 - [X] fixed deltatime timestep
+- [X] ui & menu
 - [ ] segfault when going fullscreen
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] timer utility
@@ -28,7 +29,6 @@
 - [ ] serializing (of cmds[])
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
 - [ ] implement composite colliders
-- [ ] ui & menu
 - [ ] "AI"controller subsystem
 - [ ] sound/audiosystem
 - [ ] threadpool

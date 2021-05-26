@@ -20,7 +20,7 @@ void GameLayer::OnDetach()
 
 void GameLayer::OnEvent(Event& event)
 {
-    SDL_Event evn = event.evn;
+    SDL_Event evn = event.sdl;
 
     switch (evn.type) {
     case SDL_KEYDOWN:

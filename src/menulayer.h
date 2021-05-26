@@ -13,7 +13,6 @@ struct Button
     SDL_Texture* tex[COUNT];
     SDL_Texture* txtTex;
     SDL_Rect     txtBox;
-    // TODO callback
     std::function<void(void)> callback;
 };
 
@@ -24,12 +23,9 @@ public:
     virtual void OnAttach()
     {
         // TODO use a resourcemgr or similar
-        btn_inactive_tex = IMG_LoadTexture(rw->renderer, "res/button.png");
-        SDL_ERROR(btn_inactive_tex);
-        btn_hover_tex    = IMG_LoadTexture(rw->renderer, "res/button_hover.png");
-        SDL_ERROR(btn_hover_tex);
-        btn_pressed_tex  = IMG_LoadTexture(rw->renderer, "res/button_pressed.png");
-        SDL_ERROR(btn_pressed_tex);
+        btn_inactive_tex = ResourceManager<SDL_Texture*>::get("res/button.png");
+        btn_hover_tex    = ResourceManager<SDL_Texture*>::get("res/button_hover.png");
+        btn_pressed_tex  = ResourceManager<SDL_Texture*>::get("res/button_pressed.png");
 
         Button b1 = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
         Button b2 = { .label = "OPTIONS",  .state = Button::NONE, .box = {800, 600,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
@@ -39,8 +35,7 @@ public:
         b1.callback = [&]() { active = false; };
         b2.callback = []()  { printf("Trying to set VSYNC. Set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
                               SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "0", SDL_HINT_OVERRIDE);
-                              printf("Now set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
-                            };
+                              printf("Now set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));};
         b3.callback = []()  { exit(1); };
 
         btns.push_back(b1);
@@ -48,12 +43,11 @@ public:
         btns.push_back(b3);
 
         // for greying out game in the background when paused
-        greyout_tex = IMG_LoadTexture(rw->renderer, "res/greyout.png");
-        SDL_ERROR(greyout_tex);
+        greyout_tex = ResourceManager<SDL_Texture*>::get("res/greyout.png");
 
         // ADD TEXT TO BUTTONS
         TTF_Init();
-        btnFont = TTF_OpenFont( "res/ubuntumono.ttf", 50 );
+        TTF_Font* btnFont = ResourceManager<TTF_Font*>::get("res/ubuntumono.ttf");
         SDL_Color textColor   = {200,200,200,230};
         for (auto& b : btns)
         {
@@ -64,13 +58,14 @@ public:
             SDL_QueryTexture(b.txtTex, NULL, NULL, &b.txtBox.w, &b.txtBox.h);
             SDL_FreeSurface(textSurf);
         }
+        // ResourceManager<TTF_Font*>::free("res/ubuntumono.ttf");
     }
 
     virtual void OnDetach() {}
 
     virtual void OnEvent(Event& event)
     {
-        SDL_Event evn = event.evn;
+        SDL_Event evn = event.sdl;
         SDL_Point mouse = { evn.motion.x, evn.motion.y };
 
         switch (evn.type) {
@@ -127,7 +122,6 @@ public:
     SDL_Texture* btn_inactive_tex;
     SDL_Texture* btn_hover_tex;
     SDL_Texture* btn_pressed_tex;
-    TTF_Font* btnFont;
 
     SDL_Texture* greyout_tex;
 };

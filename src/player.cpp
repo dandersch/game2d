@@ -11,7 +11,7 @@ const f32 Player::playerSpeed = 150.f;
 
 void Player::handleEvent(const Event& e,  Entity& ent, const Camera& cam)
 {
-    SDL_Event evn = e.evn;
+    SDL_Event evn = e.sdl;
 
     switch (evn.type) {
     case SDL_MOUSEBUTTONDOWN:

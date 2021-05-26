@@ -34,7 +34,7 @@ public:
 
     virtual void OnEvent(Event& e) override
     {
-        ImGui_ImplSDL2_ProcessEvent(&e.evn);
+        ImGui_ImplSDL2_ProcessEvent(&e.sdl);
         ImGuiIO& io = ImGui::GetIO();
         e.handled = io.WantCaptureMouse || io.WantCaptureKeyboard;
         //e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;

@@ -100,7 +100,7 @@ void main_loop()
 
             // EVENT HANDLING //////////////////////////////////////////////////
             Event evn;
-            while (SDL_PollEvent(&evn.evn))
+            while (SDL_PollEvent(&evn.sdl))
             {
                 for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
                 {
@@ -117,15 +117,15 @@ void main_loop()
                     }
                 }
 
-                switch (evn.evn.type) {
+                switch (evn.sdl.type) {
                     case SDL_KEYDOWN:
                         // TODO hardcoded
                         // toggle testmenu
-                        if (evn.evn.key.keysym.sym == SDLK_ESCAPE)
+                        if (evn.sdl.key.keysym.sym == SDLK_ESCAPE)
                         {
                             menuLayer->active = !menuLayer->active;
                         }
-                        if (evn.evn.key.keysym.sym == SDLK_F1)
+                        if (evn.sdl.key.keysym.sym == SDLK_F1)
                         {
                             renderImgui = !renderImgui;
                         }
@@ -133,7 +133,7 @@ void main_loop()
                     case SDL_QUIT: run = false;
                         break;
                     case SDL_WINDOWEVENT:
-                        if (evn.evn.window.type == SDL_WINDOWEVENT_CLOSE)
+                        if (evn.sdl.window.type == SDL_WINDOWEVENT_CLOSE)
                             run = false;
                         break;
                 }
