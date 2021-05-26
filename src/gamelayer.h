@@ -27,4 +27,6 @@ public:
 
 private:
     bool debugDraw = false;
+    Entity* focusedEntity = nullptr;
+    SDL_Rect focusArrow = {64,32,16,32}; // TODO hardcoded
 };

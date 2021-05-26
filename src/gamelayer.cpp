@@ -1,4 +1,6 @@
 #include "gamelayer.h"
+#include "SDL_rect.h"
+#include "SDL_render.h"
 #include "command.h"
 #include "input.h"
 #include "levelgen.h"
@@ -44,8 +46,29 @@ void GameLayer::OnEvent(Event& event)
         break;
     case SDL_MOUSEBUTTONDOWN:
         auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
-        cam.cameraRect.x = click.x - (cam.cameraRect.w/2.f);
-        cam.cameraRect.y = click.y - (cam.cameraRect.h/2.f);
+        //cam.cameraRect.x = click.x - (cam.cameraRect.w/2.f);
+        //cam.cameraRect.y = click.y - (cam.cameraRect.h/2.f);
+
+        // get 'clicked on' playable entity
+        for (u32 i = 0; i < MAX_ENTITIES; i++)
+        {
+            auto ents = EntityMgr::getArray();
+            if (!ents[i].active) continue;
+            if (!(ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)) continue;
+            SDL_Point clickpoint = {(i32) click.x, (i32) click.y};
+            SDL_Rect coll = ents[i].getColliderInWorld();
+            if (SDL_PointInRect(&clickpoint, &coll))
+            {
+                if (focusedEntity)
+                {
+                    focusedEntity->flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
+                    focusedEntity->flags |= (u32) EntityFlag::CMD_CONTROLLED;
+                }
+                ents[i].flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
+                ents[i].flags ^= (u32) EntityFlag::CMD_CONTROLLED;
+                focusedEntity = &ents[i];
+            }
+        }
         break;
     }
 
@@ -148,11 +171,11 @@ void GameLayer::OnUpdate(f32 dt)
 void GameLayer::OnRender()
 {
     u32 maxlayer = 0;
+    auto ents = EntityMgr::getArray();
     for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
     {
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
-            auto ents = EntityMgr::getArray();
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
             rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
@@ -175,6 +198,15 @@ void GameLayer::OnRender()
         // no need to go through all renderlayers
         if (l > maxlayer) break;
     }
+
+    // draw focusarrow on focused entity TODO hardcoded & very hacky
+    if (focusedEntity)
+    {
+        auto pos     = cam.worldToScreen(focusedEntity->position);
+        SDL_Rect dst = {(i32) pos.x, (i32) pos.y, focusedEntity->sprite.box.w, focusedEntity->sprite.box.h};
+        SDL_RenderCopy(rw->renderer, ents[10050].sprite.tex, &focusArrow, &dst);
+    }
+
 }
 
 void GameLayer::OnImGuiRender()

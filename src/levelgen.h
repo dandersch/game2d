@@ -27,44 +27,8 @@ public:
     // entities with CharacterType SKELETON with "skeleton.tmx"
     bool loadLevel(const std::string& file, Entity* ents, u32 max_ents)
     {
-        // ENTITY GENERATION ///////////////////////////////////////////////////
         // TODO load in from tmx
         SDL_Texture* chartex = ResourceManager<SDL_Texture*>::get("res/character.png");
-
-        Entity ent0 = { .active = true, .freed = false,
-                        .flags = (u32) EntityFlag::PLAYER_CONTROLLED |
-                                 (u32) EntityFlag::IS_ANIMATED |
-                                 (u32) EntityFlag::IS_REWINDABLE |
-                                 (u32) EntityFlag::IS_COLLIDER,
-                        .position = {600,600,0}, .orient = 0, .renderLayer = 1,
-                        .sprite{{0,0,16,32}, chartex, {0.5f,0.75f}},
-                        .collider  = { 0, 0, 16, 32}};
-        Rewind::initializeFrames(ent0);
-        CommandProcessor::initialize(ent0);
-        EntityMgr::copyEntity(ent0);
-
-        // stress test
-        for (u32 i = 1; i < 10; i++)
-        {
-            for (u32 j = 1; j < 10; j++)
-            {
-                Entity ent({ .active = true, .freed = false,
-                             .flags = // (u32) EntityFlag::PLAYER_CONTROLLED |
-                                      (u32) EntityFlag::IS_COLLIDER |
-                                      (u32) EntityFlag::IS_ITEM |
-                                      (u32) EntityFlag::IS_ANIMATED,
-                             .position = {13 * i, 10 * j,0},
-                             .orient = 3, .renderLayer = 1,
-                             .sprite{{0,0,16,32}, chartex, {0,0}, SDL_FLIP_NONE},
-                             .anim{ {{0,0,16,32}, {16,0,16,32},
-                                     {32,0,16,32}, {48,0,16,32}}, 1.0f, true },
-                             .collider  = { 0, 0, 16, 32}});
-                // Rewind::initializeFrames(ent);
-                // CommandProcessor::initialize(ent);
-                EntityMgr::copyEntity(ent);
-
-            }
-        }
 
         tmx::Map map;
         if (!map.load(file)) { printf("map didnt load"); return false; }
@@ -108,19 +72,29 @@ public:
                                   (i32) t->imageSize.x,     (i32) t->imageSize.y };
 
                     // TODO load in anims in here
+                    // TODO entity_create_character()
                     if (type == "Character")
                     {
                         // TODO charID
                         newEnt.sprite.box   = spritebox;
                         newEnt.sprite.pivot = {0.5f, 0.5f};
+                        newEnt.state        = STATE_MOVE;
                         // TODO why -24
                         newEnt.setPivPos( {o.getPosition().x,
                                            o.getPosition().y - 24, 0});
                         newEnt.sprite.tex   = chartex; // TODO
+                        newEnt.renderLayer  = 1;
+                        newEnt.orient       = ORIENT_DOWN;
                         const auto& aabb    = o.getAABB();
                         newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
                                                (i32) aabb.width, (i32) aabb.height};
                         newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
+                        //newEnt.flags       |= (u32) EntityFlag::PLAYER_CONTROLLED;
+                        //newEnt.flags       |= (u32) EntityFlag::IS_ANIMATED;
+                        newEnt.flags       |= (u32) EntityFlag::CMD_CONTROLLED;
+                        newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
+                        Rewind::initializeFrames(newEnt);
+                        CommandProcessor::initialize(newEnt);
 
                     } else if (type == "Item") {
                         newEnt.sprite.box   = spritebox;
@@ -190,28 +164,38 @@ public:
             layercount++;
         } // layer loop
 
-        // Loading in animations
-        tmx::Map charMap;
-        if (!charMap.load("res/character.tmx")) { printf("charmap didnt load"); exit(1); }
+        //// Loading in animations
+        //tmx::Map charMap;
+        //if (!charMap.load("res/character.tmx")) { printf("charmap didnt load"); exit(1); }
 
-        // testing loading animations from .tmx (/.tsx) files
-        u32 animIndex = 0;
-        auto& ent = EntityMgr::getArray()[0];
-        for (auto anim : charMap.getAnimatedTiles())
-        {
-            for (auto frame : anim.second.animation.frames)
-            {
-                auto tileID = frame.tileID;
-                auto pos    = charMap.getTilesets().at(0).getTile(tileID)->imagePosition;
-                auto size   = charMap.getTilesets().at(0).getTile(tileID)->imageSize;
-                SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
-                ent.anims[animIndex].frames.push_back(bb);
-                ent.anims[animIndex].loop = true;
-                ent.anims[animIndex].length = 1.0f;
-            }
-            animIndex++;
-        }
-        ent.anim = ent.anims[0];
+        //// testing loading animations from .tmx (/.tsx) files
+        //u32 animIndex = 0;
+        //Animation anims[STATE_COUNT * ORIENT_COUNT];
+        //Entity* entts = EntityMgr::getArray();
+        //for (auto anim : charMap.getAnimatedTiles())
+        //{
+        //    for (auto frame : anim.second.animation.frames)
+        //    {
+        //        auto tileID = frame.tileID;
+        //        auto pos    = charMap.getTilesets().at(0).getTile(tileID)->imagePosition;
+        //        auto size   = charMap.getTilesets().at(0).getTile(tileID)->imageSize;
+        //        SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
+        //        anims[animIndex].frames.push_back(bb);
+        //        anims[animIndex].loop = true;
+        //        anims[animIndex].length = 1.0f;
+
+        //    }
+        //    animIndex++;
+        //}
+        //for (u32 i = 0; i < MAX_ENTITIES; i++)
+        //{
+        //    auto entts = EntityMgr::getArray();
+        //    if ((entts[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED))
+        //    {
+        //        memcpy(entts[i].anims, anims, sizeof(anims));
+        //        entts[i].anim = entts[i].anims[0];
+        //    }
+        //}
 
         return true;
     }

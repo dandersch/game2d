@@ -58,6 +58,14 @@ struct Entity
                 position.y + (sprite.box.h * sprite.pivot.y), 0};
     }
 
+    // collider itself is relative to entity
+    SDL_Rect getColliderInWorld()
+    {
+        return {(i32) (position.x + collider.x),
+                (i32) (position.y + collider.y),
+                collider.w, collider.h};
+    }
+
     b32  active; // determines if needs updating
     b32  freed = true;  // determines if can be replaced with new entity
     u32  flags;
