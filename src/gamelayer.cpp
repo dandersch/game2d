@@ -8,6 +8,7 @@
 #include "reset.h"
 #include "rewind.h"
 #include "item.h"
+#include "sound.h"
 
 void GameLayer::OnAttach()
 {
@@ -238,6 +239,11 @@ void GameLayer::OnImGuiRender()
             ent.flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
             ent.flags ^= (u32) EntityFlag::CMD_CONTROLLED;
         }
+    }
+
+    if (ImGui::Button("TOGGLE MUSIC"))
+    {
+        Sound::toggleMusic();
     }
 
     ImGui::Checkbox("ENABLE DEBUG DRAW", &debugDraw);

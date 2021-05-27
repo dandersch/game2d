@@ -20,7 +20,7 @@ class MenuLayer : public Layer
 {
 public:
     // create & get needed texs + create buttons & texs for labels
-    virtual void OnAttach()
+    virtual void OnAttach() override
     {
         // TODO use a resourcemgr or similar
         btn_inactive_tex = ResourceManager<SDL_Texture*>::get("res/button.png");
@@ -61,9 +61,9 @@ public:
         // ResourceManager<TTF_Font*>::free("res/ubuntumono.ttf");
     }
 
-    virtual void OnDetach() {}
+    virtual void OnDetach() override {}
 
-    virtual void OnEvent(Event& event)
+    virtual void OnEvent(Event& event) override
     {
         SDL_Event evn = event.sdl;
         SDL_Point mouse = { evn.motion.x, evn.motion.y };
@@ -100,9 +100,9 @@ public:
         }
     }
 
-    virtual void OnUpdate(f32 dt) {}
+    virtual void OnUpdate(f32 dt) override {}
 
-    virtual void OnRender()
+    virtual void OnRender() override
     {
         // grey out background
         SDL_RenderCopy(rw->renderer, greyout_tex, NULL, NULL);

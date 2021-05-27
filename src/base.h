@@ -25,6 +25,7 @@ typedef float    f32;
 typedef double   f64;
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
+#define MIX_ERROR(x) if (!x) { printf("MIX ERROR: %s\n", Mix_GetError()); }
 
 // ASSERTIONS //////////////////////////////////////////////////////////////////
 #include <signal.h> // for debug breaking

@@ -37,11 +37,16 @@ f32 updateIterations;
 void main_loop();
 RenderWindow* rw;
 
+#include "sound.h"
+
 int main(int argc, char* args[])
 {
     // SDL SETUP ///////////////////////////////////////////////////////////////
     rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
     SDL_RenderSetScale(rw->renderer, 1.f, 1.f); // use for zooming?
+
+    // test sound
+    Sound::initAndLoadSound();
 
     layerStack.push_back(new GameLayer());
     menuLayer = new MenuLayer();

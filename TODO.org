@@ -13,7 +13,8 @@
 - [X] inputmapper
 - [X] fixed deltatime timestep
 - [X] ui & menu
-- [ ] segfault when going fullscreen
+- [X] segfault when going fullscreen
+- [X] clickable entities
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] timer utility
 - [ ] use interpolation for movement
@@ -23,7 +24,6 @@
 - [ ] support layers when reading in a tmx
 - [ ] import animations in tmx
 - [ ] camera with zooming
-- [ ] clickable entities
 - [ ] application class that provides a main loop for emscripten
 - [ ] profiling tools
 - [ ] serializing (of cmds[])
@@ -32,3 +32,4 @@
 - [ ] "AI"controller subsystem
 - [ ] sound/audiosystem
 - [ ] threadpool
+- [ ] uncap framerate (curr. capped to 60FPS)

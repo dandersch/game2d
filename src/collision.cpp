@@ -1,5 +1,6 @@
 #include "collision.h"
 #include "entity.h"
+#include "sound.h"
 
 static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
 { (u32) EntityFlag::IS_ENEMY | (u32) EntityFlag::IS_TILE,
@@ -14,7 +15,8 @@ static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
       printf("ITEM PICKUP\n");
       e1->owner->item  = e2;
       e2->flags ^= (u32) EntityFlag::IS_COLLIDER;
-      // do something
+      // testing sound
+      Sound::playSFX(Sound::SFX_PICKUP);
   }}
 };
 
