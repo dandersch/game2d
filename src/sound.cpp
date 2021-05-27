@@ -2,11 +2,6 @@
 
 
 Mix_Music* Sound::music       = NULL;
-Mix_Chunk* Sound::sfx_scratch = NULL;
-Mix_Chunk* Sound::sfx_high    = NULL;
-Mix_Chunk* Sound::sfx_medium  = NULL;
-Mix_Chunk* Sound::sfx_low     = NULL;
-
 Mix_Chunk* sfx_table[Sound::SFX_COUNT] = {0};
 
 bool Sound::initAndLoadSound()

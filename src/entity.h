@@ -3,7 +3,6 @@
 #include "pch.h"
 #include "animation.h"
 #include "rewind.h"
-#include "tile.h"
 #include "command.h"
 
 struct Sprite
@@ -79,7 +78,7 @@ struct Entity
     Animation anim; // TODO use an index that accesses into anims instead
 
     SDL_Rect collider; // TODO box2d?
-    MyTile tile;
+    //MyTile tile;
 
     u32  state;
 

@@ -135,29 +135,29 @@ public:
                                    (i32) tile->imageSize.y};
 
                     // CONSTRUCT ENTITY
-                    Entity newEnt = {0};
+                    Tile newTile = {0};
                     if (!tile->objectGroup.getObjects().empty())
                     {
                         // TODO collision box data uses pixels as units, we
                         // might want to convert this to a 0-1 range
                         const auto& aabb = tile->objectGroup.getObjects().at(0).getAABB();
-                        newEnt.collider  = {(i32) aabb.left,  (i32) aabb.top,
+                        newTile.collider  = {(i32) aabb.left,  (i32) aabb.top,
                                             (i32) aabb.width, (i32) aabb.height};
-                        newEnt.flags     = (u32) EntityFlag::IS_COLLIDER;
+                        //newEnt.flags     = (u32) EntityFlag::IS_COLLIDER;
+                        newTile.collidable = true;
                     }
 
-                    newEnt.active       = true;
-                    newEnt.freed        = false;
-                    newEnt.renderLayer  = layercount;
+                    //newEnt.active       = true;
+                    //newEnt.freed        = false;
+                    newTile.renderLayer  = layercount;
                     //newEnt.position     = ;
-                    newEnt.tile         = { t.ID, TileType::GRASS };
-                    newEnt.sprite.box   = bb;
-                    newEnt.sprite.pivot = {0.5f, 0.5f};
-                    newEnt.sprite.tex   = tiletex; // TODO
-                    newEnt.setPivPos({x * 16.f, y * 16.f, 0});
+                    newTile.sprite.box   = bb;
+                    newTile.sprite.pivot = {0.5f, 0.5f};
+                    newTile.sprite.tex   = tiletex; // TODO
+                    newTile.setPivPos({x * 16.f, y * 16.f, 0});
 
                     // copy new entity into array TODO slow
-                    EntityMgr::copyEntity(newEnt);
+                    EntityMgr::createTile(newTile);
                     tilecount++;
                 } // tile loop
             } // tilelayer

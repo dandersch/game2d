@@ -4,6 +4,7 @@
 
 
 struct Entity;
+struct Tile;
 namespace Collision {
 
 bool AABB(const SDL_Rect& recA, const SDL_Rect& recB);
@@ -17,5 +18,6 @@ bool AABB(const SDL_Rect& recA, const SDL_Rect& recB);
 // and maybe also pass in a struct collisionInfo
 
 bool checkCollision(Entity& e1, Entity& e2);
+bool checkCollisionWithTiles(Entity& e1, Tile& t1);
 
 } // namespace Collision

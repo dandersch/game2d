@@ -15,10 +15,10 @@
 - [X] ui & menu
 - [X] segfault when going fullscreen
 - [X] clickable entities
+- [X] Tiles should prob. not be entites and have their own array instead
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] timer utility
 - [ ] use interpolation for movement
-- [ ] Tiles should prob. not be entites and have their own array instead
 - [ ] tilemap culling
 - [ ] import character/items sprite with tmx
 - [ ] support layers when reading in a tmx

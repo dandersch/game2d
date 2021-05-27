@@ -1,6 +1,8 @@
 #include "collision.h"
+#include "SDL_rect.h"
 #include "entity.h"
 #include "sound.h"
+#include "tile.h"
 
 static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
 { (u32) EntityFlag::IS_ENEMY | (u32) EntityFlag::IS_TILE,
@@ -51,6 +53,31 @@ void collisionCallback(Entity* e1, Entity* e2, u32 flagCombination)
     }
 }
 
+bool Collision::checkCollisionWithTiles(Entity& e1, Tile& t1)
+{
+    // TODO use unpivoted pos or calculate pos back to unpivoted here
+    // collider of e1 after moving
+    SDL_Rect a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
+                  (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
+                  e1.collider.w, e1.collider.h,} ;
+
+    // collider of tile
+    SDL_Rect b = {(i32) t1.position.x + t1.collider.x,
+                  (i32) t1.position.y + t1.collider.y,
+                  t1.collider.w, t1.collider.h,} ;
+
+
+    bool collided = Collision::AABB(a, b);
+    if (collided)
+    {
+        e1.movement = {0,0,0};
+
+        // check flags here if needed
+    }
+
+    return collided;
+}
+
 bool Collision::checkCollision(Entity& e1, Entity& e2)
 {
     // TODO use unpivoted pos or calculate pos back to unpivoted here
@@ -76,8 +103,6 @@ bool Collision::checkCollision(Entity& e1, Entity& e2)
                               (u32) EntityFlag::IS_ITEM);
         }
     }
-
-
 
     return collided;
 }

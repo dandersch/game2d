@@ -1,6 +1,7 @@
 #include "gamelayer.h"
 #include "SDL_rect.h"
 #include "SDL_render.h"
+#include "collision.h"
 #include "command.h"
 #include "input.h"
 #include "levelgen.h"
@@ -90,6 +91,8 @@ void GameLayer::OnUpdate(f32 dt)
     Input::update();
     Reset::update(dt); // TODO fixed delta time
 
+    auto tiles = EntityMgr::getTiles();
+
     // TODO find out if it matters if we do everything in one loop for one
     // entity vs. every "system" has its own loop
     for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -129,14 +132,22 @@ void GameLayer::OnUpdate(f32 dt)
             bool collided = false;
             if ((ent.flags & (u32) EntityFlag::IS_COLLIDER) &&
                 ((ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED) ||
+                 (ent.flags & (u32) EntityFlag::CMD_CONTROLLED) ||
                  (ent.flags & (u32) EntityFlag::PICKUP_BOX)))
             {
+                for (u32 k = 0; k < EntityMgr::getTileCount(); k++)
+                {
+                    if (!tiles[k].collidable) continue;
+                    collided |= Collision::checkCollisionWithTiles(ent, tiles[k]);
+                    if (collided) break;
+                }
+
                 for (u32 j = 0; j < MAX_ENTITIES; j++)
                 {
                     Entity& e2 = EntityMgr::getArray()[j];
                     if (!e2.active) continue;
                     if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
-                        collided = Collision::checkCollision(ent, e2);
+                        collided |= Collision::checkCollision(ent, e2);
                 }
             }
             // TODO should we set movement to zero here if collided?
@@ -173,8 +184,32 @@ void GameLayer::OnRender()
 {
     u32 maxlayer = 0;
     auto ents = EntityMgr::getArray();
+    auto tiles = EntityMgr::getTiles();
     for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
     {
+        // RENDER TILES ////////////////////////////////////////////////////////
+        // TODO tilemap culling
+        for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
+        {
+            if (tiles[i].renderLayer != l) continue;
+            rw->render(tiles[i].sprite, cam.worldToScreen(tiles[i].position),
+                       1.0f, tiles[i].sprite.flip);
+            if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
+
+            if (debugDraw)
+            {
+                auto pos = cam.worldToScreen(tiles[i].position);
+                SDL_Rect dst = {(int) pos.x + tiles[i].collider.x,
+                                (int) pos.y + tiles[i].collider.y,
+                                (i32) (tiles[i].collider.w),
+                                (i32) (tiles[i].collider.h)};
+
+                // don't draw 'empty' colliders (otherwise it will draw points & lines)
+                if (!SDL_RectEmpty(&dst)) SDL_RenderDrawRect(rw->renderer, &dst);
+            }
+        }
+
+        // RENDER ENTITIES /////////////////////////////////////////////////////
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
             if (!ents[i].active) continue;
@@ -205,7 +240,7 @@ void GameLayer::OnRender()
     {
         auto pos     = cam.worldToScreen(focusedEntity->position);
         SDL_Rect dst = {(i32) pos.x, (i32) pos.y, focusedEntity->sprite.box.w, focusedEntity->sprite.box.h};
-        SDL_RenderCopy(rw->renderer, ents[10050].sprite.tex, &focusArrow, &dst);
+        SDL_RenderCopy(rw->renderer, ents[0].sprite.tex, &focusArrow, &dst);
     }
 
 }
