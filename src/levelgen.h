@@ -20,16 +20,8 @@ public:
     LevelGenerator() {}
     ~LevelGenerator() = default;
 
-    // TEST TILE GENERATION ////////////////////////////////////////////////
-    // TODO LevelGenerator that can fill the entityarray with static tiles &
-    // (items &) characters (maybe without sprites), afterwards fill characters
-    // (i.e. entities with flag IS_CHARACTER or sth.) and fill e.g animations of
-    // entities with CharacterType SKELETON with "skeleton.tmx"
     bool loadLevel(const std::string& file, Entity* ents, u32 max_ents)
     {
-        // TODO load in from tmx
-        SDL_Texture* chartex = ResourceManager<SDL_Texture*>::get("res/character.png");
-
         tmx::Map map;
         if (!map.load(file)) { printf("map didnt load"); return false; }
 
@@ -39,20 +31,19 @@ public:
         u32 layercount           = 0;
         u32 tilecount            = 0;
 
+        const auto& tilesets = map.getTilesets();
+        const tmx::Tileset* ts = &tilesets.at(0);
+
         for(const auto& layer : layers)
         {
             tilecount = 0;
-            const auto& tilesets = map.getTilesets();
-            auto& ts = tilesets.at(0); // TODO
-
-            SDL_Texture* tiletex = ResourceManager<SDL_Texture*>::get(ts.getImagePath());
 
             // for items & characters
-            if(layer->getType() == tmx::Layer::Type::Object)
+            if (layer->getType() == tmx::Layer::Type::Object)
             {
                 const auto& objs = layer->getLayerAs<tmx::ObjectGroup>().getObjects();
-                printf("%zu\n", objs.size());
-                auto& ts       = tilesets.at(1); //TODO hardcoded
+                //auto& ts       = tilesets.at(1); //TODO hardcoded
+
                 for (const auto& o : objs)
                 {
                     const std::string& type = o.getType();
@@ -62,8 +53,16 @@ public:
                     newEnt.freed        = false;
                     newEnt.renderLayer  = layercount;
 
-                    // get tileset
-                    auto t = ts.getTile(o.getTileID());
+                    // determine tileset
+                    for (int i = 0; i < tilesets.size(); i++)
+                    {
+                        if (tilesets.at(i).hasTile(o.getTileID()))
+                        {
+                            ts = &tilesets.at(i);
+                            break;
+                        }
+                    }
+                    auto t = ts->getTile(o.getTileID());
 
                     // to create the spritebox
                     SDL_Rect spritebox = {0};
@@ -82,7 +81,7 @@ public:
                         // TODO why -24
                         newEnt.setPivPos( {o.getPosition().x,
                                            o.getPosition().y - 24, 0});
-                        newEnt.sprite.tex   = chartex; // TODO
+                        newEnt.sprite.tex   = ResourceManager<SDL_Texture*>::get(ts->getImagePath());
                         newEnt.renderLayer  = 1;
                         newEnt.orient       = ORIENT_DOWN;
                         const auto& aabb    = o.getAABB();
@@ -102,7 +101,7 @@ public:
                         // TODO why -24
                         newEnt.setPivPos( {o.getPosition().x,
                                            o.getPosition().y - 24, 0});
-                        newEnt.sprite.tex   = chartex; // TODO
+                        newEnt.sprite.tex   = ResourceManager<SDL_Texture*>::get(ts->getImagePath());
                         const auto& aabb    = o.getAABB();
                         newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
                                                (i32) aabb.width, (i32) aabb.height};
@@ -124,17 +123,27 @@ public:
 
                 for (const auto& t : tiles)
                 {
+                    // determine tilset
+                    for (int i = 0; i < tilesets.size(); i++)
+                    {
+                        if (tilesets.at(i).hasTile(t.ID))
+                        {
+                            ts = &tilesets.at(i);
+                            break;
+                        }
+                    }
+
                     u32 y = tilecount / tilecountXY.x;
                     u32 x = tilecount % tilecountXY.y;
 
-                    auto tile = ts.getTile(t.ID);
+                    auto tile = ts->getTile(t.ID);
                     if (!tile) { tilecount++; continue; }
                     SDL_Rect bb = {(i32) tile->imagePosition.x,
                                    (i32) tile->imagePosition.y,
                                    (i32) tile->imageSize.x,
                                    (i32) tile->imageSize.y};
 
-                    // CONSTRUCT ENTITY
+                    // CONSTRUCT TILE
                     Tile newTile = {0};
                     if (!tile->objectGroup.getObjects().empty())
                     {
@@ -143,20 +152,16 @@ public:
                         const auto& aabb = tile->objectGroup.getObjects().at(0).getAABB();
                         newTile.collider  = {(i32) aabb.left,  (i32) aabb.top,
                                             (i32) aabb.width, (i32) aabb.height};
-                        //newEnt.flags     = (u32) EntityFlag::IS_COLLIDER;
                         newTile.collidable = true;
                     }
 
-                    //newEnt.active       = true;
-                    //newEnt.freed        = false;
                     newTile.renderLayer  = layercount;
-                    //newEnt.position     = ;
                     newTile.sprite.box   = bb;
                     newTile.sprite.pivot = {0.5f, 0.5f};
-                    newTile.sprite.tex   = tiletex; // TODO
+                    newTile.sprite.tex   =  ResourceManager<SDL_Texture*>::get(ts->getImagePath());
                     newTile.setPivPos({x * 16.f, y * 16.f, 0});
 
-                    // copy new entity into array TODO slow
+                    // copy new tile into array TODO slow
                     EntityMgr::createTile(newTile);
                     tilecount++;
                 } // tile loop
