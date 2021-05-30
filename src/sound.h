@@ -4,7 +4,6 @@
 
 #include <SDL_mixer.h>
 
-
 namespace Sound {
 
 enum SfxType

@@ -11,17 +11,16 @@
 // TODO all allocations & deallocations of entities should go through here
 // NOTE maybe use implementation of pool w/ free lists:
 // https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
-class EntityMgr
+namespace EntityMgr
 {
-public:
     // TODO std::move?
-    static bool copyEntity(const Entity ent);
-    static Entity* getArray();
-    static void freeTemporaryStorage();
-    static bool copyTempEntity(const Entity ent);
+    bool copyEntity(const Entity ent);
+    Entity* getArray();
+    void freeTemporaryStorage();
+    bool copyTempEntity(const Entity ent);
 
     // tile functions
-    static bool createTile(const Tile tile);
-    static Tile* getTiles();
-    static u32 getTileCount();
+    bool createTile(const Tile tile);
+    Tile* getTiles();
+    u32 getTileCount();
 };

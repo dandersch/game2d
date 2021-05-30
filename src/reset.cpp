@@ -28,7 +28,7 @@ void RewindFinished()
 {
     printf("REWIND FINISHED\n"); // TODO add debug logger
     Event evn(EventType::EVENT_RESTART);
-    EventSystem::sendEvent(evn);
+    eventsys_send_event(evn);
     Reset::loopTime    = 0.0f;
     Reset::isRewinding = false;
 }

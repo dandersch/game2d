@@ -11,8 +11,7 @@
 
 void GameLayer::OnAttach()
 {
-    LevelGenerator levelgen;
-    if (!levelgen.loadLevel("res/tiletest.tmx", nullptr, MAX_ENTITIES))
+    if (!levelgen_load_level("res/tiletest.tmx", nullptr, MAX_ENTITIES))
         exit(1);
 }
 
