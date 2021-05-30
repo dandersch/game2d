@@ -19,18 +19,8 @@ struct Event;
 struct Entity;
 struct Camera;
 
-class Player
-{
-public:
-    Player() = delete;
-    static void handleEvent(const Event& e,  Entity& ent, const Camera& cam);
-    static void update(f32 dt, Entity& ent);
-    static void tryMove(glm::vec3 movement, Entity& ent);
-    static void tryPickUp(glm::vec3 direction, Entity& ent);
-    static void tryAttack(glm::vec3 direction, Entity& ent);
-
-friend class GameLayer;
-
-private:
-    static const f32 playerSpeed;
-};
+void player_handle_event(const Event& e,  Entity& ent, const Camera& cam);
+void player_update(f32 dt, Entity& ent);
+void player_try_move(glm::vec3 movement, Entity& ent);
+void player_try_pickup(glm::vec3 direction, Entity& ent);
+void player_try_attack(glm::vec3 direction, Entity& ent);

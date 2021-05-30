@@ -3,8 +3,6 @@
 #include "pch.h"
 #include "entity.h"
 
-    extern f32 scaleFactor;
-
 class RenderWindow
 {
 public:

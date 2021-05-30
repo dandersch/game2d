@@ -27,15 +27,15 @@ void CommandProcessor::execute(Entity& ent, Command cmd)
     switch (cmd.type)
     {
     case Command::MOVE:
-        Player::tryMove(cmd.movement, ent);
+        player_try_move(cmd.movement, ent);
         break;
 
     case Command::PICKUP:
-        Player::tryPickUp(cmd.movement, ent);
+        player_try_pickup(cmd.movement, ent);
         break;
 
     case Command::ATTACK:
-        Player::tryAttack(cmd.movement, ent);
+        player_try_attack(cmd.movement, ent);
         break;
 
     default:

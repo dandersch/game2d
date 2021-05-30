@@ -7,9 +7,9 @@
 #include "command.h"
 #include "input.h"
 
-const f32 Player::playerSpeed = 150.f;
+static const f32 playerSpeed = 150.f;
 
-void Player::handleEvent(const Event& e,  Entity& ent, const Camera& cam)
+void player_handle_event(const Event& e,  Entity& ent, const Camera& cam)
 {
     SDL_Event evn = e.sdl;
 
@@ -43,7 +43,7 @@ Uint32 callback( Uint32 interval, void* param )
     return 0;
 }
 
-void Player::update(f32 dt, Entity &ent)
+void player_update(f32 dt, Entity &ent)
 {
     // TODO block input while picking up, attacking etc.
     if (isPickingUp) return;
@@ -79,7 +79,7 @@ void Player::update(f32 dt, Entity &ent)
     CommandProcessor::record(ent, {cmdtype, movement});
 }
 
-void Player::tryMove(glm::vec3 movement, Entity& ent)
+void player_try_move(glm::vec3 movement, Entity& ent)
 {
     Orientation newOrient = (Orientation) ent.orient;
     if      (movement.y < 0.0f) newOrient = ORIENT_UP;
@@ -101,7 +101,7 @@ void Player::tryMove(glm::vec3 movement, Entity& ent)
     ent.movement = movement;
 }
 
-void Player::tryPickUp(glm::vec3 direction, Entity& ent)
+void player_try_pickup(glm::vec3 direction, Entity& ent)
 {
     isPickingUp = true;
     SDL_TimerID timerID = SDL_AddTimer( 1 * 1000,
@@ -138,7 +138,7 @@ void Player::tryPickUp(glm::vec3 direction, Entity& ent)
     EntityMgr::copyTempEntity(pickupBox);
 }
 
-void Player::tryAttack(glm::vec3 direction, Entity& ent)
+void player_try_attack(glm::vec3 direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
     glm::vec3 attackpos = ent.position + direction;

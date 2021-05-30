@@ -87,7 +87,7 @@ void GameLayer::OnEvent(Event& event)
         auto ents = EntityMgr::getArray();
         if (!ents[i].active) continue;
         if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-            Player::handleEvent(event, ents[i], cam);
+            player_handle_event(event, ents[i], cam);
     }
 }
 
@@ -112,7 +112,7 @@ void GameLayer::OnUpdate(f32 dt)
         {
             if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
             {
-              Player::update(dt, ent);
+              player_update(dt, ent);
             }
         }
 

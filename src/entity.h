@@ -41,6 +41,7 @@ enum Orientation
     ORIENT_COUNT
 };
 
+// TODO default values
 struct Entity
 {
     // sets position in regards of entities pivot point (center by default)
