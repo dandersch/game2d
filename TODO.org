@@ -25,11 +25,11 @@
 - [ ] import animations in tmx
 - [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
+- [ ] threadpool
+- [ ] sound/audiosystem
 - [ ] profiling tools
 - [ ] serializing (of cmds[])
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
-- [ ] implement composite colliders
 - [ ] "AI"controller subsystem
-- [ ] sound/audiosystem
-- [ ] threadpool
+- [ ] implement composite colliders
 - [ ] uncap framerate (curr. capped to 60FPS)

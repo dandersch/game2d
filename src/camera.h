@@ -3,6 +3,7 @@
 #include "pch.h"
 
 // TODO center camera position around center of rect
+extern f32 scaleFactor;
 
 class Camera
 {

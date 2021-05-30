@@ -1,4 +1,5 @@
 #include "gamelayer.h"
+#include "SDL_events.h"
 #include "SDL_rect.h"
 #include "SDL_render.h"
 #include "collision.h"
@@ -43,6 +44,11 @@ void GameLayer::OnEvent(Event& event)
             cam.cameraRect.x += 5;
             break;
         }
+        break;
+    case SDL_MOUSEWHEEL:
+        printf("%d\n", evn.wheel.y);
+        cam.cameraRect.w += 100 * evn.wheel.y;
+        cam.cameraRect.h += 5 * evn.wheel.y;
         break;
     case SDL_MOUSEMOTION:
         break;

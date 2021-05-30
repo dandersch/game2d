@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SDL_render.h"
 #include "pch.h"
 #include "layer.h"
 #include "resourcemgr.h"
@@ -107,15 +108,31 @@ public:
         // grey out background
         SDL_RenderCopy(rw->renderer, greyout_tex, NULL, NULL);
 
+        // NOTE framerate-dependant
+        // make buttons alpha 'pulsate'
+        static i8 incr = 1;
+        static u8 alpha = 200;
+        alpha += incr;
+        if (alpha > 254) incr = -1;
+        if (alpha < 150)  incr = 1;
+
         // TODO dont call sdl render functions ourselves
         for (auto& b : btns)
         {
+            if (b.state == Button::HOVER)
+            {
+                SDL_SetTextureBlendMode(b.tex[b.state], SDL_BLENDMODE_BLEND);
+                SDL_SetTextureAlphaMod(b.tex[b.state],alpha);
+                //SDL_SetTextureColorMod(b.tex[b.state],100,100,4);
+            }
+
             SDL_RenderCopy(rw->renderer, b.tex[b.state], NULL, &b.box);
             SDL_Rect textDst = { b.box.x + b.box.w/2 - b.txtBox.w/2,
                                  b.box.y + b.box.h/2 - b.txtBox.h/2,
                                  b.txtBox.w, b.txtBox.h};
             SDL_RenderCopy(rw->renderer, b.txtTex, NULL, &textDst);
         }
+
     }
 
     std::vector<Button> btns;
