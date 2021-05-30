@@ -49,7 +49,7 @@ public:
                 SDL_RendererFlip flip = SDL_FLIP_NONE)
     {
         SDL_Rect dst = {(int) position.x, (int) position.y,
-                        (i32) (scaleFactor * spr.box.w), (i32) (scaleFactor * spr.box.h)};
+                        (i32) (scale * spr.box.w), (i32) (scale * spr.box.h)};
 
         // NOTE: flipping seems expensive, maybe just store flipped sprites in
         // the spritesheet & add dedicated animations for those

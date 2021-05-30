@@ -31,6 +31,7 @@ extern f32 accumulator;
 #include <SDL_rect.h>
 #include <SDL_events.h>
 #include <SDL_keycode.h>
+#include <SDL_mouse.h>
 #include <SDL_timer.h>
 #include <SDL_ttf.h>
 #include <SDL_surface.h>

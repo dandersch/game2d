@@ -1,7 +1,4 @@
 #include "gamelayer.h"
-#include "SDL_events.h"
-#include "SDL_rect.h"
-#include "SDL_render.h"
 #include "collision.h"
 #include "command.h"
 #include "input.h"
@@ -32,30 +29,35 @@ void GameLayer::OnEvent(Event& event)
         switch (evn.key.keysym.sym)
         {
         case SDLK_UP:
-            cam.cameraRect.y -= 5;
+            cam.rect.y -= 5;
             break;
         case SDLK_DOWN:
-            cam.cameraRect.y += 5;
+            cam.rect.y += 5;
             break;
         case SDLK_LEFT:
-            cam.cameraRect.x -= 5;
+            cam.rect.x -= 5;
             break;
         case SDLK_RIGHT:
-            cam.cameraRect.x += 5;
+            cam.rect.x += 5;
             break;
         }
         break;
     case SDL_MOUSEWHEEL:
-        printf("%d\n", evn.wheel.y);
-        cam.cameraRect.w += 100 * evn.wheel.y;
-        cam.cameraRect.h += 5 * evn.wheel.y;
+        if (evn.wheel.y == -1) cam.rect.w *= 0.5f;
+        if (evn.wheel.y ==  1) cam.rect.w *= 2.0f;
         break;
     case SDL_MOUSEMOTION:
         break;
     case SDL_MOUSEBUTTONDOWN:
-        auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
-        //cam.cameraRect.x = click.x - (cam.cameraRect.w/2.f);
-        //cam.cameraRect.y = click.y - (cam.cameraRect.h/2.f);
+        auto click = camera_screen_to_world(cam, {evn.button.x, evn.button.y, 0});
+
+        // TODO interpolate
+        // TODO breaks w/ zooming
+        // put camera where clicked
+        cam.rect.x = click.x - (cam.rect.w/2.f);
+        cam.rect.y = click.y - (cam.rect.h/2.f);
+        // put cursor where clicked
+        SDL_WarpMouseInWindow(rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
 
         // get 'clicked on' playable entity
         for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -198,13 +200,13 @@ void GameLayer::OnRender()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            rw->render(tiles[i].sprite, cam.worldToScreen(tiles[i].position),
-                       1.0f, tiles[i].sprite.flip);
+            rw->render(tiles[i].sprite, camera_world_to_screen(cam, tiles[i].position),
+                       cam.scale, tiles[i].sprite.flip);
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
             if (debugDraw)
             {
-                auto pos = cam.worldToScreen(tiles[i].position);
+                auto pos = camera_world_to_screen(cam, tiles[i].position);
                 SDL_Rect dst = {(int) pos.x + tiles[i].collider.x,
                                 (int) pos.y + tiles[i].collider.y,
                                 (i32) (tiles[i].collider.w),
@@ -220,8 +222,8 @@ void GameLayer::OnRender()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            rw->render(ents[i].sprite, cam.worldToScreen(ents[i].position),
-                       1.0f, ents[i].sprite.flip);
+            rw->render(ents[i].sprite, camera_world_to_screen(cam, ents[i].position),
+                       cam.scale, ents[i].sprite.flip);
 
             if (debugDraw)
             {
@@ -231,7 +233,7 @@ void GameLayer::OnRender()
                 if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
 
                 SDL_SetRenderDrawColor(rw->renderer, c.r, c.g, c.b, c.a);
-                rw->debugDraw(ents[i], cam.worldToScreen(ents[i].position));
+                rw->debugDraw(ents[i], camera_world_to_screen(cam, ents[i].position));
                 SDL_SetRenderDrawColor(rw->renderer, 0,0,0,255);
             }
 
@@ -244,9 +246,11 @@ void GameLayer::OnRender()
     // draw focusarrow on focused entity TODO hardcoded & very hacky
     if (focusedEntity)
     {
-        auto pos     = cam.worldToScreen(focusedEntity->position);
-        SDL_Rect dst = {(i32) pos.x, (i32) pos.y, focusedEntity->sprite.box.w, focusedEntity->sprite.box.h};
-        SDL_RenderCopy(rw->renderer, ents[0].sprite.tex, &focusArrow, &dst);
+        Sprite arrow_sprite = { focusArrow, ents[0].sprite.tex };
+        auto pos = camera_world_to_screen(cam, focusedEntity->position);
+        rw->render(arrow_sprite,
+                   camera_world_to_screen(cam, focusedEntity->position),
+                   cam.scale);
     }
 
 }
