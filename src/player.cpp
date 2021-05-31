@@ -1,9 +1,9 @@
 #include "player.h"
 
 #include "collision.h"
-#include "gamelayer.h"
+#include "entitymgr.h"
 #include "entity.h"
-
+#include "event.h"
 #include "command.h"
 #include "input.h"
 
