@@ -6,20 +6,27 @@
 #include "renderwindow.h"
 #include "reset.h"
 #include "rewind.h"
-#include "item.h"
 #include "sound.h"
+#include "camera.h"
+#include "entitymgr.h"
+#include "player.h"
+#include "collision.h"
+#include "event.h"
 
-void GameLayer::OnAttach()
+static const int MAX_RENDER_LAYERS = 100;
+
+static Camera cam;
+static bool debugDraw = false;
+static Entity* focusedEntity = nullptr;
+static SDL_Rect focusArrow = {64,32,16,32}; // TODO hardcoded
+
+void layer_game_init()
 {
     if (!levelgen_load_level("res/tiletest.tmx", nullptr, MAX_ENTITIES))
         exit(1);
 }
 
-void GameLayer::OnDetach()
-{
-}
-
-void GameLayer::OnEvent(Event& event)
+void layer_game_handle_event(Event& event)
 {
     SDL_Event evn = event.sdl;
 
@@ -90,7 +97,7 @@ void GameLayer::OnEvent(Event& event)
     }
 }
 
-void GameLayer::OnUpdate(f32 dt)
+void layer_game_update(f32 dt)
 {
     EntityMgr::freeTemporaryStorage();
 
@@ -111,7 +118,7 @@ void GameLayer::OnUpdate(f32 dt)
         {
             if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
             {
-              player_update(dt, ent);
+                player_update(dt, ent);
             }
         }
 
@@ -121,15 +128,6 @@ void GameLayer::OnUpdate(f32 dt)
             if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
             {
                 CommandProcessor::replay(ent);
-            }
-        }
-
-        // ITEM SYSTEM /////////////////////////////////////////////////////////
-        if (!Reset::isRewinding && ent.active)
-        {
-            if (ent.flags & (u32) EntityFlag::IS_ITEM)
-            {
-                Item::update(dt, ent);
             }
         }
 
@@ -187,7 +185,7 @@ void GameLayer::OnUpdate(f32 dt)
     CommandProcessor::onEndUpdate();
 }
 
-void GameLayer::OnRender()
+void layer_game_render()
 {
     u32 maxlayer = 0;
     auto ents = EntityMgr::getArray();
@@ -254,7 +252,7 @@ void GameLayer::OnRender()
 
 }
 
-void GameLayer::OnImGuiRender()
+void layer_game_imgui_render()
 {
 #ifdef IMGUI
     auto& ent = EntityMgr::getArray()[0];

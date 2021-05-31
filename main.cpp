@@ -2,11 +2,11 @@
 
 #include "entity.h"
 #include "player.h"
-#include "layer.h"
 #include "renderwindow.h"
 #include "imguilayer.h"
 #include "gamelayer.h"
 #include "menulayer.h"
+#include "event.h"
 
 //The dimensions of the level
 const int LEVEL_WIDTH  = 12800;
@@ -14,12 +14,7 @@ const int LEVEL_HEIGHT = 9600;
 
 const f32 TIME_PER_FRAME = (f32) 1/60;
 
-std::vector<Layer*> layerStack;
-Layer* menuLayer;
 bool renderImgui = false;
-#ifdef IMGUI
-    ImGuiLayer* igLayer;
-#endif
 
 // TIMESTEP constants
 #define MAXIMUM_FRAME_RATE 60
@@ -39,27 +34,21 @@ RenderWindow* rw;
 
 #include "sound.h"
 
+enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
+
 int main(int argc, char* args[])
 {
     // SDL SETUP ///////////////////////////////////////////////////////////////
     rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
-    SDL_RenderSetScale(rw->renderer, 1.f, 1.f); // use for zooming?
+    SDL_RenderSetScale(rw->renderer, 1.f, 1.f);
 
     // test sound
     Sound::initAndLoadSound();
 
-    layerStack.push_back(new GameLayer());
-    menuLayer = new MenuLayer();
-    menuLayer->active = false;
-    layerStack.push_back(menuLayer);
-
-#ifdef IMGUI
-    igLayer = new ImGuiLayer();
-    layerStack.push_back(igLayer);
-#endif
-
-    for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
-        (*it)->OnAttach();
+    // init layers
+    layer_game_init();
+    layer_menu_init();
+    layer_imgui_init();
 
     // main loop ///////////////////////////////////////////////////////////////
     run         = true;
@@ -73,9 +62,7 @@ int main(int argc, char* args[])
 #endif
 
     // CLEANUP /////////////////////////////////////////////////////////////////
-    for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
-        (*it)->OnDetach();
-
+    layer_imgui_destroy();
     SDL_DestroyRenderer(rw->renderer);
     SDL_DestroyWindow(rw->window);
     TTF_Quit();
@@ -107,55 +94,59 @@ void main_loop()
             Event evn;
             while (SDL_PollEvent(&evn.sdl))
             {
-                for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
-                {
-                    if (!(*it)->active) continue;
+                for (int layer = LAYER_COUNT; layer >= 0; layer--) {
                     if (evn.handled) break;
-                    (*it)->OnEvent(evn);
+                    switch (layer) {
 
-                    // TODO hardcoded, implements 'pause' functionality
-                    if (menuLayer->active)
-                    {
-                        if (evn.handled) break;
-                        menuLayer->OnEvent(evn);
-                        break;
+                    case LAYER_GAME: {
+                        layer_game_handle_event(evn);
+                    } break;
+
+                    case LAYER_MENU: {
+                        if (g_layer_menu_is_active) {
+                            if (evn.handled) layer = 0;
+                            layer_menu_handle_event(evn);
+                            layer = 0; // to break out of loop
+                        }
+                    } break;
+
+                    case LAYER_IMGUI: {
+                        layer_imgui_handle_event(evn);
+                    } break;
+
                     }
                 }
 
                 switch (evn.sdl.type) {
-                    case SDL_KEYDOWN:
-                        // TODO hardcoded
-                        // toggle testmenu
-                        if (evn.sdl.key.keysym.sym == SDLK_ESCAPE)
-                        {
-                            menuLayer->active = !menuLayer->active;
-                        }
-                        if (evn.sdl.key.keysym.sym == SDLK_F1)
-                        {
-                            renderImgui = !renderImgui;
-                        }
-                        break;
-                    case SDL_QUIT: run = false;
-                        break;
-                    case SDL_WINDOWEVENT:
-                        if (evn.sdl.window.type == SDL_WINDOWEVENT_CLOSE)
-                            run = false;
-                        break;
+                case SDL_KEYDOWN: {
+                    // TODO hardcoded
+                    // toggle testmenu
+                    if (evn.sdl.key.keysym.sym == SDLK_ESCAPE)
+                    {
+                        g_layer_menu_is_active = !g_layer_menu_is_active;
+                    }
+                    if (evn.sdl.key.keysym.sym == SDLK_F1)
+                    {
+                        renderImgui = !renderImgui;
+                    }
+                } break;
+                case SDL_QUIT: run = false; break;
+                case SDL_WINDOWEVENT: {
+                    if (evn.sdl.window.type == SDL_WINDOWEVENT_CLOSE)
+                        run = false;
+                } break;
                 }
             }
 
             // UPDATE LOOP /////////////////////////////////////////////////////
-            // TODO update back to front or front to back?
-            for (auto it = layerStack.rbegin(); it != layerStack.rend(); ++it)
+            for (int layer = LAYER_COUNT; layer >= 0; layer--)
             {
-                if (!(*it)->active) continue;
-                (*it)->OnUpdate(dt);
-
                 // TODO hardcoded, implements 'pause' functionality
-                if (menuLayer->active)
-                {
-                    menuLayer->OnUpdate(dt);
-                    break;
+                if (g_layer_menu_is_active) break;
+                switch (layer) {
+                case LAYER_GAME: {
+                    layer_game_update(dt);
+                } break;
                 }
             }
         }
@@ -166,21 +157,37 @@ void main_loop()
         // RENDERING ///////////////////////////////////////////////////////////
         SDL_RenderClear(rw->renderer);
 
-        for (auto it = layerStack.begin(); it != layerStack.end(); ++it)
+        for (int layer = 0; layer < LAYER_COUNT; layer++)
         {
-            if (!(*it)->active) continue;
-            (*it)->OnRender();
+            switch (layer) {
+
+            case LAYER_GAME: {
+                layer_game_render();
+            } break;
+
+            case LAYER_MENU: {
+                if (!g_layer_menu_is_active) break;
+                layer_menu_render();
+            } break;
+
+            }
         }
 
 #ifdef IMGUI
         if (renderImgui)
         {
-            igLayer->Begin();
-            for (auto l : layerStack) l->OnImGuiRender();
-            igLayer->End();
+            layer_imgui_begin();
+            for (int layer = 0; layer < LAYER_COUNT; layer++)
+            {
+                switch (layer) {
+                case LAYER_GAME: {
+                    layer_game_imgui_render();
+                } break;
+                }
+            }
+            layer_imgui_end();
         }
 #endif
         SDL_RenderPresent(rw->renderer);
     }
-
 }

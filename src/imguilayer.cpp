@@ -1,8 +1,10 @@
-#ifdef IMGUI
 #include "imguilayer.h"
+#include "renderwindow.h"
+#include "event.h"
 
-void ImGuiLayer::OnAttach()
+void layer_imgui_init()
 {
+#ifdef IMGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiSDL::Initialize(rw->renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -13,32 +15,40 @@ void ImGuiLayer::OnAttach()
     // eventhandling. We expose the internal function below to circumvent that.
     ImGui_ImplSDL2_Init(rw->window);
     ImGui::StyleColorsDark();
+#endif
 }
 
-void ImGuiLayer::OnDetach()
+void layer_imgui_destroy()
 {
+#ifdef IMGUI
     ImGuiSDL::Deinitialize();
     ImGui::DestroyContext();
+#endif
 }
 
-void ImGuiLayer::OnEvent(Event& e)
+void layer_imgui_handle_event(Event& e)
 {
+#ifdef IMGUI
     ImGui_ImplSDL2_ProcessEvent(&e.sdl);
     ImGuiIO& io = ImGui::GetIO();
-    e.handled = io.WantCaptureMouse || io.WantCaptureKeyboard;
+    e.handled = io.WantCaptureMouse ;//|| io.WantCaptureKeyboard;
     //e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
     //e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
+#endif
 }
 
-void ImGuiLayer::Begin()
+void layer_imgui_begin()
 {
+#ifdef IMGUI
     ImGui_ImplSDL2_NewFrame(rw->window);
     ImGui::NewFrame();
+#endif
 }
 
-void ImGuiLayer::End()
+void layer_imgui_end()
 {
+#ifdef IMGUI
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());
-}
 #endif
+}

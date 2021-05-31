@@ -1,8 +1,31 @@
 #include "menulayer.h"
+#include "resourcemgr.h"
+#include "event.h"
+
+struct Button
+{
+    std::string label; // TODO font to render
+    enum State {NONE, HOVER, PRESSED, COUNT} state;
+    SDL_Rect     box;
+    // TODO maybe use 1 tex w/ an array of sdl_rects
+    SDL_Texture* tex[COUNT];
+    SDL_Texture* txtTex;
+    SDL_Rect     txtBox;
+    std::function<void(void)> callback;
+};
+
+static std::vector<Button> btns;
+static SDL_Texture* btn_inactive_tex;
+static SDL_Texture* btn_hover_tex;
+static SDL_Texture* btn_pressed_tex;
+static SDL_Texture* greyout_tex;
+b32 g_layer_menu_is_active = true;
 
 // create & get needed texs + create buttons & texs for labels
-void MenuLayer::OnAttach()
+void layer_menu_init()
 {
+    g_layer_menu_is_active = false;
+
     // TODO use a resourcemgr or similar
     btn_inactive_tex = ResourceManager<SDL_Texture*>::get("res/button.png");
     btn_hover_tex    = ResourceManager<SDL_Texture*>::get("res/button_hover.png");
@@ -13,7 +36,7 @@ void MenuLayer::OnAttach()
     Button b3 = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100}, .tex = { btn_inactive_tex, btn_hover_tex, btn_pressed_tex } };
 
     // ADD CALLBACKS
-    b1.callback = [&]() { active = false; };
+    b1.callback = [&]() { g_layer_menu_is_active = false; };
     b2.callback = []()  { printf("Trying to set VSYNC. Set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));
                           SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "0", SDL_HINT_OVERRIDE);
                           printf("Now set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));};
@@ -42,9 +65,7 @@ void MenuLayer::OnAttach()
     // ResourceManager<TTF_Font*>::free("res/ubuntumono.ttf");
 }
 
-void MenuLayer::OnDetach() {}
-
-void MenuLayer::OnEvent(Event& event)
+void layer_menu_handle_event(Event& event)
 {
     SDL_Event evn = event.sdl;
     SDL_Point mouse = { evn.motion.x, evn.motion.y };
@@ -81,9 +102,7 @@ void MenuLayer::OnEvent(Event& event)
     }
 }
 
-void MenuLayer::OnUpdate(f32 dt) {}
-
-void MenuLayer::OnRender()
+void layer_menu_render()
 {
     // grey out background
     SDL_RenderCopy(rw->renderer, greyout_tex, NULL, NULL);
