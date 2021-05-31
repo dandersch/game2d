@@ -11,7 +11,7 @@ struct Event
 class Layer
 {
 public:
-    Layer(const std::string& name = "Layer") : m_DebugName(name) {}
+    Layer() {}
     virtual ~Layer() = default;
 
     virtual void OnAttach() {} // init stuff goes in here
@@ -21,10 +21,5 @@ public:
     virtual void OnImGuiRender() {}
     virtual void OnEvent(Event& event) {}
 
-    const std::string& GetName() const { return m_DebugName; }
-
     b32 active = true;
-
-protected:
-    std::string m_DebugName;
 };

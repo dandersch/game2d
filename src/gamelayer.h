@@ -12,7 +12,7 @@ const int MAX_RENDER_LAYERS = 100;
 class GameLayer : public Layer
 {
 public:
-     GameLayer() : Layer("GameLayer") {}
+     GameLayer() : Layer() {}
     ~GameLayer() = default;
 
     virtual void OnAttach() override;
