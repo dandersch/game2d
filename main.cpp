@@ -35,6 +35,8 @@ RenderWindow* rw;
 #include "sound.h"
 
 enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
+// TODO maybe use a bool array for keeping track of in-/active layers, i.e.
+// bool[LAYER_COUNT] = {false};
 
 int main(int argc, char* args[])
 {

@@ -1,5 +1,6 @@
 #include "gamelayer.h"
 #include "collision.h"
+#include "animation.h"
 #include "command.h"
 #include "input.h"
 #include "levelgen.h"
@@ -177,7 +178,8 @@ void layer_game_update(f32 dt)
         // arrays..
         if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
         {
-            ent.sprite.box = Animator::animate(dt, ent.anim);
+            //ent.sprite.box = Animator::animate(dt, ent.anim);
+            ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
         }
     }
 

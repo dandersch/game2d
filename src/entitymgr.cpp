@@ -17,6 +17,11 @@ bool EntityMgr::copyEntity(const Entity ent)
         if (ents[i].freed)
         {
             ents[i] = ent;
+            if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
+            {
+                // TODO should be done elsewhere
+                ents[i].anim.current_clip = &ents[i].clips[0];
+            }
             return true;
         }
     }

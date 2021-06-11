@@ -18,6 +18,9 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
     tmx::Map map;
     if (!map.load(file)) { printf("map didnt load"); return false; }
 
+    tmx::Map animMap; // only for chars for now
+    if (!animMap.load("res/character.tmx")) { printf("animmap didnt load"); exit(1); }
+
     const auto& tilecountXY  = map.getTileCount();
     u32 max_tiles            = tilecountXY.x * tilecountXY.y;
     const auto& layers       = map.getLayers();
@@ -67,6 +70,31 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                 // TODO entity_create_character()
                 if (type == "Character")
                 {
+
+                    // load in animations TODO this only needs to be loaded in
+                    // once & not per character
+                    u32 anim_idx = 0;
+                    for (auto anim : animMap.getAnimatedTiles())
+                    {
+                        std::vector<AnimationFrame> new_frames;
+                        u32 frame_count = 0;
+                        for (auto frame : anim.second.animation.frames)
+                        {
+                            auto tileID = frame.tileID;
+                            // TODO get proper tileset
+                            auto pos    = animMap.getTilesets().at(0).getTile(tileID)->imagePosition;
+                            auto size   = animMap.getTilesets().at(0).getTile(tileID)->imageSize;
+                            //auto pos    = ts->getTile(tileID)->imagePosition;
+                            //auto size   = ts->getTile(tileID)->imageSize;
+                            SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
+                            new_frames.push_back({bb, (f32) frame.duration/100.f}); // TODO why cast?
+                        }
+                        newEnt.clips[newEnt.clip_count].frames = new_frames;
+                        newEnt.clips[newEnt.clip_count].loop   = true;
+                        newEnt.clip_count++;
+                        newEnt.flags       |= (u32) EntityFlag::IS_ANIMATED;
+                    }
+
                     // TODO charID
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.5f};
@@ -82,7 +110,6 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                                            (i32) aabb.width, (i32) aabb.height};
                     newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
                     //newEnt.flags       |= (u32) EntityFlag::PLAYER_CONTROLLED;
-                    //newEnt.flags       |= (u32) EntityFlag::IS_ANIMATED;
                     newEnt.flags       |= (u32) EntityFlag::CMD_CONTROLLED;
                     newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
                     Rewind::initializeFrames(newEnt);

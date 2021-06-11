@@ -76,14 +76,19 @@ struct Entity
     u32  renderLayer;
 
     Sprite sprite;
-    Animation anim; // TODO use an index that accesses into anims instead
 
     SDL_Rect collider; // TODO box2d?
     //MyTile tile;
 
     u32  state;
 
-    Animation anims[STATE_COUNT * ORIENT_COUNT];
+    //AnimationClip clips[STATE_COUNT * ORIENT_COUNT] = {};
+    AnimationClip clips[1000] = {};
+    Animator anim = {nullptr, 0, 0};
+    u32 clip_count = 0;
+    //Animation anim; // TODO use an index that accesses into anims instead
+    //Animation anims[STATE_COUNT * ORIENT_COUNT];
+
     glm::vec3 movement; // desired movement for this frame, used by collision.h
 
     // TODO fill up with nullcommands at start?

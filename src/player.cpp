@@ -95,7 +95,7 @@ void player_try_move(glm::vec3 movement, Entity& ent)
     if (ent.orient != newOrient)
     {
         ent.orient = newOrient;
-        ent.anim   = ent.anims[ent.orient]; // TODO support states
+        //ent.anim   = ent.anims[ent.orient]; // TODO support states
     }
 
     ent.movement = movement;
