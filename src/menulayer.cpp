@@ -1,6 +1,7 @@
 #include "menulayer.h"
 #include "resourcemgr.h"
 #include "event.h"
+#include "globals.h"
 
 struct Button
 {
@@ -57,7 +58,7 @@ void layer_menu_init()
     {
         SDL_Surface* textSurf = TTF_RenderText_Blended_Wrapped(btnFont, b.label.c_str(), textColor, 400);
         SDL_ERROR(textSurf);
-        b.txtTex = SDL_CreateTextureFromSurface(rw->renderer, textSurf);
+        b.txtTex = SDL_CreateTextureFromSurface(globals.rw->renderer, textSurf);
         SDL_ERROR(b.txtTex);
         SDL_QueryTexture(b.txtTex, NULL, NULL, &b.txtBox.w, &b.txtBox.h);
         SDL_FreeSurface(textSurf);
@@ -105,7 +106,7 @@ void layer_menu_handle_event(Event& event)
 void layer_menu_render()
 {
     // grey out background
-    SDL_RenderCopy(rw->renderer, greyout_tex, NULL, NULL);
+    SDL_RenderCopy(globals.rw->renderer, greyout_tex, NULL, NULL);
 
     // NOTE framerate-dependant
     // make buttons alpha 'pulsate'
@@ -125,10 +126,10 @@ void layer_menu_render()
             //SDL_SetTextureColorMod(b.tex[b.state],100,100,4);
         }
 
-        SDL_RenderCopy(rw->renderer, b.tex[b.state], NULL, &b.box);
+        SDL_RenderCopy(globals.rw->renderer, b.tex[b.state], NULL, &b.box);
         SDL_Rect textDst = { b.box.x + b.box.w/2 - b.txtBox.w/2,
                              b.box.y + b.box.h/2 - b.txtBox.h/2,
                              b.txtBox.w, b.txtBox.h};
-        SDL_RenderCopy(rw->renderer, b.txtTex, NULL, &textDst);
+        SDL_RenderCopy(globals.rw->renderer, b.txtTex, NULL, &textDst);
     }
 }

@@ -2,7 +2,7 @@
 
 void loadFromFile(SDL_Texture** tex, const char* file)
 {
-    *tex = IMG_LoadTexture(rw->renderer, file);
+    *tex = IMG_LoadTexture(globals.rw->renderer, file);
 }
 
 // TODO ptsize hardcoded

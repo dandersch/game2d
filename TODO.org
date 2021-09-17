@@ -16,9 +16,12 @@
 - [X] segfault when going fullscreen
 - [X] clickable entities
 - [X] Tiles should prob. not be entites and have their own array instead
-- [ ] add EntityHandles and use them instead of raw pointers
+- [ ] platform layer w/ strict separation
+- [ ] animation system
 - [ ] timer utility
 - [ ] use interpolation for movement
+- [ ] sound/audiosystem
+- [ ] add EntityHandles and use them instead of raw pointers
 - [ ] tilemap culling
 - [ ] import character/items sprite with tmx
 - [ ] support layers when reading in a tmx
@@ -26,7 +29,6 @@
 - [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
 - [ ] threadpool
-- [ ] sound/audiosystem
 - [ ] profiling tools
 - [ ] serializing (of cmds[])
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)

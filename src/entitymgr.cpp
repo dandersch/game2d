@@ -3,8 +3,8 @@
 #include "tile.h"
 
 static u32 temp_count = 0;
-static Entity ents[MAX_ENTITIES] = {0};
-static Tile tiles[MAX_TILES] = {0};
+static Entity ents[MAX_ENTITIES] = {0}; // TODO replace with a malloc at startup
+static Tile   tiles[MAX_TILES]   = {0}; // TODO replace with a malloc at startup
 static u32 tile_count = 0;
 
 // std::vector<Entity*> toDestroy;

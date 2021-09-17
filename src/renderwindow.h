@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "entity.h"
+#include "globals.h"
 
 class RenderWindow
 {
@@ -64,13 +65,13 @@ public:
 
         // don't draw 'empty' colliders (otherwise it will draw points & lines)
         if (!SDL_RectEmpty(&dst)) // if (!(dst.h <= 0.f && dst.w <= 0.f))
-            SDL_RenderDrawRect(rw->renderer, &dst);
+            SDL_RenderDrawRect(globals.rw->renderer, &dst);
 
         //SDL_RenderDrawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2)
 
         // TODO isn't where it's expected
         // Draw pivot point
-        SDL_RenderDrawPointF(rw->renderer, pos.x, pos.y);
+        SDL_RenderDrawPointF(globals.rw->renderer, pos.x, pos.y);
     };
 
     SDL_Renderer* renderer;

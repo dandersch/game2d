@@ -82,7 +82,7 @@ inline u32 get_index_into_clip(Animator anim, AnimationClip clip)
             break;
         idx = i;
     }
-    printf("clipsum: %f\n", clip_sum);
+    //printf("clipsum: %f\n", clip_sum);
 
     return idx;
 }

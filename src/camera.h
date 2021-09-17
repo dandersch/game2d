@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pch.h"
+#include "globals.h"
 
 // TODO center camera position around center of rect
 

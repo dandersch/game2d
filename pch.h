@@ -2,15 +2,6 @@
 
 #include "base.h"
 
-// temporary globals
-class RenderWindow;
-extern RenderWindow* rw;
-extern u32 g_time;
-extern f32 dt;
-extern f32 accumulator;
-#define SCREEN_WIDTH  1280
-#define SCREEN_HEIGHT 960
-
 #include <memory>
 #include <unordered_map>
 #include <map>

@@ -1,7 +1,6 @@
 #include "collision.h"
 #include "SDL_rect.h"
 #include "entity.h"
-#include "sound.h"
 #include "tile.h"
 
 static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
@@ -17,8 +16,6 @@ static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
       printf("ITEM PICKUP\n");
       e1->owner->item  = e2;
       e2->flags ^= (u32) EntityFlag::IS_COLLIDER;
-      // testing sound
-      Sound::playSFX(Sound::SFX_PICKUP);
   }}
 };
 

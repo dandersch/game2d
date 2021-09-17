@@ -7,12 +7,12 @@
 #include "renderwindow.h"
 #include "reset.h"
 #include "rewind.h"
-#include "sound.h"
 #include "camera.h"
 #include "entitymgr.h"
 #include "player.h"
 #include "collision.h"
 #include "event.h"
+#include "globals.h"
 
 static const int MAX_RENDER_LAYERS = 100;
 
@@ -64,7 +64,7 @@ void layer_game_handle_event(Event& event)
         cam.rect.x = click.x - (cam.rect.w/2.f);
         cam.rect.y = click.y - (cam.rect.h/2.f);
         // put cursor where clicked
-        SDL_WarpMouseInWindow(rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
+        SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
 
         // get 'clicked on' playable entity
         for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -199,7 +199,7 @@ void layer_game_render()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            rw->render(tiles[i].sprite, camera_world_to_screen(cam, tiles[i].position),
+            globals.rw->render(tiles[i].sprite, camera_world_to_screen(cam, tiles[i].position),
                        cam.scale, tiles[i].sprite.flip);
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
@@ -212,7 +212,7 @@ void layer_game_render()
                                 (i32) (tiles[i].collider.h)};
 
                 // don't draw 'empty' colliders (otherwise it will draw points & lines)
-                if (!SDL_RectEmpty(&dst)) SDL_RenderDrawRect(rw->renderer, &dst);
+                if (!SDL_RectEmpty(&dst)) SDL_RenderDrawRect(globals.rw->renderer, &dst);
             }
         }
 
@@ -221,7 +221,7 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            rw->render(ents[i].sprite, camera_world_to_screen(cam, ents[i].position),
+            globals.rw->render(ents[i].sprite, camera_world_to_screen(cam, ents[i].position),
                        cam.scale, ents[i].sprite.flip);
 
             if (debugDraw)
@@ -231,9 +231,9 @@ void layer_game_render()
                 if (ents[i].flags & (u32) EntityFlag::ATTACK_BOX) c = {255,100,100,255};
                 if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
 
-                SDL_SetRenderDrawColor(rw->renderer, c.r, c.g, c.b, c.a);
-                rw->debugDraw(ents[i], camera_world_to_screen(cam, ents[i].position));
-                SDL_SetRenderDrawColor(rw->renderer, 0,0,0,255);
+                SDL_SetRenderDrawColor(globals.rw->renderer, c.r, c.g, c.b, c.a);
+                globals.rw->debugDraw(ents[i], camera_world_to_screen(cam, ents[i].position));
+                SDL_SetRenderDrawColor(globals.rw->renderer, 0,0,0,255);
             }
 
             if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
@@ -247,9 +247,9 @@ void layer_game_render()
     {
         Sprite arrow_sprite = { focusArrow, ents[0].sprite.tex };
         auto pos = camera_world_to_screen(cam, focusedEntity->position);
-        rw->render(arrow_sprite,
-                   camera_world_to_screen(cam, focusedEntity->position),
-                   cam.scale);
+        globals.rw->render(arrow_sprite,
+                           camera_world_to_screen(cam, focusedEntity->position),
+                           cam.scale);
     }
 
 }
@@ -262,7 +262,7 @@ void layer_game_imgui_render()
     ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
     ImGui::Text("TICKS: %d", SDL_GetTicks());
-    ImGui::Text("DT: %f", dt);
+    ImGui::Text("DT: %f", globals.dt);
     ImGui::Text("CMD IDX: %u", CommandProcessor::cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);
     ImGui::Text("IS REWINDING: %u", Reset::isRewinding);
@@ -283,11 +283,6 @@ void layer_game_imgui_render()
             ent.flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
             ent.flags ^= (u32) EntityFlag::CMD_CONTROLLED;
         }
-    }
-
-    if (ImGui::Button("TOGGLE MUSIC"))
-    {
-        Sound::toggleMusic();
     }
 
     ImGui::Checkbox("ENABLE DEBUG DRAW", &debugDraw);
