@@ -1,6 +1,6 @@
 #include "levelgen.h"
 
-#include "renderwindow.h"
+//#include "renderwindow.h"
 #include "gamelayer.h"
 #include "entity.h"
 #include "resourcemgr.h"
@@ -61,7 +61,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                 auto t = ts->getTile(o.getTileID());
 
                 // to create the spritebox
-                SDL_Rect spritebox = {0};
+                rect_t spritebox = {0};
                 ASSERT(t != nullptr);
                 spritebox = { (i32) t->imagePosition.x, (i32) t->imagePosition.y,
                               (i32) t->imageSize.x,     (i32) t->imageSize.y };
@@ -86,7 +86,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                             auto size   = animMap.getTilesets().at(0).getTile(tileID)->imageSize;
                             //auto pos    = ts->getTile(tileID)->imagePosition;
                             //auto size   = ts->getTile(tileID)->imageSize;
-                            SDL_Rect bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
+                            rect_t bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
                             new_frames.push_back({bb, (f32) frame.duration/100.f}); // TODO why cast?
                         }
                         newEnt.clips[newEnt.clip_count].frames = new_frames;
@@ -102,6 +102,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     // TODO why -24
                     newEnt.setPivPos( {o.getPosition().x,
                                        o.getPosition().y - 24, 0});
+                    // TODO platform code (?)
                     newEnt.sprite.tex   = ResourceManager<SDL_Texture*>::get(ts->getImagePath());
                     newEnt.renderLayer  = 1;
                     newEnt.orient       = ORIENT_DOWN;
@@ -158,7 +159,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
 
                 auto tile = ts->getTile(t.ID);
                 if (!tile) { tilecount++; continue; }
-                SDL_Rect bb = {(i32) tile->imagePosition.x,
+                rect_t bb = {(i32) tile->imagePosition.x,
                                (i32) tile->imagePosition.y,
                                (i32) tile->imageSize.x,
                                (i32) tile->imageSize.y};

@@ -21,14 +21,14 @@ void player_handle_event(const Event& e,  Entity& ent, const Camera& cam)
     }
 }
 
-glm::vec3 getDirectionFrom(u32 orient)
+v3f getDirectionFrom(u32 orient)
 {
-    glm::vec3 dir = {0,0,0};
+    v3f dir = {0,0,0};
     switch (orient) {
-    case ORIENT_UP:    dir = {  0,-16,0}; break;
-    case ORIENT_DOWN:  dir = {  0, 32,0}; break;
-    case ORIENT_LEFT:  dir = {-16, 16,0}; break;
-    case ORIENT_RIGHT: dir = { 16, 16,0}; break;
+        case ORIENT_UP:    { dir = {  0,-16,0}; } break;
+        case ORIENT_DOWN:  { dir = {  0, 32,0}; } break;
+        case ORIENT_LEFT:  { dir = {-16, 16,0}; } break;
+        case ORIENT_RIGHT: { dir = { 16, 16,0}; } break;
     }
 
     return dir;
@@ -50,14 +50,14 @@ void player_update(f32 dt, Entity &ent)
 
     // TODO we shouldnt move entities in here, just record the input
     Command::Type cmdtype = Command::MOVE;
-    glm::vec3 movement = {0,0,0};
+    v3f movement = {0,0,0};
 
     // use inputhandler
     u32 input = Input::actionState;
-    if (input & ACTION_MOVE_UP) movement = glm::vec3( 0,-1,0) * playerSpeed * dt;
-    if (input & ACTION_MOVE_LEFT) movement = glm::vec3(-1, 0,0) * playerSpeed * dt;
-    if (input & ACTION_MOVE_DOWN) movement = glm::vec3( 0, 1,0) * playerSpeed * dt;
-    if (input & ACTION_MOVE_RIGHT) movement = glm::vec3( 1, 0,0) * playerSpeed * dt;
+    if (input & ACTION_MOVE_UP)    movement = { 0,-1 * playerSpeed * dt, 0};
+    if (input & ACTION_MOVE_LEFT)  movement = {-1 * playerSpeed * dt, 0, 0};
+    if (input & ACTION_MOVE_DOWN)  movement = { 0, 1 * playerSpeed * dt, 0};
+    if (input & ACTION_MOVE_RIGHT) movement = { 1 * playerSpeed * dt, 0, 0};
 
     if (input & ACTION_PICKUP)
     {
@@ -73,13 +73,13 @@ void player_update(f32 dt, Entity &ent)
 
     // attach item to player TODO doesn't run when replaying cmds
     if (ent.item != nullptr)
-        ent.item->setPivPos({ent.position + glm::vec3{8,-8,0}});
+        ent.item->setPivPos({ent.position.x + 8, ent.position.y + (-8), ent.position.z + 0});
 
 // use commands instead of calling tryMove directly
     CommandProcessor::record(ent, {cmdtype, movement});
 }
 
-void player_try_move(glm::vec3 movement, Entity& ent)
+void player_try_move(v3f movement, Entity& ent)
 {
     Orientation newOrient = (Orientation) ent.orient;
     if      (movement.y < 0.0f) newOrient = ORIENT_UP;
@@ -87,7 +87,7 @@ void player_try_move(glm::vec3 movement, Entity& ent)
     else if (movement.x > 0.0f) newOrient = ORIENT_RIGHT;
     else if (movement.x < 0.0f) newOrient = ORIENT_LEFT;
     u32 newState = ent.state;
-    if (movement != glm::vec3{0,0,0})  newState = STATE_MOVE;
+    if (movement.x != 0 && movement.y != 0 && movement.z != 0)  newState = STATE_MOVE;
     else newState = STATE_IDLE;
 
     //ChangeAnimationState(newAnim, newOrient);
@@ -101,13 +101,15 @@ void player_try_move(glm::vec3 movement, Entity& ent)
     ent.movement = movement;
 }
 
-void player_try_pickup(glm::vec3 direction, Entity& ent)
+void player_try_pickup(v3f direction, Entity& ent)
 {
     isPickingUp = true;
     SDL_TimerID timerID = SDL_AddTimer( 1 * 1000,
                                         callback, (void*) "1 second!" );
 
-    glm::vec3 pickupPos = ent.position + direction;
+    v3f pickupPos = {ent.position.x + direction.x,
+                     ent.position.y + direction.y,
+                     ent.position.z + direction.z};
 
     // put already held item down
     if (ent.item)
@@ -138,17 +140,19 @@ void player_try_pickup(glm::vec3 direction, Entity& ent)
     EntityMgr::copyTempEntity(pickupBox);
 }
 
-void player_try_attack(glm::vec3 direction, Entity& ent)
+void player_try_attack(v3f direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
-    glm::vec3 attackpos = ent.position + direction;
+    v3f attack_pos = {ent.position.x + direction.x,
+                     ent.position.y + direction.y,
+                     ent.position.z + direction.z};
     Entity attackBox = {0};
     attackBox.active = true;
     attackBox.freed  = false;
     attackBox.flags |= (u32) EntityFlag::IS_COLLIDER;
     attackBox.flags |= (u32) EntityFlag::ATTACK_BOX;
-    attackBox.collider = { .x = (int) attackpos.x ,
-                           .y = (int) attackpos.y,
+    attackBox.collider = { .x = (int) attack_pos.x ,
+                           .y = (int) attack_pos.y,
                            .w = 16, .h = 16};
     EntityMgr::copyTempEntity(attackBox);
 }

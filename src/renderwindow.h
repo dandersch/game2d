@@ -1,5 +1,6 @@
 #pragma once
 
+/*
 #include "pch.h"
 #include "entity.h"
 #include "globals.h"
@@ -77,3 +78,5 @@ public:
     SDL_Renderer* renderer;
     SDL_Window* window;
 };
+
+*/

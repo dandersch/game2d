@@ -3,6 +3,7 @@
 #include "event.h"
 #include "globals.h"
 
+/*
 struct Button
 {
     std::string label; // TODO font to render
@@ -11,7 +12,7 @@ struct Button
     // TODO maybe use 1 tex w/ an array of sdl_rects
     SDL_Texture* tex[COUNT];
     SDL_Texture* txtTex;
-    SDL_Rect     txtBox;
+    rect_t       txtBox;
     std::function<void(void)> callback;
 };
 
@@ -133,3 +134,5 @@ void layer_menu_render()
         SDL_RenderCopy(globals.rw->renderer, b.txtTex, NULL, &textDst);
     }
 }
+
+*/

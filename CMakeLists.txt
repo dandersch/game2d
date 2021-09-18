@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_BUILD_TYPE DEBUG)
-add_compile_definitions(IMGUI)
+#add_compile_definitions(IMGUI)
 add_compile_definitions(ENABLE_ASSERTS)
 
 # Check if a flag exists and add it to the list of compiler (so, not linker) options

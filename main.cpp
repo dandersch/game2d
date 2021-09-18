@@ -9,6 +9,8 @@
 #include "event.h"
 #include "globals.h"
 
+#include "platform.h"
+
 b32 render_imgui = false;
 
 // TIMESTEP constants
@@ -19,19 +21,19 @@ b32 render_imgui = false;
 
 void main_loop();
 
-enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
+enum Layers { LAYER_GAME, /*LAYER_MENU, LAYER_IMGUI,*/ LAYER_COUNT };
 // TODO maybe use a bool array for keeping track of in-/active layers, i.e.
 // bool[LAYER_COUNT] = {false};
 
 int main(int argc, char* args[])
 {
     // SDL SETUP ///////////////////////////////////////////////////////////////
-    globals.rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
-    SDL_RenderSetScale(globals.rw->renderer, 1.f, 1.f);
+    //globals.rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
+    globals.window = platform_window_open("Hello SDL", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // init layers
     layer_game_init();
-    layer_menu_init();
+    //layer_menu_init();
     layer_imgui_init();
 
     // main loop ///////////////////////////////////////////////////////////////
@@ -47,8 +49,10 @@ int main(int argc, char* args[])
 
     // CLEANUP /////////////////////////////////////////////////////////////////
     layer_imgui_destroy();
-    SDL_DestroyRenderer(globals.rw->renderer);
-    SDL_DestroyWindow(globals.rw->window);
+
+    // TODO should happen in platform code
+    //SDL_DestroyRenderer(window->renderer);
+    //SDL_DestroyWindow(window->window);
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
@@ -83,6 +87,7 @@ void main_loop()
                         layer_game_handle_event(evn);
                     } break;
 
+                    /*
                     case LAYER_MENU:
                     {
                         if (g_layer_menu_is_active) {
@@ -96,6 +101,7 @@ void main_loop()
                     {
                         layer_imgui_handle_event(evn);
                     } break;
+                    */
 
                 }
             }
@@ -108,7 +114,7 @@ void main_loop()
                     // toggle testmenu
                     if (evn.sdl.key.keysym.sym == SDLK_ESCAPE)
                     {
-                        g_layer_menu_is_active = !g_layer_menu_is_active;
+                        //g_layer_menu_is_active = !g_layer_menu_is_active;
                     }
                     if (evn.sdl.key.keysym.sym == SDLK_F1)
                     {
@@ -133,7 +139,7 @@ void main_loop()
         for (int layer = LAYER_COUNT; layer >= 0; layer--)
         {
             // TODO hardcoded, implements 'pause' functionality
-            if (g_layer_menu_is_active) break;
+            //if (g_layer_menu_is_active) break;
             switch (layer)
             {
                 case LAYER_GAME:
@@ -148,7 +154,8 @@ void main_loop()
     globals.last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////
-    SDL_RenderClear(globals.rw->renderer);
+    //SDL_RenderClear(globals.rw->renderer);
+    platform_render_clear(globals.window);
 
     for (int layer = 0; layer < LAYER_COUNT; layer++)
     {
@@ -158,10 +165,12 @@ void main_loop()
             layer_game_render();
         } break;
 
+        /*
         case LAYER_MENU: {
             if (!g_layer_menu_is_active) break;
             layer_menu_render();
         } break;
+        */
 
         }
     }
@@ -181,5 +190,5 @@ void main_loop()
         layer_imgui_end();
     }
 #endif
-    SDL_RenderPresent(globals.rw->renderer);
+    platform_render_present(globals.window);
 }

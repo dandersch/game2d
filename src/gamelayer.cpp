@@ -4,6 +4,7 @@
 #include "command.h"
 #include "input.h"
 #include "levelgen.h"
+#include "platform.h"
 #include "renderwindow.h"
 #include "reset.h"
 #include "rewind.h"
@@ -19,7 +20,7 @@ static const int MAX_RENDER_LAYERS = 100;
 static Camera cam;
 static bool debugDraw = false;
 static Entity* focusedEntity = nullptr;
-static SDL_Rect focusArrow = {64,32,16,32}; // TODO hardcoded
+static rect_t focusArrow = {64,32,16,32}; // TODO hardcoded
 
 void layer_game_init()
 {
@@ -27,6 +28,7 @@ void layer_game_init()
         exit(1);
 }
 
+// TODO platform code
 void layer_game_handle_event(Event& event)
 {
     SDL_Event evn = event.sdl;
@@ -56,15 +58,16 @@ void layer_game_handle_event(Event& event)
     case SDL_MOUSEMOTION:
         break;
     case SDL_MOUSEBUTTONDOWN:
-        auto click = camera_screen_to_world(cam, {evn.button.x, evn.button.y, 0});
+        auto click = camera_screen_to_world(cam, {(f32)evn.button.x,
+                                                  (f32)evn.button.y, 0});
 
         // TODO interpolate
         // TODO breaks w/ zooming
         // put camera where clicked
         cam.rect.x = click.x - (cam.rect.w/2.f);
         cam.rect.y = click.y - (cam.rect.h/2.f);
-        // put cursor where clicked
-        SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
+        // TODO put cursor where clicked
+        //SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
 
         // get 'clicked on' playable entity
         for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -72,9 +75,9 @@ void layer_game_handle_event(Event& event)
             auto ents = EntityMgr::getArray();
             if (!ents[i].active) continue;
             if (!(ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)) continue;
-            SDL_Point clickpoint = {(i32) click.x, (i32) click.y};
-            SDL_Rect coll = ents[i].getColliderInWorld();
-            if (SDL_PointInRect(&clickpoint, &coll))
+            point_t  clickpoint = {(i32) click.x, (i32) click.y};
+            rect_t   coll       = ents[i].getColliderInWorld();
+            if (SDL_PointInRect((SDL_Point*) &clickpoint, (SDL_Rect*) &coll)) // TODO
             {
                 if (focusedEntity)
                 {
@@ -159,7 +162,9 @@ void layer_game_update(f32 dt)
             // TODO should we set movement to zero here if collided?
             if (!collided)
             {
-                ent.position += ent.movement;
+                ent.position = {ent.position.x + ent.movement.x,
+                                ent.position.y + ent.movement.y,
+                                ent.position.z + ent.movement.z};
                 // TODO interpolate here
                 // start = ent.position;
                 // end   = ent.position + ent.movement;
@@ -199,20 +204,22 @@ void layer_game_render()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            globals.rw->render(tiles[i].sprite, camera_world_to_screen(cam, tiles[i].position),
-                       cam.scale, tiles[i].sprite.flip);
+            platform_render(globals.window, tiles[i].sprite,
+                            camera_world_to_screen(cam, tiles[i].position),
+                            cam.scale, tiles[i].sprite.flip);
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
             if (debugDraw)
             {
                 auto pos = camera_world_to_screen(cam, tiles[i].position);
-                SDL_Rect dst = {(int) pos.x + tiles[i].collider.x,
-                                (int) pos.y + tiles[i].collider.y,
-                                (i32) (tiles[i].collider.w),
-                                (i32) (tiles[i].collider.h)};
+                rect_t dst = {(int) pos.x + tiles[i].collider.x,
+                              (int) pos.y + tiles[i].collider.y,
+                              (i32) (tiles[i].collider.w),
+                              (i32) (tiles[i].collider.h)};
 
-                // don't draw 'empty' colliders (otherwise it will draw points & lines)
-                if (!SDL_RectEmpty(&dst)) SDL_RenderDrawRect(globals.rw->renderer, &dst);
+                // TODO don't draw 'empty' colliders (otherwise it will draw points & lines)
+                if (!SDL_RectEmpty((SDL_Rect*) &dst)) // TODO
+                   platform_debug_draw_rect(globals.window, &dst);
             }
         }
 
@@ -221,19 +228,21 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            globals.rw->render(ents[i].sprite, camera_world_to_screen(cam, ents[i].position),
-                       cam.scale, ents[i].sprite.flip);
+            platform_render(globals.window, ents[i].sprite,
+                            camera_world_to_screen(cam, ents[i].position),
+                            cam.scale, ents[i].sprite.flip);
 
             if (debugDraw)
             {
                 // change color depending on entity flags
-                SDL_Color c = {0,0,0,255};
+                color_t c = {0,0,0,255}; // TODO get this out
                 if (ents[i].flags & (u32) EntityFlag::ATTACK_BOX) c = {255,100,100,255};
                 if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
 
-                SDL_SetRenderDrawColor(globals.rw->renderer, c.r, c.g, c.b, c.a);
-                globals.rw->debugDraw(ents[i], camera_world_to_screen(cam, ents[i].position));
-                SDL_SetRenderDrawColor(globals.rw->renderer, 0,0,0,255);
+                platform_render_set_draw_color(globals.window, c.r, c.g, c.b, c.a);
+                platform_debug_draw(globals.window, ents[i],
+                                    camera_world_to_screen(cam, ents[i].position));
+                platform_render_set_draw_color(globals.window, 0, 0, 0, 255);
             }
 
             if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
@@ -245,11 +254,12 @@ void layer_game_render()
     // draw focusarrow on focused entity TODO hardcoded & very hacky
     if (focusedEntity)
     {
-        Sprite arrow_sprite = { focusArrow, ents[0].sprite.tex };
-        auto pos = camera_world_to_screen(cam, focusedEntity->position);
-        globals.rw->render(arrow_sprite,
-                           camera_world_to_screen(cam, focusedEntity->position),
-                           cam.scale);
+        /*
+        sprite_t arrow_sprite = { focusArrow, ents[0].sprite.tex };
+        auto pos = camera_world_to_screen(cam, glm::vec3{focusedEntity->position});
+        platform_render(globals.window, arrow_sprite,
+                        camera_world_to_screen(cam, focusedEntity->position), cam.scale);
+        */
     }
 
 }
@@ -261,7 +271,7 @@ void layer_game_imgui_render()
 
     ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
-    ImGui::Text("TICKS: %d", SDL_GetTicks());
+    //ImGui::Text("TICKS: %d", SDL_GetTicks());
     ImGui::Text("DT: %f", globals.dt);
     ImGui::Text("CMD IDX: %u", CommandProcessor::cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);

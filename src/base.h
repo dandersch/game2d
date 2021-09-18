@@ -1,4 +1,6 @@
-// #include <stdbool.h> // true = 1
+#pragma once
+
+// include <stdbool.h> // true = 1
 
 // #define internal static
 // #define local    static
@@ -76,6 +78,44 @@ typedef int64_t  b64;
 
 typedef float    f32;
 typedef double   f64;
+
+// TODO vector types
+union v2i
+{
+    struct { i32 x; i32 y; };
+    i32 v[2];
+};
+union v3i
+{
+    struct { i32 x; i32 y; i32 z; };
+    i32 v[3];
+};
+union v2f
+{
+    struct { f32 x; f32 y; };
+    f32 v[2];
+};
+union v3f
+{
+    struct { f32 x; f32 y; f32 z; };
+    f32 v[3];
+};
+
+// some other useful types
+struct rect_t
+{
+    i32 x, y;
+    i32 w, h;
+};
+struct point_t
+{
+    i32 x;
+    i32 y;
+};
+struct color_t
+{
+    u8 r; u8 g; u8 b; u8 a;
+};
 
 // ASSERTIONS //////////////////////////////////////////////////////////////////////////////////////
 #include <signal.h> // for debug breaking

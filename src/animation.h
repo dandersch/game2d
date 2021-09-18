@@ -50,8 +50,8 @@
 
 struct AnimationFrame
 {
-    SDL_Rect frame;
-    f32 duration;
+    rect_t frame;
+    f32    duration;
 };
 
 struct AnimationClip
@@ -87,9 +87,9 @@ inline u32 get_index_into_clip(Animator anim, AnimationClip clip)
     return idx;
 }
 
-inline SDL_Rect animation_update(Animator* anim,
-                                 AnimationClip* clips,
-                                 u32 clip_count, f32 dt)
+inline rect_t animation_update(Animator* anim,
+                               AnimationClip* clips,
+                               u32 clip_count, f32 dt)
 {
     // TODO determine if clip needs to change
 

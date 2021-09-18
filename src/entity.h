@@ -5,12 +5,12 @@
 #include "rewind.h"
 #include "command.h"
 
-struct Sprite
+struct sprite_t
 {
-    SDL_Rect         box;
-    SDL_Texture*     tex;
-    glm::vec2        pivot = {0.5f, 0.5f};
-    SDL_RendererFlip flip = SDL_FLIP_NONE;
+    rect_t box;
+    void*  tex;                  // SDL_Texture*  tex;
+    v2f    pivot = {0.5f, 0.5f}; //glm::vec2   pivot = {0.5f, 0.5f};
+    u32    flip  = 0;            // SDL_RendererFlip flip = SDL_FLIP_NONE;
 };
 
 // TODO use regular enum...
@@ -45,21 +45,21 @@ enum Orientation
 struct Entity
 {
     // sets position in regards of entities pivot point (center by default)
-    void setPivPos(glm::vec3 pos)
+    void setPivPos(v3f pos)
     {
         position = {pos.x - (sprite.box.w * sprite.pivot.x),
                     pos.y - (sprite.box.h * sprite.pivot.y), 0};
     }
 
     // get position without pivot (i.e. topleft of spritebox)
-    glm::vec3 getUnpivPos()
+    v3f getUnpivPos()
     {
         return {position.x + (sprite.box.w * sprite.pivot.x),
                 position.y + (sprite.box.h * sprite.pivot.y), 0};
     }
 
     // collider itself is relative to entity
-    SDL_Rect getColliderInWorld()
+    rect_t getColliderInWorld()
     {
         return {(i32) (position.x + collider.x),
                 (i32) (position.y + collider.y),
@@ -69,15 +69,14 @@ struct Entity
     b32  active; // determines if needs updating
     b32  freed = true;  // determines if can be replaced with new entity
     u32  flags;
-    glm::vec3 position; // NOTE maybe make private or similar bc we want pos to
-                        // be set with setPivPos
+    v3f  position; // NOTE maybe make private or similar bc we want pos to be set with setPivPos
     f32  scale = 1.0f;
     u32  orient;
     u32  renderLayer;
 
-    Sprite sprite;
+    sprite_t sprite;
 
-    SDL_Rect collider; // TODO box2d?
+    rect_t collider; // TODO box2d?
     //MyTile tile;
 
     u32  state;
@@ -89,7 +88,7 @@ struct Entity
     //Animation anim; // TODO use an index that accesses into anims instead
     //Animation anims[STATE_COUNT * ORIENT_COUNT];
 
-    glm::vec3 movement; // desired movement for this frame, used by collision.h
+    v3f movement; // desired movement for this frame, used by collision.h
 
     // TODO fill up with nullcommands at start?
     //Command* cmds[MAX_CMD_COUNT]; // command array for replay

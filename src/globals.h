@@ -1,14 +1,16 @@
 #pragma once
 
 #include "base.h"
+#include "platform.h"
 
-class RenderWindow;
+//class RenderWindow;
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 960
 
 struct globals_t
 {
-    RenderWindow* rw;
+    //RenderWindow*      rw;
+    platform_window_t* window;
     bool          game_running;
     f32           dt;
     //u32           time;
