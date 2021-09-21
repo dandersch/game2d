@@ -1,7 +1,6 @@
 #include "menulayer.h"
 #include "platform.h"
 #include "resourcemgr.h"
-#include "event.h"
 #include "globals.h"
 #include "utils.h"
 
