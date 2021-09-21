@@ -89,12 +89,12 @@ void player_try_move(v3f movement, Entity& ent)
     ent.movement = movement;
 }
 
-#include <SDL_timer.h>  // TODO remove
-#include <SDL_events.h> // TODO remove
+// #include <SDL_timer.h>  // TODO remove
+// #include <SDL_events.h> // TODO remove
 void player_try_pickup(v3f direction, Entity& ent)
 {
     isPickingUp = true;
-    SDL_TimerID timerID = SDL_AddTimer(1 * 1000, callback, (void*) "1 second!");
+    // SDL_TimerID timerID = SDL_AddTimer(1 * 1000, callback, (void*) "1 second!");
 
     v3f pickupPos = {ent.position.x + direction.x,
                      ent.position.y + direction.y,

@@ -16,7 +16,7 @@
 #include "imgui_impl_sdl.h"
 #endif
 
-#include <glm/glm.hpp>
+//#include <glm/glm.hpp>
 //#include "Box2D/Box2D.h"
 
 #ifdef __EMSCRIPTEN__

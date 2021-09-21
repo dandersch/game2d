@@ -26,6 +26,11 @@
     #error "no platform detected"
 #endif
 
+// NOTE we use SDL on linux & web builds
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_WEB)
+    #define PLATFORM_SDL
+#endif
+
 // compiler detection
 #ifdef __GNUC__
     #define COMPILER_GCC

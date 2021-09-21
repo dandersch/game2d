@@ -1,3 +1,4 @@
+/*
 #pragma once
 
 #include "pch.h"
@@ -28,3 +29,5 @@ void toggleMusic();
 void playSFX(u32 sfx_type);
 
 } // namespace Sound
+
+*/

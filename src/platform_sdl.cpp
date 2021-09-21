@@ -1,3 +1,4 @@
+#ifdef PLATFORM_SDL
 #include "pch.h"
 #include "platform.h"
 #include "input.h"
@@ -34,6 +35,14 @@ struct platform_window_t
 
 #include "entity.h" // needed for sprite struct, TODO remove
 
+extern int game_main();
+
+// entry point
+int main(int argc, char* args[])
+{
+    game_main();
+}
+
 platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)
 {
     if (SDL_Init(SDL_INIT_TIMER
@@ -51,6 +60,7 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
         printf("SDL init failed: %s\n", SDL_GetError());
     }
 
+    // TODO don't call malloc
     platform_window_t* window = (platform_window_t*) malloc(sizeof(platform_window_t));
 
     window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -339,3 +349,4 @@ void platform_imgui_end()
     ImGuiSDL::Render(ImGui::GetDrawData());
 #endif
 }
+#endif // PLATFORM_SDL

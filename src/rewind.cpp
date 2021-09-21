@@ -2,6 +2,7 @@
 
 #include "entity.h"
 #include "reset.h"
+#include <cmath>
 
 static const u32 FPS       = 60;  // TODO support variable fps
 static const u32 TOLERANCE = 100;

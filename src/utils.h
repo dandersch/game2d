@@ -2,23 +2,29 @@
 
 #include "pch.h"
 
-#include "SDL_rect.h"
-
-// TODO don't call sdl functions
-
 inline b32 point_in_rect(point_t point, rect_t rect)
 {
-    return SDL_PointInRect((SDL_Point*) &point, (SDL_Rect*) &rect);
+    return (rect.x + rect.w >= point.x &&
+                     rect.x <= point.x &&
+            rect.y + rect.h >= point.y &&
+                     rect.y <= point.y);
+    //return SDL_PointInRect((SDL_Point*) &point, (SDL_Rect*) &rect);
 }
 
-inline b32 rect_empty(rect_t rect) { return SDL_RectEmpty((SDL_Rect*) &rect); }
+inline b32 rect_empty(rect_t rect)
+{
+    return rect.w <= 0 && rect.h <= 0;
+    //return SDL_RectEmpty((SDL_Rect*) &rect);
+}
 
+/*
 inline rect_t rect_intersection(rect_t rect1, rect_t rect2)
 {
     rect_t result;
     SDL_IntersectRect((SDL_Rect*) &rect1, (SDL_Rect*) &rect2, (SDL_Rect*) &result);
     return result;
 }
+*/
 
 // NOTE built-in sdl function seems faster
 inline b32 rect_intersects(rect_t rect1, rect_t rect2)

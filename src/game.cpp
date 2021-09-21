@@ -23,7 +23,7 @@ enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 // bool[LAYER_COUNT] = {false};
 
 // TODO move entry point into platform code and call game_main (i.e. this main) from there
-int main(int argc, char* args[])
+int game_main()
 {
     // WINDOW SETUP ///////////////////////////////////////////////////////////////
     globals.window = platform_window_open("Hello Game", SCREEN_WIDTH, SCREEN_HEIGHT);

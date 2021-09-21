@@ -1,5 +1,6 @@
 #include "sound.h"
 
+/*
 
 Mix_Music* Sound::music       = NULL;
 Mix_Chunk* sfx_table[Sound::SFX_COUNT] = {0};
@@ -39,3 +40,5 @@ void Sound::toggleMusic()
         Mix_PauseMusic();
     }
 }
+
+*/

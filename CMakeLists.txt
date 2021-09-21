@@ -60,7 +60,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 include_directories("src/")
 file(GLOB src_files "src/*.cpp")
 
-add_executable(megastruct main.cpp ${src_files} ${imgui_src})
+add_executable(megastruct ${src_files} ${imgui_src})
 target_precompile_headers(megastruct PRIVATE "pch.h")
 target_link_libraries(megastruct
                       ${SDL2_LIBRARIES}

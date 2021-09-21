@@ -29,6 +29,7 @@ bool EntityMgr::copyEntity(const Entity ent)
     return false;
 }
 
+#include <cstring>
 void EntityMgr::freeTemporaryStorage()
 {
     memset(&ents[MAX_ENTITIES_WO_TEMP],
