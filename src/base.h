@@ -27,6 +27,7 @@
 #endif
 
 // NOTE we use SDL on linux & web builds
+// TODO PLATFORM_WEB does not seem to get defined or not early enough
 #if defined(PLATFORM_LINUX) || defined(PLATFORM_WEB)
     #define PLATFORM_SDL
 #endif

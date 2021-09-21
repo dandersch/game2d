@@ -1,4 +1,4 @@
-#ifdef PLATFORM_SDL
+#if defined(PLATFORM_SDL) || defined(__EMSCRIPTEN__)
 #include "pch.h"
 #include "platform.h"
 #include "input.h"
