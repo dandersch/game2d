@@ -5,15 +5,14 @@
 #include "input.h"
 #include "levelgen.h"
 #include "platform.h"
-#include "renderwindow.h"
 #include "reset.h"
 #include "rewind.h"
 #include "camera.h"
 #include "entitymgr.h"
 #include "player.h"
 #include "collision.h"
-#include "event.h"
 #include "globals.h"
+#include "utils.h"
 
 static const int MAX_RENDER_LAYERS = 100;
 
@@ -29,37 +28,17 @@ void layer_game_init()
 }
 
 // TODO platform code
-void layer_game_handle_event(Event& event)
+void layer_game_handle_event()
 {
-    SDL_Event evn = event.sdl;
+    if (input_pressed(globals.game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
+    {
+        v3i  mouse_pos = globals.game_input.mouse.pos;
+        auto click     = camera_screen_to_world(cam, {(f32) mouse_pos.x,
+                                                      (f32) mouse_pos.y, 0});
 
-    switch (evn.type) {
-    case SDL_KEYDOWN:
-        switch (evn.key.keysym.sym)
-        {
-        case SDLK_UP:
-            cam.rect.y -= 5;
-            break;
-        case SDLK_DOWN:
-            cam.rect.y += 5;
-            break;
-        case SDLK_LEFT:
-            cam.rect.x -= 5;
-            break;
-        case SDLK_RIGHT:
-            cam.rect.x += 5;
-            break;
-        }
-        break;
-    case SDL_MOUSEWHEEL:
-        if (evn.wheel.y == -1) cam.rect.w *= 0.5f;
-        if (evn.wheel.y ==  1) cam.rect.w *= 2.0f;
-        break;
-    case SDL_MOUSEMOTION:
-        break;
-    case SDL_MOUSEBUTTONDOWN:
-        auto click = camera_screen_to_world(cam, {(f32)evn.button.x,
-                                                  (f32)evn.button.y, 0});
+        printf("calculated world pos at: ");
+        printf("%f ",  click.x);
+        printf("%f\n", click.y);
 
         // TODO interpolate
         // TODO breaks w/ zooming
@@ -77,7 +56,7 @@ void layer_game_handle_event(Event& event)
             if (!(ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)) continue;
             point_t  clickpoint = {(i32) click.x, (i32) click.y};
             rect_t   coll       = ents[i].getColliderInWorld();
-            if (SDL_PointInRect((SDL_Point*) &clickpoint, (SDL_Rect*) &coll)) // TODO
+            if (point_in_rect(clickpoint, coll)) // TODO
             {
                 if (focusedEntity)
                 {
@@ -89,16 +68,21 @@ void layer_game_handle_event(Event& event)
                 focusedEntity = &ents[i];
             }
         }
-        break;
     }
-
-    for (u32 i = 0; i < MAX_ENTITIES; i++)
-    {
-        auto ents = EntityMgr::getArray();
-        if (!ents[i].active) continue;
-        if (ents[i].flags & (u32) EntityFlag::PLAYER_CONTROLLED)
-            player_handle_event(event, ents[i], cam);
-    }
+        // case EVENT_KEYDOWN:
+        // {
+        //     switch (evn->key.keycode)
+        //     {
+        //         case KEY_UP:    { cam.rect.y -= 5; } break;
+        //         case KEY_DOWN:  { cam.rect.y += 5; } break;
+        //         case KEY_LEFT:  { cam.rect.x -= 5; } break;
+        //         case KEY_RIGHT: { cam.rect.x += 5; } break;
+        //     }
+        // }    break;
+        // case EVENT_MOUSEWHEEL: {
+        //     //if (evn.wheel.y == -1) cam.rect.w *= 0.5f;
+        //     //if (evn.wheel.y ==  1) cam.rect.w *= 2.0f;
+        // } break;
 }
 
 void layer_game_update(f32 dt)
@@ -204,9 +188,9 @@ void layer_game_render()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            platform_render(globals.window, tiles[i].sprite,
-                            camera_world_to_screen(cam, tiles[i].position),
-                            cam.scale, tiles[i].sprite.flip);
+            platform_render_sprite(globals.window, tiles[i].sprite,
+                                   camera_world_to_screen(cam, tiles[i].position),
+                                   cam.scale, tiles[i].sprite.flip);
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
             if (debugDraw)
@@ -218,7 +202,7 @@ void layer_game_render()
                               (i32) (tiles[i].collider.h)};
 
                 // TODO don't draw 'empty' colliders (otherwise it will draw points & lines)
-                if (!SDL_RectEmpty((SDL_Rect*) &dst)) // TODO
+                if (!rect_empty(dst))
                    platform_debug_draw_rect(globals.window, &dst);
             }
         }
@@ -228,9 +212,9 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            platform_render(globals.window, ents[i].sprite,
-                            camera_world_to_screen(cam, ents[i].position),
-                            cam.scale, ents[i].sprite.flip);
+            platform_render_sprite(globals.window, ents[i].sprite,
+                                   camera_world_to_screen(cam, ents[i].position),
+                                   cam.scale, ents[i].sprite.flip);
 
             if (debugDraw)
             {
@@ -254,12 +238,10 @@ void layer_game_render()
     // draw focusarrow on focused entity TODO hardcoded & very hacky
     if (focusedEntity)
     {
-        /*
         sprite_t arrow_sprite = { focusArrow, ents[0].sprite.tex };
-        auto pos = camera_world_to_screen(cam, glm::vec3{focusedEntity->position});
-        platform_render(globals.window, arrow_sprite,
-                        camera_world_to_screen(cam, focusedEntity->position), cam.scale);
-        */
+        auto pos = camera_world_to_screen(cam, v3f{focusedEntity->position});
+        platform_render_sprite(globals.window, arrow_sprite,
+                               camera_world_to_screen(cam, focusedEntity->position), cam.scale);
     }
 
 }
@@ -271,7 +253,7 @@ void layer_game_imgui_render()
 
     ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
-    //ImGui::Text("TICKS: %d", SDL_GetTicks());
+    ImGui::Text("TICKS: %d", platform_ticks());
     ImGui::Text("DT: %f", globals.dt);
     ImGui::Text("CMD IDX: %u", CommandProcessor::cmdIdx);
     ImGui::Text("LOOP TIME: %f", Reset::loopTime);

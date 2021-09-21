@@ -1,6 +1,5 @@
 #include "levelgen.h"
 
-//#include "renderwindow.h"
 #include "gamelayer.h"
 #include "entity.h"
 #include "resourcemgr.h"
@@ -103,7 +102,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     newEnt.setPivPos( {o.getPosition().x,
                                        o.getPosition().y - 24, 0});
                     // TODO platform code (?)
-                    newEnt.sprite.tex   = ResourceManager<SDL_Texture*>::get(ts->getImagePath());
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
                     newEnt.renderLayer  = 1;
                     newEnt.orient       = ORIENT_DOWN;
                     const auto& aabb    = o.getAABB();
@@ -122,7 +121,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     // TODO why -24
                     newEnt.setPivPos( {o.getPosition().x,
                                        o.getPosition().y - 24, 0});
-                    newEnt.sprite.tex   = ResourceManager<SDL_Texture*>::get(ts->getImagePath());
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
                     const auto& aabb    = o.getAABB();
                     newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
                                            (i32) aabb.width, (i32) aabb.height};
@@ -179,7 +178,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                 newTile.renderLayer  = layercount;
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
-                newTile.sprite.tex   =  ResourceManager<SDL_Texture*>::get(ts->getImagePath());
+                newTile.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
                 newTile.setPivPos({x * 16.f, y * 16.f, 0});
 
                 // copy new tile into array TODO slow

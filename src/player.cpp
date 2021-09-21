@@ -6,20 +6,9 @@
 #include "event.h"
 #include "command.h"
 #include "input.h"
+#include "platform.h"
 
 static const f32 playerSpeed = 150.f;
-
-void player_handle_event(const Event& e,  Entity& ent, const Camera& cam)
-{
-    SDL_Event evn = e.sdl;
-
-    switch (evn.type) {
-    case SDL_MOUSEBUTTONDOWN:
-        //auto click = cam.screenToWorld({evn.button.x, evn.button.y, 0});
-        //ent.setPivPos(glm::vec3(click.x, click.y, 0));
-        break;
-    }
-}
 
 v3f getDirectionFrom(u32 orient)
 {
@@ -36,7 +25,7 @@ v3f getDirectionFrom(u32 orient)
 
 // TESTING SDL TIMER CALLBACKS /////////////////////////////
 bool isPickingUp = false;
-Uint32 callback( Uint32 interval, void* param )
+u32 callback(u32 interval, void* param )
 {
     printf( "PICKUP DONE AFTER: %s\n", (char*)param );
     isPickingUp = false;
@@ -101,11 +90,12 @@ void player_try_move(v3f movement, Entity& ent)
     ent.movement = movement;
 }
 
+#include <SDL_timer.h>  // TODO remove
+#include <SDL_events.h> // TODO remove
 void player_try_pickup(v3f direction, Entity& ent)
 {
     isPickingUp = true;
-    SDL_TimerID timerID = SDL_AddTimer( 1 * 1000,
-                                        callback, (void*) "1 second!" );
+    SDL_TimerID timerID = SDL_AddTimer(1 * 1000, callback, (void*) "1 second!");
 
     v3f pickupPos = {ent.position.x + direction.x,
                      ent.position.y + direction.y,

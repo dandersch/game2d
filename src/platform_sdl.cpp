@@ -1,15 +1,36 @@
-#include "platform_sdl.h"
-#include "SDL_render.h"
 #include "pch.h"
 #include "platform.h"
+#include "input.h"
 
-/*
+#include <SDL.h>
+#include <SDL_hints.h>
+#include <SDL_rect.h>
+#include <SDL_events.h>
+#include <SDL_keycode.h>
+#include <SDL_mouse.h>
+#include <SDL_timer.h>
+#include <SDL_ttf.h>
+#include <SDL_surface.h>
+#include <SDL_pixels.h>
+#include <SDL_render.h>
+#include <SDL_keyboard.h>
+#include <SDL_image.h>
+#include <SDL_video.h>
+#include <SDL_thread.h>
+#include <SDL_blendmode.h>
+#include <SDL_render.h>
+#include <SDL_events.h>
+#include <SDL_keycode.h>
+#include <SDL_video.h>
+#include <SDL_timer.h>
+
 struct platform_window_t
 {
     SDL_Window*   handle;
     SDL_Renderer* renderer;
 };
-*/
+
+#define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
 #include "entity.h" // needed for sprite struct, TODO remove
 
@@ -32,9 +53,8 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
 
     platform_window_t* window = (platform_window_t*) malloc(sizeof(platform_window_t));
 
-    window->handle = SDL_CreateWindow(title,
-                                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                               screen_width, screen_height, 0);
+    window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                      screen_width, screen_height, 0);
     SDL_ERROR(window->handle);
 
     window->renderer = SDL_CreateRenderer(window->handle, -1,
@@ -53,8 +73,92 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     return window;
 }
 
-void platform_render(platform_window_t* window, const sprite_t& spr,
-                     v3f position, f32 scale, u32 flip_type)
+void platform_window_close(platform_window_t* window)
+{
+    SDL_DestroyRenderer(window->renderer);
+    SDL_DestroyWindow(window->handle);
+}
+
+// EVENTS //////////////////////////////////////////////////////////////////////////////////////////
+
+// counts up button presses between last and next frame
+// TODO check if this actually works, i.e. if you can press a button more than once between frames
+static inline
+void input_event_process(game_input_state_t* new_state, b32 is_down)
+{
+    if(new_state->is_down != is_down)
+    {
+        new_state->is_down = is_down;
+        ++new_state->up_down_count;
+    }
+}
+
+void platform_event_loop(game_input_t* input)
+{
+    // TODO remove hardcoded resetting of halftransitioncount
+    for(int key_idx = 0; key_idx < 128; /* TODO hardcoded */ ++key_idx)
+        input->keyboard.keys[key_idx].up_down_count = 0;
+    for(int btn_idx = 0; btn_idx < MOUSE_BUTTON_COUNT; /* TODO hardcoded */ ++btn_idx)
+        input->mouse.buttons[btn_idx].up_down_count = 0;
+    for(int f_idx = 0; f_idx < 13; /* TODO hardcoded */ ++f_idx)
+        input->keyboard.f_key_pressed[f_idx] = false;
+
+    SDL_Event sdl_event;
+    while (SDL_PollEvent(&sdl_event))
+    {
+        switch (sdl_event.type)
+        {
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                {
+                    SDL_Keycode keycode = sdl_event.key.keysym.sym;
+                    b32 is_down         = (sdl_event.key.state == SDL_PRESSED);
+
+                    if(sdl_event.key.repeat == 0)
+                    {
+                        if (is_down)
+                        {
+                            if((keycode >= SDLK_F1) && (keycode <= SDLK_F12))
+                            {
+                                input->keyboard.f_key_pressed[keycode - SDLK_F1 + 1] = true;
+                            }
+                        }
+
+                        // NOTE SDL Keycodes (SDLK_*) seem to map to ascii for a-z
+                        // but other characters (e.g. winkey/f-keys) go over 128,
+                        // so we mask off bits here
+                        keycode &= 255;
+                        input_event_process(&input->keyboard.keys[keycode], is_down);
+                    }
+
+                } break;
+
+                case SDL_MOUSEMOTION:
+                {
+                    input->mouse.pos = {sdl_event.motion.x, sdl_event.motion.y, 0};
+                } break;
+
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                {
+                    auto button = sdl_event.button.button;
+                    b32 is_down = sdl_event.button.state;
+                    if (button == SDL_BUTTON_LEFT)
+                        input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
+                } break;
+
+                case SDL_QUIT: { input->quit_requested = true; } break;
+                case SDL_WINDOWEVENT: {
+                    if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
+                        input->quit_requested = true;
+                } break;
+        }
+    }
+}
+
+// TODO replace all calls to this with calls to platform_render_texture
+void platform_render_sprite(platform_window_t* window, const sprite_t& spr,
+                            v3f position, f32 scale, u32 flip_type)
 {
    SDL_Rect dst = {(int) position.x, (int) position.y,
                    (i32) (scale * spr.box.w), (i32) (scale * spr.box.h)};
@@ -65,6 +169,11 @@ void platform_render(platform_window_t* window, const sprite_t& spr,
                     &dst, 0, NULL, (SDL_RendererFlip) flip_type);
    //SDL_RenderCopy(renderer, spr.tex, &spr.box, &dst);
 
+}
+
+void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
+{
+    SDL_RenderCopy(window->renderer, (SDL_Texture*) texture, (SDL_Rect*) src, (SDL_Rect*) dst);
 }
 
 void platform_render_clear(platform_window_t* window)
@@ -101,4 +210,132 @@ void platform_debug_draw(platform_window_t* window, const Entity& e, v3f pos)
 void platform_debug_draw_rect(platform_window_t* window, rect_t* dst)
 {
     SDL_RenderDrawRect(window->renderer, (SDL_Rect*) dst);
+}
+
+texture_t* platform_texture_create_from_surface(platform_window_t* window, surface_t* surface)
+{
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(window->renderer, (SDL_Surface*) surface);
+    SDL_ERROR(tex);
+    return tex;
+}
+
+texture_t* platform_texture_load(platform_window_t* window, const char* filename)
+{
+    SDL_Texture* tex = IMG_LoadTexture(window->renderer, filename);
+    SDL_ERROR(tex);
+    return tex;
+}
+
+i32 platform_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
+{
+    return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
+}
+
+i32 platform_texture_set_blend_mode(texture_t* tex, u32 mode)
+{
+    return SDL_SetTextureBlendMode((SDL_Texture*) tex, (SDL_BlendMode) mode);
+}
+
+i32 platform_texture_set_alpha_mod(texture_t* tex, u8 alpha)
+{
+    return SDL_SetTextureAlphaMod((SDL_Texture*) tex, alpha);
+}
+
+void platform_surface_destroy(surface_t* surface)
+{
+    SDL_FreeSurface((SDL_Surface*) surface);
+}
+
+// SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
+font_t* platform_font_load(const char* filename, i32 ptsize)
+{
+    TTF_Font* font = TTF_OpenFont(filename, ptsize);
+    SDL_ERROR(font);
+    return font;
+}
+
+void platform_font_init()
+{
+    TTF_Init();
+}
+
+// TODO pass options to render blended/wrapped
+surface_t* platform_text_render(font_t* font, const char* text, color_t color, u32 wrap_len)
+{
+    SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,
+                                                            *((SDL_Color*) &color), wrap_len);
+    SDL_ERROR(text_surf);
+    return text_surf;
+}
+
+u32  platform_ticks() { return SDL_GetTicks(); }
+
+void platform_quit()
+{
+    TTF_Quit();
+    IMG_Quit();
+    SDL_Quit();
+}
+
+// IMGUI BACKEND ///////////////////////////////////////////////////////////////////////////////////
+void platform_imgui_init(platform_window_t* window, u32 screen_width, u32 screen_height)
+{
+#ifdef IMGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiSDL::Initialize(window->renderer, screen_width, screen_height);
+    // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
+    // don't call an init function, but all of them require a rendering api
+    // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
+    // eventhandling. We expose the internal function below to circumvent that.
+    ImGui_ImplSDL2_Init(window->handle);
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+#endif
+}
+
+void platform_imgui_destroy()
+{
+#ifdef IMGUI
+    ImGuiSDL::Deinitialize();
+    ImGui::DestroyContext();
+#endif
+}
+
+void platform_imgui_event_handle(game_input_t* input)
+{
+#ifdef IMGUI
+    // NOTE for some reason we don't have to call this...
+    //ImGui_ImplSDL2_ProcessEvent(&e.sdl);
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    // don't let mouse clicks on imgui propagate through underlying layers
+    if (io.WantCaptureMouse)
+    {
+        // TODO hack: zero out mouseclick data so layers underneath don't react to them
+        memset(input->mouse.buttons, 0, sizeof(input->mouse.buttons));
+    }
+
+    //io.WantCaptureKeyboard;
+
+    //e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
+    //e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
+#endif
+}
+
+void platform_imgui_begin(platform_window_t* window)
+{
+#ifdef IMGUI
+    ImGui_ImplSDL2_NewFrame(window->handle);
+    ImGui::NewFrame();
+#endif
+}
+
+void platform_imgui_end()
+{
+#ifdef IMGUI
+    ImGui::Render();
+    ImGuiSDL::Render(ImGui::GetDrawData());
+#endif
 }

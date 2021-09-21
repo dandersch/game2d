@@ -2,13 +2,10 @@
 
 #include "entity.h"
 #include "player.h"
-#include "renderwindow.h"
 #include "imguilayer.h"
 #include "gamelayer.h"
 #include "menulayer.h"
-#include "event.h"
 #include "globals.h"
-
 #include "platform.h"
 
 b32 render_imgui = false;
@@ -21,19 +18,19 @@ b32 render_imgui = false;
 
 void main_loop();
 
-enum Layers { LAYER_GAME, /*LAYER_MENU, LAYER_IMGUI,*/ LAYER_COUNT };
+enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 // TODO maybe use a bool array for keeping track of in-/active layers, i.e.
 // bool[LAYER_COUNT] = {false};
 
+// TODO move entry point into platform code and call game_main (i.e. this main) from there
 int main(int argc, char* args[])
 {
-    // SDL SETUP ///////////////////////////////////////////////////////////////
-    //globals.rw = new RenderWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
-    globals.window = platform_window_open("Hello SDL", SCREEN_WIDTH, SCREEN_HEIGHT);
+    // WINDOW SETUP ///////////////////////////////////////////////////////////////
+    globals.window = platform_window_open("Hello Game", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // init layers
     layer_game_init();
-    //layer_menu_init();
+    layer_menu_init();
     layer_imgui_init();
 
     // main loop ///////////////////////////////////////////////////////////////
@@ -46,16 +43,10 @@ int main(int argc, char* args[])
         main_loop();
 #endif
 
-
     // CLEANUP /////////////////////////////////////////////////////////////////
     layer_imgui_destroy();
-
-    // TODO should happen in platform code
-    //SDL_DestroyRenderer(window->renderer);
-    //SDL_DestroyWindow(window->window);
-    TTF_Quit();
-    IMG_Quit();
-    SDL_Quit();
+    platform_window_close(globals.window);
+    platform_quit();
 
     return 0;
 }
@@ -63,7 +54,7 @@ int main(int argc, char* args[])
 void main_loop()
 {
     // TIMESTEP ////////////////////////////////////////////////////////////
-    f32 curr_time = SDL_GetTicks()/ 1000.f;
+    f32 curr_time = platform_ticks() / 1000.f;
     f32 update_iterations = ((curr_time - globals.last_frame_time) + globals.cycles_left_over);
     globals.dt = UPDATE_INTERVAL;
 
@@ -75,63 +66,52 @@ void main_loop()
         update_iterations -= UPDATE_INTERVAL;
 
         // EVENT HANDLING //////////////////////////////////////////////////
-        Event evn;
-        while (SDL_PollEvent(&evn.sdl))
+        platform_event_loop(&globals.game_input);
+
+        if (globals.game_input.quit_requested) globals.game_running = false;
+
+        // toggle testmenu TODO hardcoded
+        if (input_pressed(globals.game_input.keyboard.keys['\e']))
+            g_layer_menu_is_active = !g_layer_menu_is_active;
+
+        if (input_pressed(globals.game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
         {
-            for (int layer = LAYER_COUNT; layer >= 0; layer--) {
-                if (evn.handled) break;
-                switch (layer)
-                {
-                    case LAYER_GAME:
-                    {
-                        layer_game_handle_event(evn);
-                    } break;
+            printf("LMB pressed at: ");
+            printf("%i ", globals.game_input.mouse.pos.x);
+            printf("%i\n", globals.game_input.mouse.pos.y);
+        }
 
-                    /*
-                    case LAYER_MENU:
-                    {
-                        if (g_layer_menu_is_active) {
-                            if (evn.handled) layer = 0;
-                            layer_menu_handle_event(evn);
-                            layer = 0; // to break out of loop
-                        }
-                    } break;
+        if (globals.game_input.keyboard.f_key_pressed[1])
+        {
+            printf("f1 pressed\n");
+            render_imgui = !render_imgui;
+        }
 
-                    case LAYER_IMGUI:
-                    {
-                        layer_imgui_handle_event(evn);
-                    } break;
-                    */
 
-                }
-            }
-
-            switch (evn.sdl.type)
+        for (int layer = LAYER_COUNT; layer >= 0; layer--)
+        {
+            //if (evn.handled) break;
+            switch (layer)
             {
-                case SDL_KEYDOWN:
+                case LAYER_GAME:
                 {
-                    // TODO hardcoded
-                    // toggle testmenu
-                    if (evn.sdl.key.keysym.sym == SDLK_ESCAPE)
-                    {
-                        //g_layer_menu_is_active = !g_layer_menu_is_active;
-                    }
-                    if (evn.sdl.key.keysym.sym == SDLK_F1)
-                    {
-                        render_imgui = !render_imgui;
+                    layer_game_handle_event();
+                } break;
+
+                case LAYER_MENU:
+                {
+                    if (g_layer_menu_is_active) {
+                        // if (evn.handled) layer = 0;
+                        layer_menu_handle_event();
+                        layer = 0; // to break out of loop
                     }
                 } break;
 
-                case SDL_QUIT:
+                case LAYER_IMGUI:
                 {
-                    globals.game_running = false;
+                    layer_imgui_handle_event(&globals.game_input);
                 } break;
 
-                case SDL_WINDOWEVENT:
-                {
-                    if (evn.sdl.window.type == SDL_WINDOWEVENT_CLOSE)
-                        globals.game_running = false;
-                } break;
             }
         }
 
@@ -139,7 +119,7 @@ void main_loop()
         for (int layer = LAYER_COUNT; layer >= 0; layer--)
         {
             // TODO hardcoded, implements 'pause' functionality
-            //if (g_layer_menu_is_active) break;
+            if (g_layer_menu_is_active) break;
             switch (layer)
             {
                 case LAYER_GAME:
@@ -154,24 +134,22 @@ void main_loop()
     globals.last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////
-    //SDL_RenderClear(globals.rw->renderer);
     platform_render_clear(globals.window);
 
     for (int layer = 0; layer < LAYER_COUNT; layer++)
     {
-        switch (layer) {
+        switch (layer)
+        {
+            case LAYER_GAME:
+            {
+                layer_game_render();
+            } break;
 
-        case LAYER_GAME: {
-            layer_game_render();
-        } break;
-
-        /*
-        case LAYER_MENU: {
-            if (!g_layer_menu_is_active) break;
-            layer_menu_render();
-        } break;
-        */
-
+            case LAYER_MENU:
+            {
+                if (!g_layer_menu_is_active) break;
+                layer_menu_render();
+            } break;
         }
     }
 
@@ -181,10 +159,12 @@ void main_loop()
         layer_imgui_begin();
         for (int layer = 0; layer < LAYER_COUNT; layer++)
         {
-            switch (layer) {
-            case LAYER_GAME: {
-                layer_game_imgui_render();
-            } break;
+            switch (layer)
+            {
+                case LAYER_GAME:
+                {
+                    layer_game_imgui_render();
+                } break;
             }
         }
         layer_imgui_end();

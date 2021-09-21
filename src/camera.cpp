@@ -8,6 +8,7 @@
 v3f camera_screen_to_world(Camera& cam, const v3f& cam_pos)
 {
     cam.scale =  (f32) cam.rect.w / SCREEN_WIDTH;
+    cam.scale = 1;
 
     v3f scaled_cam_pos = {cam_pos.x/cam.scale, cam_pos.y/cam.scale, cam_pos.z/cam.scale};
     v3f cam_size       = {(f32) cam.rect.x, (f32) cam.rect.y, 0};

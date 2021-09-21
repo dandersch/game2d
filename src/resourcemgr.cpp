@@ -1,18 +1,48 @@
 #include "resourcemgr.h"
-
-#include "platform_sdl.h" // TODO platform agnostic
 #include "globals.h"
+#include "platform.h"
 
-//std::unordered_map<std::string, SDL_Texture*> pool_textures{};
-//std::unordered_map<std::string, TTF_Font*> pool_fonts{};
+// TODO load in "missing" placeholder assets
+static std::unordered_map<std::string, texture_t*> pool_textures{};
+static std::unordered_map<std::string, font_t*> pool_fonts{};
 
-void loadFromFile(SDL_Texture** tex, const char* file)
+texture_t* resourcemgr_texture_load(const char* filename)
 {
-    *tex = IMG_LoadTexture(globals.window->renderer, file);
+    if (pool_textures.find(filename) != pool_textures.end()) // found
+    {
+        return pool_textures[filename]; // TODO don't look up twice
+    }
+    else // not found
+    {
+        pool_textures[filename] = platform_texture_load(globals.window, filename);
+        if (!pool_textures[filename]) return pool_textures["missing"];
+    }
+
+    return pool_textures[filename];
 }
 
-// TODO ptsize hardcoded
-void loadFromFile(TTF_Font** fnt, const char* file)
+font_t* resourcemgr_font_load(const char* filename, i32 ptsize)
 {
-    *fnt = TTF_OpenFont(file, 50);
+    if (pool_fonts.find(filename) != pool_fonts.end()) // found
+    {
+        return pool_fonts[filename]; // TODO don't look up twice
+    }
+    else // not found
+    {
+        pool_fonts[filename] = platform_font_load(filename, ptsize);
+        if (!pool_fonts[filename]) return pool_fonts["missing"];
+    }
+
+    return pool_fonts[filename];
+}
+
+// TODO
+b32 resourcemgr_free(const char* filename)
+{
+    if (pool_textures.find(filename) != pool_textures.end()) // found
+    {
+        // TODO free_resource() for all Resources
+        return true;
+    }
+    return false; // not found
 }

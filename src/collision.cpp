@@ -1,7 +1,7 @@
 #include "collision.h"
-#include "SDL_rect.h"
 #include "entity.h"
 #include "tile.h"
+#include "utils.h"
 
 static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
 { (u32) EntityFlag::IS_ENEMY | (u32) EntityFlag::IS_TILE,
@@ -19,23 +19,10 @@ static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
   }}
 };
 
-// NOTE built-in sdl function seems faster
-bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB)
+b32 Collision::AABB(const rect_t& recA, const rect_t& recB)
 {
-    // if (recA.x + recA.w >= recB.x &&
-    //     recB.x + recB.w >= recA.x &&
-    //     recA.y + recA.h >= recB.y &&
-    //     recB.y + recB.h >= recA.y)
-    // {
-    //     return true;
-    // }
-
-    //SDL_Rect intersect;
-    //if (SDL_IntersectRect(&recA, &recB, NULL))
-    if (SDL_HasIntersection(&recA, &recB))
-    {
+    if (rect_intersects(recA, recB))
         return true;
-    }
 
     return false;
 }
@@ -50,21 +37,21 @@ void collisionCallback(Entity* e1, Entity* e2, u32 flagCombination)
     }
 }
 
-bool Collision::checkCollisionWithTiles(Entity& e1, Tile& t1)
+b32 Collision::checkCollisionWithTiles(Entity& e1, Tile& t1)
 {
     // TODO use unpivoted pos or calculate pos back to unpivoted here
     // collider of e1 after moving
-    SDL_Rect a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
-                  (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
-                  e1.collider.w, e1.collider.h,} ;
+    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
+                (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
+                e1.collider.w, e1.collider.h};
 
     // collider of tile
-    SDL_Rect b = {(i32) t1.position.x + t1.collider.x,
-                  (i32) t1.position.y + t1.collider.y,
-                  t1.collider.w, t1.collider.h,} ;
+    rect_t b = {(i32) t1.position.x + t1.collider.x,
+                (i32) t1.position.y + t1.collider.y,
+                t1.collider.w, t1.collider.h};
 
 
-    bool collided = Collision::AABB(a, b);
+    b32 collided = Collision::AABB(a, b);
     if (collided)
     {
         e1.movement = {0,0,0};
@@ -75,20 +62,20 @@ bool Collision::checkCollisionWithTiles(Entity& e1, Tile& t1)
     return collided;
 }
 
-bool Collision::checkCollision(Entity& e1, Entity& e2)
+b32 Collision::checkCollision(Entity& e1, Entity& e2)
 {
     // TODO use unpivoted pos or calculate pos back to unpivoted here
     // collider of e1 after moving
-    SDL_Rect a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
-                  (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
-                  e1.collider.w, e1.collider.h,} ;
+    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
+                (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
+                e1.collider.w, e1.collider.h};
 
     // collider of e2 currently
-    SDL_Rect b = {(i32) e2.position.x + e2.collider.x,
-                  (i32) e2.position.y + e2.collider.y,
-                  e2.collider.w, e2.collider.h,} ;
+    rect_t b = {(i32) e2.position.x + e2.collider.x,
+                (i32) e2.position.y + e2.collider.y,
+                e2.collider.w, e2.collider.h};
 
-    bool collided = Collision::AABB(a, b);
+    b32 collided = Collision::AABB(a, b);
     if (collided)
     {
         e1.movement = {0,0,0};

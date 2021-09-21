@@ -79,7 +79,18 @@ typedef int64_t  b64;
 typedef float    f32;
 typedef double   f64;
 
-// TODO vector types
+// vector types
+// TODO overload operators +-*/
+union v2u
+{
+    struct { u32 x; u32 y; };
+    u32 v[2];
+};
+union v3u
+{
+    struct { u32 x; u32 y; u32 z; };
+    u32 v[3];
+};
 union v2i
 {
     struct { i32 x; i32 y; };
@@ -147,5 +158,4 @@ struct color_t
 #endif
 
 // ERRORS //////////////////////////////////////////////////////////////////////////////////////////
-#define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 #define MIX_ERROR(x) if (!x) { printf("MIX ERROR: %s\n", Mix_GetError()); }
