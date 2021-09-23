@@ -1,4 +1,9 @@
 build/
+build_linux/
+build_web/
+build_win32/
 bin/
 .cache/
+.dir-local
+imgui.ini
 compile_commands.json

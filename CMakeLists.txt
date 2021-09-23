@@ -7,7 +7,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_BUILD_TYPE DEBUG)
-add_compile_definitions(IMGUI)
 add_compile_definitions(ENABLE_ASSERTS)
 
 # Check if a flag exists and add it to the list of compiler (so, not linker) options
@@ -44,13 +43,13 @@ set(SDL2_INCLUDE_DIRS "/usr/include/SDL2")
 include_directories(${SDL2_INCLUDE_DIRS})
 
 #find_package(Box2D REQUIRED)
-
-# glm
+# glm (header only)
 # include_directories("dep/glm/")
 
 # imgui
+add_compile_definitions(IMGUI)
 include_directories("dep/imgui-1.82/")
-file(GLOB imgui_src "dep/imgui-1.82/imgui*.cpp")
+#file(GLOB imgui_src "dep/imgui-1.82/imgui*.cpp")
 
 # tmxlite
 include_directories("dep/")
@@ -60,15 +59,26 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 include_directories("src/")
 file(GLOB src_files "src/*.cpp")
 
+FIND_FILE(IMGUI_LIB imgui.so "${CMAKE_CURRENT_SOURCE_DIR}/dep/imgui.so")
+
 add_executable(megastruct ${src_files} ${imgui_src})
+
+# try out a unity build
+# TODO we get a segfault on exit (from SDL_Quit()) when not using a unity build...
+set(CMAKE_UNITY_BUILD true)
+set_target_properties(megastruct PROPERTIES UNITY_BUILD_MODE GROUP)
+set_source_files_properties(${src_files} PROPERTIES UNITY_GROUP "bucket1")
+
 target_precompile_headers(megastruct PRIVATE "pch.h")
 target_link_libraries(megastruct
                       ${SDL2_LIBRARIES}
                       SDL2main
                       SDL2
                       SDL2_image
-                      SDL2_mixer
+                      #SDL2_mixer
                       SDL2_ttf
                       pthread
-                      "${CMAKE_CURRENT_SOURCE_DIR}/dep/libtmxlite.a"
+                      dl
+                      "${CMAKE_CURRENT_SOURCE_DIR}/dep/libtmxlite.so"
+                      "${CMAKE_CURRENT_SOURCE_DIR}/dep/libimgui_sdl.so"
                       )

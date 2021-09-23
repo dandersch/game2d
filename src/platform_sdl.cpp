@@ -1,4 +1,5 @@
-#if defined(PLATFORM_SDL) || defined(__EMSCRIPTEN__)
+// TODO use PLATFORM_SDL
+#if defined(__gnu_linux__) || defined(__EMSCRIPTEN__)
 #include "pch.h"
 #include "platform.h"
 #include "input.h"

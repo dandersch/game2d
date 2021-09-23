@@ -16,7 +16,15 @@
 - [X] segfault when going fullscreen
 - [X] clickable entities
 - [X] Tiles should prob. not be entites and have their own array instead
-- [ ] platform layer w/ strict separation
+- [X] platform layer w/ strict separation
+
+- [ ] try setting up a unity build
+- [ ] use stb-style header files for everything
+- [ ] implement platform_win32.cpp
+- [ ] set up a renderer api & start using openGL
+- [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
+- [ ] set up hotloading
+
 - [ ] animation system
 - [ ] timer utility
 - [ ] use interpolation for movement

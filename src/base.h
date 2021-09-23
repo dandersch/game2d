@@ -1,14 +1,9 @@
 #pragma once
 
-// include <stdbool.h> // true = 1
-
-// #define internal static
-// #define local    static
-// #define global   static // only true with 1 translation unit
-
 // PLATFORM DETECTION /////////////////////////////////////////////////////////////////////////////
 // see https://sourceforge.net/p/predef/wiki/Home/ for more pre-defined macros
 // that can help detect os/compiler/arch/etc.
+
 // OS detection
 #ifdef _WIN32
     #define PLATFORM_WIN32
@@ -36,13 +31,13 @@
 #ifdef __GNUC__
     #define COMPILER_GCC
 
-    // clang also defines __GNUC__ since it implements the gcc extensions
+    // NOTE clang also defines __GNUC__ since it implements the gcc extensions
     #ifdef __clang__
         #define COMPILER_CLANG
         #undef COMPILER_GCC
     #endif
 
-    // mingw also defines __GNUC__
+    // NOTE mingw also defines __GNUC__
     #ifdef __MINGW32__
         #define COMPILER_MINGW
         #undef COMPILER_GCC
@@ -59,6 +54,34 @@
 #else
     #define ARCH_X86 // TODO untested
 #endif
+
+// export declarations for .dll/.so
+#ifdef COMPILER_GCC
+    // NOTE GCC exports every symbol to the ELF by default (so no keyword would be needed), unless
+    // -fvisibility=hidden is specified, then below keyword is needed for exporting
+    #define EXPORT __attribute__((visibility("default")))
+#endif
+#ifdef COMPILER_MSVC
+    #define EXPORT __declspec(dllexport)
+#endif
+// NOTE apparently you can use both __attribute__() & __declspec() on mingw
+#ifdef COMPILER_MINGW
+    #define EXPORT __declspec(dllexport)
+#endif
+
+// define c calling convention macro
+#ifdef COMPILER_MSVC
+    #define CDECL  __cdecl
+#endif
+#ifdef COMPILER_GCC
+    //#define CDECL __attribute__((__cdecl__)) // NOTE this define can cause warnings
+    #define CDECL
+#endif
+#ifdef COMPILER_MINGW
+    // NOTE mingw doesn't seem to care if this is defined or not
+    #define CDECL  __cdecl
+#endif
+
 
 // TYPEDEFS ////////////////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
@@ -84,6 +107,13 @@ typedef int64_t  b64;
 
 typedef float    f32;
 typedef double   f64;
+
+// TODO "override" some keywords
+// #define internal static
+#define local    static
+// #define global   static // NOTE only true with 1 translation unit
+
+// TODO numeric limits, i.e. U32_MAX, I32_MIN, F32_MAX etc.
 
 // vector types
 // TODO overload operators +-*/
@@ -118,6 +148,8 @@ union v3f
     f32 v[3];
 };
 
+// TODO common operations on vectors
+
 // some other useful types
 struct rect_t
 {
@@ -129,15 +161,16 @@ struct point_t
     i32 x;
     i32 y;
 };
-struct color_t
+struct color_t // NOTE maybe add a 24bit version
 {
     u8 r; u8 g; u8 b; u8 a;
 };
 
+
 // ASSERTIONS //////////////////////////////////////////////////////////////////////////////////////
-#include <signal.h> // for debug breaking
 #ifdef ENABLE_ASSERTS
-    #define REPORT_ASSERT(expr, file, line)                                        \
+#include <signal.h> // for debug breaking
+    #define REPORT_ASSERT_(expr, file, line)                                        \
         printf("Assert failed for '%s' in file '%s' at line '%d'\n", expr, file, line)
 
     // TODO make platform indepent
@@ -145,8 +178,7 @@ struct color_t
         #define DEBUG_BREAK() DebugBreak()
     #else
         #ifdef COMPILER_MINGW
-            // TODO mingw doesn't have SIGTRAP
-            #define DEBUG_BREAK() raise(SIGABRT)
+            #define DEBUG_BREAK() raise(SIGABRT) // NOTE mingw doesn't define SIGTRAP (?)
         #else
             #define DEBUG_BREAK() raise(SIGTRAP)
         #endif
@@ -156,12 +188,9 @@ struct color_t
         if (expr) { }                                           \
         else                                                    \
         {                                                       \
-            REPORT_ASSERT(#expr, __FILE__, __LINE__);           \
+            REPORT_ASSERT_(#expr, __FILE__, __LINE__);          \
             DEBUG_BREAK();                                      \
         }
 #else
     #define ASSERT(expr)
 #endif
-
-// ERRORS //////////////////////////////////////////////////////////////////////////////////////////
-#define MIX_ERROR(x) if (!x) { printf("MIX ERROR: %s\n", Mix_GetError()); }

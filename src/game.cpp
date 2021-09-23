@@ -26,7 +26,7 @@ enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 int game_main()
 {
     // WINDOW SETUP ///////////////////////////////////////////////////////////////
-    globals.window = platform_window_open("Hello Game", SCREEN_WIDTH, SCREEN_HEIGHT);
+    globals.window = platform_window_open("hello Game", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // init layers
     layer_game_init();

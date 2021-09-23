@@ -1,4 +1,6 @@
 /*
+#define MIX_ERROR(x) if (!x) { printf("MIX ERROR: %s\n", Mix_GetError()); }
+
 #pragma once
 
 #include "pch.h"
