@@ -8,6 +8,8 @@
 #include "globals.h"
 #include "platform.h"
 
+#include "memory.h"
+
 b32 render_imgui = false;
 
 // TIMESTEP constants
@@ -16,47 +18,50 @@ b32 render_imgui = false;
 #define UPDATE_INTERVAL (1.0 / MAXIMUM_FRAME_RATE)
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
-void main_loop();
-
 enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 // TODO maybe use a bool array for keeping track of in-/active layers, i.e.
 // bool[LAYER_COUNT] = {false};
 
-// TODO move entry point into platform code and call game_main (i.e. this main) from there
-int game_main()
+game_state_t* state = nullptr;
+
+// TODO doesn't get called anymore
+extern "C" void game_state_update(game_state_t* game_state)
 {
-    // WINDOW SETUP ///////////////////////////////////////////////////////////////
-    globals.window = platform_window_open("hello Game", SCREEN_WIDTH, SCREEN_HEIGHT);
+    state    = game_state;
+    platform = state->platform; // TODO maybe just use state.platform...
+}
+
+extern "C" b32 game_init(game_state_t* game_state)
+{
+    state = game_state;
+
+    // window setup
+    //globals.window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
+    state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // init layers
-    layer_game_init();
+    layer_game_init();      // TODO level load
     layer_menu_init();
     layer_imgui_init();
 
-    // main loop ///////////////////////////////////////////////////////////////
-    globals.game_running   = true;
-
-#if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(main_loop, -1, 1);
-#else
-    while (globals.game_running)
-        main_loop();
-#endif
-
-    // CLEANUP /////////////////////////////////////////////////////////////////
-    layer_imgui_destroy();
-    platform_window_close(globals.window);
-    platform_quit();
-
-    return 0;
+    return true; // TODO error handling
 }
 
-void main_loop()
+extern "C" b32 game_quit()
+{
+    // CLEANUP /////////////////////////////////////////////////////////////////
+    layer_imgui_destroy();
+    platform.window_close(state->window);
+    platform.quit();
+    return true;
+}
+
+extern "C" void game_main_loop()
 {
     // TIMESTEP ////////////////////////////////////////////////////////////
-    f32 curr_time = platform_ticks() / 1000.f;
-    f32 update_iterations = ((curr_time - globals.last_frame_time) + globals.cycles_left_over);
-    globals.dt = UPDATE_INTERVAL;
+    f32 curr_time = platform.ticks() / 1000.f;
+    f32 update_iterations = ((curr_time - state->last_frame_time) + state->cycles_left_over);
+    state->dt = UPDATE_INTERVAL;
 
     if (update_iterations > (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL)) {
         update_iterations = (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL);
@@ -66,22 +71,22 @@ void main_loop()
         update_iterations -= UPDATE_INTERVAL;
 
         // EVENT HANDLING //////////////////////////////////////////////////
-        platform_event_loop(&globals.game_input);
+        platform.event_loop(&state->game_input);
 
-        if (globals.game_input.quit_requested) globals.game_running = false;
+        // if (globals.game_input.quit_requested) globals.game_running = false;
 
         // toggle testmenu TODO hardcoded
-        if (input_pressed(globals.game_input.keyboard.keys['\e']))
-            g_layer_menu_is_active = !g_layer_menu_is_active;
+        if (input_pressed(state->game_input.keyboard.keys['\e']))
+            state->g_layer_menu_is_active = !state->g_layer_menu_is_active;
 
-        if (input_pressed(globals.game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
+        if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
         {
             printf("LMB pressed at: ");
-            printf("%i ", globals.game_input.mouse.pos.x);
-            printf("%i\n", globals.game_input.mouse.pos.y);
+            printf("%i ", state->game_input.mouse.pos.x);
+            printf("%i\n", state->game_input.mouse.pos.y);
         }
 
-        if (globals.game_input.keyboard.f_key_pressed[1])
+        if (state->game_input.keyboard.f_key_pressed[1])
         {
             printf("f1 pressed\n");
             render_imgui = !render_imgui;
@@ -100,7 +105,7 @@ void main_loop()
 
                 case LAYER_MENU:
                 {
-                    if (g_layer_menu_is_active) {
+                    if (state->g_layer_menu_is_active) {
                         // if (evn.handled) layer = 0;
                         layer_menu_handle_event();
                         layer = 0; // to break out of loop
@@ -109,7 +114,7 @@ void main_loop()
 
                 case LAYER_IMGUI:
                 {
-                    layer_imgui_handle_event(&globals.game_input);
+                    layer_imgui_handle_event(&state->game_input);
                 } break;
 
             }
@@ -119,22 +124,22 @@ void main_loop()
         for (int layer = LAYER_COUNT; layer >= 0; layer--)
         {
             // TODO hardcoded, implements 'pause' functionality
-            if (g_layer_menu_is_active) break;
+            if (state->g_layer_menu_is_active) break;
             switch (layer)
             {
                 case LAYER_GAME:
                 {
-                    layer_game_update(globals.dt);
+                    layer_game_update(state->dt);
                 } break;
             }
         }
     }
 
-    globals.cycles_left_over = update_iterations;
-    globals.last_frame_time  = curr_time;
+    state->cycles_left_over = update_iterations;
+    state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////
-    platform_render_clear(globals.window);
+    platform.render_clear(state->window);
 
     for (int layer = 0; layer < LAYER_COUNT; layer++)
     {
@@ -147,7 +152,7 @@ void main_loop()
 
             case LAYER_MENU:
             {
-                if (!g_layer_menu_is_active) break;
+                if (!state->g_layer_menu_is_active) break;
                 layer_menu_render();
             } break;
         }
@@ -170,5 +175,5 @@ void main_loop()
         layer_imgui_end();
     }
 #endif
-    platform_render_present(globals.window);
+    platform.render_present(state->window);
 }

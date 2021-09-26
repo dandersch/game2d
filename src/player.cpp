@@ -9,6 +9,9 @@
 
 static const f32 playerSpeed = 150.f;
 
+#include "memory.h"
+extern game_state_t* state;
+
 v3f getDirectionFrom(u32 orient)
 {
     v3f dir = {0,0,0};
@@ -41,7 +44,7 @@ void player_update(f32 dt, Entity &ent)
     v3f movement = {0,0,0};
 
     // use inputhandler
-    u32 input = Input::actionState;
+    u32 input = state->actionState;
     if (input & ACTION_MOVE_UP)    movement = { 0,-1 * playerSpeed * dt, 0};
     if (input & ACTION_MOVE_LEFT)  movement = {-1 * playerSpeed * dt, 0, 0};
     if (input & ACTION_MOVE_DOWN)  movement = { 0, 1 * playerSpeed * dt, 0};

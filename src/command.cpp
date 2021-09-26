@@ -3,22 +3,24 @@
 
 #define MAX_CMD_COUNT 10000
 
-u32 CommandProcessor::cmdIdx = 0;
+//u32 CommandProcessor::cmdIdx = 0;
+#include "memory.h"
+extern game_state_t* state;
 
 // TODO use move semantics?
 void CommandProcessor::record(Entity& ent, Command cmd)
 {
     ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
 
-    ent.cmds[cmdIdx] = cmd;
-    execute(ent, ent.cmds[cmdIdx]);
+    ent.cmds[state->cmdIdx] = cmd;
+    execute(ent, ent.cmds[state->cmdIdx]);
 }
 
 void CommandProcessor::replay(Entity& ent)
 {
     ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
 
-    execute(ent, ent.cmds[cmdIdx]);
+    execute(ent, ent.cmds[state->cmdIdx]);
 }
 
 // TODO use move semantics?
@@ -50,5 +52,5 @@ void CommandProcessor::initialize(Entity& ent)
 
 void CommandProcessor::onEndUpdate()
 {
-    cmdIdx++;
+    state->cmdIdx++;
 }

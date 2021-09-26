@@ -2,10 +2,12 @@
 
 #include "tile.h"
 
-static u32 temp_count = 0;
-static Entity ents[MAX_ENTITIES] = {0}; // TODO replace with a malloc at startup
-static Tile   tiles[MAX_TILES]   = {0}; // TODO replace with a malloc at startup
-static u32 tile_count = 0;
+//static u32 temp_count = 0;
+//static Entity ents[MAX_ENTITIES] = {0}; // TODO replace with a malloc at startup
+//static Tile   tiles[MAX_TILES]   = {0}; // TODO replace with a malloc at startup
+//static u32 tile_count = 0;
+#include "memory.h"
+extern game_state_t* state;
 
 // std::vector<Entity*> toDestroy;
 
@@ -14,13 +16,13 @@ bool EntityMgr::copyEntity(const Entity ent)
 {
     for (u32 i = 0; i < MAX_ENTITIES_WO_TEMP; i++)
     {
-        if (ents[i].freed)
+        if (state->ents[i].freed)
         {
-            ents[i] = ent;
+            state->ents[i] = ent;
             if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
             {
                 // TODO should be done elsewhere
-                ents[i].anim.current_clip = &ents[i].clips[0];
+                state->ents[i].anim.current_clip = &state->ents[i].clips[0];
             }
             return true;
         }
@@ -32,38 +34,38 @@ bool EntityMgr::copyEntity(const Entity ent)
 #include <cstring>
 void EntityMgr::freeTemporaryStorage()
 {
-    memset(&ents[MAX_ENTITIES_WO_TEMP],
+    memset(&state->ents[MAX_ENTITIES_WO_TEMP],
            0, MAX_ENTITIES - MAX_ENTITIES_WO_TEMP);
-    temp_count = 0;
+    state->temp_count = 0;
 }
 
 u32 EntityMgr::getTileCount()
 {
-    return tile_count;
+    return state->tile_count;
 }
 
 Tile* EntityMgr::getTiles()
 {
-    return tiles;
+    return state->tiles;
 }
 
 bool EntityMgr::createTile(const Tile tile)
 {
     ASSERT(tile_count < MAX_TILES);
 
-    tiles[tile_count++] = tile;
+    state->tiles[state->tile_count++] = tile;
     return true;
 }
 
 bool EntityMgr::copyTempEntity(const Entity ent)
 {
     ASSERT(temp_count < 100);
-    ents[MAX_ENTITIES_WO_TEMP + temp_count] = ent;
-    temp_count++;
+    state->ents[MAX_ENTITIES_WO_TEMP + state->temp_count] = ent;
+    state->temp_count++;
     return true; // TODO
 }
 
 Entity* EntityMgr::getArray()
 {
-    return &ents[0];
+    return &state->ents[0];
 }

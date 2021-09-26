@@ -7,6 +7,9 @@
 static const u32 FPS       = 60;  // TODO support variable fps
 static const u32 TOLERANCE = 100;
 
+#include "memory.h"
+extern game_state_t* state;
+
 void Rewind::initializeFrames(Entity& e)
 {
     const u32 FRAMECOUNT = Reset::TIME_FOR_LOOP * FPS + TOLERANCE;
@@ -16,7 +19,7 @@ void Rewind::initializeFrames(Entity& e)
 
 void Rewind::update(f32 dt, Entity& e)
 {
-    if (Reset::isRewinding)
+    if (state->isRewinding)
         rewind(dt, e);
     else
         record(dt, e);
@@ -35,7 +38,7 @@ u32 Rewind::TimeToIndex(f32 dt)
 {
     u32 index = 0;
     // translate looptime into index in array
-    index = (u32) std::round(Reset::loopTime / dt); // TODO fixed delta time
+    index = (u32) std::round(state->loopTime / dt); // TODO fixed delta time
     return index;
 }
 

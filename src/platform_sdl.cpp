@@ -1,5 +1,5 @@
 // TODO use PLATFORM_SDL
-#if defined(__gnu_linux__) || defined(__EMSCRIPTEN__)
+#if defined(PLATFORM_SDL) || defined(__EMSCRIPTEN__)
 #include "pch.h"
 #include "platform.h"
 #include "input.h"
@@ -25,6 +25,9 @@
 #include <SDL_keycode.h>
 #include <SDL_video.h>
 #include <SDL_timer.h>
+#include <SDL_loadso.h>
+
+#include "platform_levelgen.cpp"
 
 struct platform_window_t
 {
@@ -36,12 +39,167 @@ struct platform_window_t
 
 #include "entity.h" // needed for sprite struct, TODO remove
 
-extern int game_main();
+#include "memory.h"
+game_state_t game_state = {};
+
+// game functions
+//extern "C" void game_main_loop();
+//extern "C" b32  game_init();
+//extern "C" void game_platform_api_update(platform_api_t platform_api);
+//extern "C" b32  game_quit();
+typedef void (*game_main_loop_fn)();
+typedef b32  (*game_init_fn)(game_state_t*);
+typedef void (*game_state_update_fn)(game_state_t*);
+typedef b32  (*game_quit_fn)();
+struct game_api_t
+{
+    game_state_update_fn   state_update;
+    game_init_fn           init;
+    game_main_loop_fn      main_loop;
+    game_quit_fn           quit;
+};
+static game_api_t game;
+
+static b32 game_running = true;
+void platform_quit();
+b32 platform_reload_code();
+extern platform_api_t platform_api;
+static void* dll_handle = nullptr;
+
+extern platform_window_t* platform_window_open(const char*, u32, u32);
 
 // entry point
 int main(int argc, char* args[])
 {
-    game_main();
+    //platform_init();
+
+    // NOTE eventually we should malloc the game memory, but then we would have
+    // to write out all init values here or use C++'s new keyword (so that the
+    // default values written in the struct definitions are used)
+    //game_state = (game_state_t*) malloc(sizeof(game_state_t));
+    //memset(game_state, 0, sizeof(game_state_t));
+
+    platform_reload_code();
+    game_state.platform = platform_api;
+    game.state_update(&game_state);
+
+    game.init(&game_state);
+
+    game_running = true;
+
+#if defined(PLATFORM_WEB)
+    emscripten_set_main_loop(game_main_loop, -1, 1); // NOTE no code reloading
+#else
+    while (game_running)
+    {
+       game.state_update(&game_state);
+       game.main_loop();
+
+       static u32 counter = 0;
+       if (counter > 500)
+       {
+           counter = 0;
+           printf("Attempting code reload\n");
+           b32 reload_success = platform_reload_code();
+           if (!reload_success) { printf("game_main not found\n"); }
+       } else {
+           counter++;
+       }
+    }
+#endif
+
+    game.quit();
+    platform_quit();
+}
+
+#include <dlfcn.h> // for opening shared objects (needs to be linked with -ldl)
+#include <unistd.h>
+b32 platform_reload_code()
+{
+    const char* error = dlerror();
+    if (error) printf("%s\n", error);
+    // signal to game that it's a hotloaded dll
+    if (dll_handle) platform_api.code_reload = true;
+    else  platform_api.code_reload = false; // TODO workaround to not skip inits()
+
+    // TODO check if dll/so changed on disk
+
+    // unload old dll
+    // SDL_UnloadObject(void *handle);
+    if (dll_handle)
+    {
+        game.state_update = nullptr;
+        game.main_loop    = nullptr;
+        game.init         = nullptr;
+        game.quit         = nullptr;
+
+        // TODO maybe also close tmxlite
+        // void* tmxlite_handle = dlopen("libtmxlite.so", RTLD_LOCAL | RTLD_NOW | RTLD_NOLOAD);
+        // if (dlclose(tmxlite_handle) != 0)
+        //     printf("FAILED TO CLOSE TMXLITE\n");
+
+        printf("TEST\n");
+        if (dlclose(dll_handle) != 0)
+        {
+            printf("FAILED TO CLOSE DLL\n");
+        }
+        dll_handle = nullptr;
+
+        //SDL_UnloadObject(dll_handle);
+    }
+
+    // sleep(1); // NOTE necessary to avoid crash
+
+    // TODO this seems to always load the old dll.
+    //
+    // See https://nullprogram.com/blog/2014/12/23/
+    // "It’s critically important that dlclose() happens before dlopen(). On my
+    // system, dlopen() looks only at the string it’s given, not the file behind
+    // it. Even though the file has been replaced on the filesystem, dlopen()
+    // will see that the string matches a library already opened and return a
+    // pointer to the old library. (Is this a bug?)"
+    //dll_handle = SDL_LoadObject("libgame.so"); // NOTE platform dependent names
+
+    // TODO try opening until it works
+    while (dll_handle == nullptr)
+    {
+        dll_handle = dlopen("libgame.so", RTLD_NOW);
+        if (dll_handle == nullptr)
+        {
+            printf("OPENING LIBGAME.SO FAILED.\n");
+            printf("TRYING AGAIN.\n");
+        }
+    }
+
+    if (dll_handle == nullptr)
+    {
+        printf("OPENING LIBGAME.SO FAILED\n");
+        return false; // bail out and keep using old dll
+    }
+
+    const char* error2 = dlerror();
+    if (error2) printf("%s\n", error2);
+
+    // TODO pass memory to new dll
+    // ...
+
+    // SDL_LoadFunction(void *handle, const char *name);
+    // NOTE game_main needs to be marked extern "C"
+    //int (*game_main)(platform_api_t);
+    //game_main = (int (*)(platform_api_t)) SDL_LoadFunction(dll_handle, "game_main");
+    //game_main_loop = (int (*)(platform_api_t)) dlsym(dll_handle, "game_main");
+    game.state_update = (game_state_update_fn) dlsym(dll_handle, "game_state_update");
+    game.main_loop    = (game_main_loop_fn) dlsym(dll_handle, "game_main_loop");
+    game.init         = (game_init_fn) dlsym(dll_handle, "game_init");
+    game.quit         = (game_quit_fn) dlsym(dll_handle, "game_quit");
+
+    if (!game.main_loop)
+    {
+        printf("FINDING GAME_MAIN FAILED\n");
+        return false;
+    }
+
+    return true;
 }
 
 platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)
@@ -158,10 +316,13 @@ void platform_event_loop(game_input_t* input)
                         input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
                 } break;
 
-                case SDL_QUIT: { input->quit_requested = true; } break;
+                case SDL_QUIT: { /*input->quit_requested = true;*/ game_running = false; } break;
                 case SDL_WINDOWEVENT: {
                     if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
-                        input->quit_requested = true;
+                    {
+                        //input->quit_requested = true;
+                        game_running = false;
+                    }
                 } break;
         }
     }
@@ -351,3 +512,36 @@ void platform_imgui_end()
 #endif
 }
 #endif // PLATFORM_SDL
+
+platform_api_t platform_api =
+{
+  false,
+  &platform_level_load,
+  &platform_reload_code,
+  &platform_window_open,
+  &platform_window_close,
+  &platform_event_loop,
+  &platform_ticks,
+  &platform_quit,
+  &platform_render_sprite,
+  &platform_render_texture,
+  &platform_render_clear,
+  &platform_render_present,
+  &platform_render_set_draw_color,
+  &platform_texture_create_from_surface,
+  &platform_texture_load,
+  &platform_texture_query,
+  &platform_texture_set_blend_mode,
+  &platform_texture_set_alpha_mod,
+  &platform_surface_destroy,
+  &platform_font_init,
+  &platform_font_load,
+  &platform_text_render,
+  &platform_debug_draw,
+  &platform_debug_draw_rect,
+  &platform_imgui_init,
+  &platform_imgui_destroy,
+  &platform_imgui_event_handle,
+  &platform_imgui_begin,
+  &platform_imgui_end
+};

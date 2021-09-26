@@ -16,7 +16,7 @@ enum Action
 
 namespace Input
 {
-    extern u32 actionState;
+    //extern u32 actionState;
     //b8 actionState[ACTION_COUNT] = {0};
     void update();
 

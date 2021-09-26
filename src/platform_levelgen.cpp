@@ -1,5 +1,3 @@
-#include "levelgen.h"
-
 #include "gamelayer.h"
 #include "entity.h"
 #include "resourcemgr.h"
@@ -12,7 +10,19 @@
 #include "tmxlite/TileLayer.hpp"
 #include "tmxlite/Tileset.hpp"
 
-bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
+typedef void* (*resourcemgr_texture_load_fn)(const char*, game_state_t*);
+typedef void* (*resourcemgr_font_load_fn)(const char*, game_state_t*, i32);
+typedef bool (*copyEntity_fn)(const Entity);
+typedef bool (*createTile_fn)(const Tile tile);
+typedef void (*initializeFrames_fn)(Entity& e);
+typedef void (*initialize_fn)(Entity& ent);
+
+b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
+                        game_state_t* game_state, resourcemgr_texture_load_fn texture_load,
+                        resourcemgr_font_load_fn font_load,
+                        copyEntity_fn copyEntity, createTile_fn createTile,
+                        initializeFrames_fn Rewind_initializeFrames,
+                        initialize_fn CommandProcessor_initialize)
 {
     tmx::Map map;
     if (!map.load(file)) { printf("map didnt load"); return false; }
@@ -102,7 +112,7 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     newEnt.setPivPos( {o.getPosition().x,
                                        o.getPosition().y - 24, 0});
                     // TODO platform code (?)
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
+                    newEnt.sprite.tex   = texture_load(ts->getImagePath().c_str(), game_state);
                     newEnt.renderLayer  = 1;
                     newEnt.orient       = ORIENT_DOWN;
                     const auto& aabb    = o.getAABB();
@@ -112,8 +122,8 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     //newEnt.flags       |= (u32) EntityFlag::PLAYER_CONTROLLED;
                     newEnt.flags       |= (u32) EntityFlag::CMD_CONTROLLED;
                     newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
-                    Rewind::initializeFrames(newEnt);
-                    CommandProcessor::initialize(newEnt);
+                    Rewind_initializeFrames(newEnt);
+                    CommandProcessor_initialize(newEnt);
 
                 } else if (type == "Item") {
                     newEnt.sprite.box   = spritebox;
@@ -121,18 +131,18 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                     // TODO why -24
                     newEnt.setPivPos( {o.getPosition().x,
                                        o.getPosition().y - 24, 0});
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
+                    newEnt.sprite.tex   = texture_load(ts->getImagePath().c_str(), game_state);
                     const auto& aabb    = o.getAABB();
                     newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
                                            (i32) aabb.width, (i32) aabb.height};
                     newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
                     newEnt.flags       |= (u32) EntityFlag::IS_ITEM;
                     newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
-                    Rewind::initializeFrames(newEnt);
+                    Rewind_initializeFrames(newEnt);
                 }
 
                 // copy new entity into array TODO slow
-                EntityMgr::copyEntity(newEnt);
+                copyEntity(newEnt);
             } // object loop
         } // objectlayer
 
@@ -178,11 +188,11 @@ bool levelgen_load_level(const std::string& file, Entity* ents, u32 max_ents)
                 newTile.renderLayer  = layercount;
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
-                newTile.sprite.tex   = resourcemgr_texture_load(ts->getImagePath().c_str());
+                newTile.sprite.tex   = texture_load(ts->getImagePath().c_str(), game_state);
                 newTile.setPivPos({x * 16.f, y * 16.f, 0});
 
                 // copy new tile into array TODO slow
-                EntityMgr::createTile(newTile);
+                createTile(newTile);
                 tilecount++;
             } // tile loop
         } // tilelayer

@@ -194,3 +194,5 @@ struct color_t // NOTE maybe add a 24bit version
 #else
     #define ASSERT(expr)
 #endif
+
+// TODO UNREACHABLE macro
