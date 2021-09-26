@@ -1,14 +1,18 @@
-#include "pch.h"
+#include "game.h"
 
-#include "entity.h"
-#include "player.h"
-#include "imguilayer.h"
-#include "gamelayer.h"
-#include "menulayer.h"
-#include "globals.h"
-#include "platform.h"
-
-#include "memory.h"
+// UNITY BUILD
+#include "camera.cpp"
+#include "collision.cpp"
+#include "command.cpp"
+#include "entitymgr.cpp"
+#include "gamelayer.cpp"
+#include "globals.cpp"
+#include "input.cpp"
+#include "menulayer.cpp"
+#include "player.cpp"
+#include "reset.cpp"
+#include "resourcemgr.cpp"
+#include "rewind.cpp"
 
 b32 render_imgui = false;
 

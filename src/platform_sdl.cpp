@@ -27,6 +27,7 @@
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
+// UNITY BUILD
 #include "platform_levelgen.cpp"
 
 struct platform_window_t
@@ -39,7 +40,7 @@ struct platform_window_t
 
 #include "entity.h" // needed for sprite struct, TODO remove
 
-#include "memory.h"
+#include "memory.h" // TODO avoid including this
 game_state_t game_state = {};
 
 // game functions
