@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 #include "entity.h"
 
 enum class TileType

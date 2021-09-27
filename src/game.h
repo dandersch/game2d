@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include "base.h"
 #include "globals.h"
 #include "utils.h"

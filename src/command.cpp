@@ -3,7 +3,6 @@
 
 #define MAX_CMD_COUNT 10000
 
-//u32 CommandProcessor::cmdIdx = 0;
 #include "memory.h"
 extern game_state_t* state;
 

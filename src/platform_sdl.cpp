@@ -1,6 +1,5 @@
-// TODO use PLATFORM_SDL
-#if defined(PLATFORM_SDL) || defined(__EMSCRIPTEN__)
-#include "pch.h"
+#if defined(PLATFORM_SDL)
+#include "base.h"
 #include "platform.h"
 #include "input.h"
 
@@ -27,6 +26,10 @@
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
+
 // UNITY BUILD
 #include "platform_levelgen.cpp"
 
@@ -44,10 +47,6 @@ struct platform_window_t
 game_state_t game_state = {};
 
 // game functions
-//extern "C" void game_main_loop();
-//extern "C" b32  game_init();
-//extern "C" void game_platform_api_update(platform_api_t platform_api);
-//extern "C" b32  game_quit();
 typedef void (*game_main_loop_fn)();
 typedef b32  (*game_init_fn)(game_state_t*);
 typedef void (*game_state_update_fn)(game_state_t*);
@@ -61,13 +60,11 @@ struct game_api_t
 };
 static game_api_t game;
 
-static b32 game_running = true;
 void platform_quit();
 b32 platform_reload_code();
 extern platform_api_t platform_api;
 static void* dll_handle = nullptr;
-
-extern platform_window_t* platform_window_open(const char*, u32, u32);
+static b32 game_running = true;
 
 // entry point
 int main(int argc, char* args[])
@@ -114,15 +111,9 @@ int main(int argc, char* args[])
 }
 
 #include <dlfcn.h> // for opening shared objects (needs to be linked with -ldl)
-#include <unistd.h>
+// TODO try out SDL's functions for loading
 b32 platform_reload_code()
 {
-    const char* error = dlerror();
-    if (error) printf("%s\n", error);
-    // signal to game that it's a hotloaded dll
-    if (dll_handle) platform_api.code_reload = true;
-    else  platform_api.code_reload = false; // TODO workaround to not skip inits()
-
     // TODO check if dll/so changed on disk
 
     // unload old dll
@@ -134,25 +125,12 @@ b32 platform_reload_code()
         game.init         = nullptr;
         game.quit         = nullptr;
 
-        // TODO maybe also close tmxlite
-        // void* tmxlite_handle = dlopen("libtmxlite.so", RTLD_LOCAL | RTLD_NOW | RTLD_NOLOAD);
-        // if (dlclose(tmxlite_handle) != 0)
-        //     printf("FAILED TO CLOSE TMXLITE\n");
-
-        printf("TEST\n");
-        if (dlclose(dll_handle) != 0)
-        {
-            printf("FAILED TO CLOSE DLL\n");
-        }
+        if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
         dll_handle = nullptr;
 
         //SDL_UnloadObject(dll_handle);
     }
 
-    // sleep(1); // NOTE necessary to avoid crash
-
-    // TODO this seems to always load the old dll.
-    //
     // See https://nullprogram.com/blog/2014/12/23/
     // "It’s critically important that dlclose() happens before dlopen(). On my
     // system, dlopen() looks only at the string it’s given, not the file behind
@@ -161,15 +139,11 @@ b32 platform_reload_code()
     // pointer to the old library. (Is this a bug?)"
     //dll_handle = SDL_LoadObject("libgame.so"); // NOTE platform dependent names
 
-    // TODO try opening until it works
+    // NOTE try opening until it works, otherwise we need to sleep() for a moment to avoid a crash
     while (dll_handle == nullptr)
     {
         dll_handle = dlopen("libgame.so", RTLD_NOW);
-        if (dll_handle == nullptr)
-        {
-            printf("OPENING LIBGAME.SO FAILED.\n");
-            printf("TRYING AGAIN.\n");
-        }
+        if (dll_handle == nullptr) printf("OPENING LIBGAME.SO FAILED. TRYING AGAIN.\n");
     }
 
     if (dll_handle == nullptr)
@@ -178,17 +152,11 @@ b32 platform_reload_code()
         return false; // bail out and keep using old dll
     }
 
-    const char* error2 = dlerror();
-    if (error2) printf("%s\n", error2);
-
     // TODO pass memory to new dll
     // ...
 
     // SDL_LoadFunction(void *handle, const char *name);
     // NOTE game_main needs to be marked extern "C"
-    //int (*game_main)(platform_api_t);
-    //game_main = (int (*)(platform_api_t)) SDL_LoadFunction(dll_handle, "game_main");
-    //game_main_loop = (int (*)(platform_api_t)) dlsym(dll_handle, "game_main");
     game.state_update = (game_state_update_fn) dlsym(dll_handle, "game_state_update");
     game.main_loop    = (game_main_loop_fn) dlsym(dll_handle, "game_main_loop");
     game.init         = (game_init_fn) dlsym(dll_handle, "game_init");
@@ -293,6 +261,11 @@ void platform_event_loop(game_input_t* input)
                                 input->keyboard.f_key_pressed[keycode - SDLK_F1 + 1] = true;
                             }
                         }
+
+                        if (keycode == SDLK_UP)    input_event_process(&input->keyboard.key_up, is_down);
+                        if (keycode == SDLK_DOWN)  input_event_process(&input->keyboard.key_down, is_down);
+                        if (keycode == SDLK_LEFT)  input_event_process(&input->keyboard.key_left, is_down);
+                        if (keycode == SDLK_RIGHT) input_event_process(&input->keyboard.key_right, is_down);
 
                         // NOTE SDL Keycodes (SDLK_*) seem to map to ascii for a-z
                         // but other characters (e.g. winkey/f-keys) go over 128,
@@ -516,9 +489,7 @@ void platform_imgui_end()
 
 platform_api_t platform_api =
 {
-  false,
   &platform_level_load,
-  &platform_reload_code,
   &platform_window_open,
   &platform_window_close,
   &platform_event_loop,

@@ -1,5 +1,4 @@
 #pragma once
-#include "pch.h"
 
 // opaque platform structs
 struct platform_window_t;
@@ -13,6 +12,22 @@ typedef void texture_t;
 typedef void surface_t;
 typedef void font_t; // ttf
 
+struct game_state_t;
+struct game_memory_t
+{
+    game_state_t* game_state;
+
+    // DEBUG
+    // struct debug_table* DebugTable;
+    // struct debug_state* DebugState;
+
+    // platform_work_queue *HighPriorityQueue;
+    // platform_work_queue *LowPriorityQueue;
+    // struct renderer_texture_queue *TextureQueue;
+
+    // b32 ExecutableReloaded;
+    // platform_api PlatformAPI;
+};
 
 // TODO temp in platform_api to get level loading to work
 #include "tile.h"
@@ -57,9 +72,7 @@ typedef void (*platform_imgui_begin_fn)(platform_window_t*);
 typedef void (*platform_imgui_end_fn)();
 struct platform_api_t
 {
-    b32 code_reload;                                           // TODO not needed
     platform_level_load_fn                  level_load;
-    platform_reload_code_fn                 reload_code;       // TODO not needed
     platform_window_open_fn                 window_open;
     platform_window_close_fn                window_close;
     platform_event_loop_fn                  event_loop;

@@ -31,7 +31,7 @@ b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
     if (!animMap.load("res/character.tmx")) { printf("animmap didnt load"); exit(1); }
 
     const auto& tilecountXY  = map.getTileCount();
-    u32 max_tiles            = tilecountXY.x * tilecountXY.y;
+    //u32 max_tiles            = tilecountXY.x * tilecountXY.y;
     const auto& layers       = map.getLayers();
     u32 layercount           = 0;
     u32 tilecount            = 0;
@@ -52,7 +52,7 @@ b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
             for (const auto& o : objs)
             {
                 const std::string& type = o.getType();
-                const std::string& name = o.getName();
+                //const std::string& name = o.getName();
                 Entity newEnt = {0};
                 newEnt.active       = true;
                 newEnt.freed        = false;
@@ -82,11 +82,11 @@ b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
 
                     // load in animations TODO this only needs to be loaded in
                     // once & not per character
-                    u32 anim_idx = 0;
+                    //u32 anim_idx = 0;
                     for (auto anim : animMap.getAnimatedTiles())
                     {
                         std::vector<AnimationFrame> new_frames;
-                        u32 frame_count = 0;
+                        //u32 frame_count = 0;
                         for (auto frame : anim.second.animation.frames)
                         {
                             auto tileID = frame.tileID;

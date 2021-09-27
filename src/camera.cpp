@@ -1,5 +1,4 @@
 #include "camera.h"
-#include "pch.h"
 
 // TODO make camera zoom in where the cursor currently is
 // TODO zoom in only in steps that are pixel-perfect

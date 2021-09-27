@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 inline b32 point_in_rect(point_t point, rect_t rect)
 {
     return (rect.x + rect.w >= point.x &&

@@ -3,6 +3,9 @@
 #include "tile.h"
 #include "utils.h"
 
+#include <map>
+#include <functional>
+
 static std::map<u32, std::function<void(Entity* e1, Entity* e2)>> callbacks = {
 { (u32) EntityFlag::IS_ENEMY | (u32) EntityFlag::IS_TILE,
   [](Entity* e1, Entity* e2)

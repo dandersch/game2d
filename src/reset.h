@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 namespace Reset
 {
     //extern f32 loopTime;

@@ -1,5 +1,4 @@
 #pragma once
-#include "pch.h"
 
 struct game_state_t;
 void* resourcemgr_texture_load(const char* filename, game_state_t* state);

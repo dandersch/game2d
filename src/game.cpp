@@ -14,8 +14,6 @@
 #include "resourcemgr.cpp"
 #include "rewind.cpp"
 
-b32 render_imgui = false;
-
 // TIMESTEP constants
 #define MAXIMUM_FRAME_RATE 60
 #define MINIMUM_FRAME_RATE 60
@@ -28,7 +26,6 @@ enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 
 game_state_t* state = nullptr;
 
-// TODO doesn't get called anymore
 extern "C" void game_state_update(game_state_t* game_state)
 {
     state    = game_state;
@@ -38,13 +35,10 @@ extern "C" void game_state_update(game_state_t* game_state)
 extern "C" b32 game_init(game_state_t* game_state)
 {
     state = game_state;
-
-    // window setup
-    //globals.window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
     state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // init layers
-    layer_game_init();      // TODO level load
+    layer_game_init();
     layer_menu_init();
     layer_imgui_init();
 
@@ -53,7 +47,6 @@ extern "C" b32 game_init(game_state_t* game_state)
 
 extern "C" b32 game_quit()
 {
-    // CLEANUP /////////////////////////////////////////////////////////////////
     layer_imgui_destroy();
     platform.window_close(state->window);
     platform.quit();
@@ -74,7 +67,7 @@ extern "C" void game_main_loop()
     while (update_iterations > UPDATE_INTERVAL) {
         update_iterations -= UPDATE_INTERVAL;
 
-        // EVENT HANDLING //////////////////////////////////////////////////
+        // EVENT HANDLING //////////////////////////////////////////////////////////////////////////
         platform.event_loop(&state->game_input);
 
         // if (globals.game_input.quit_requested) globals.game_running = false;
@@ -83,23 +76,11 @@ extern "C" void game_main_loop()
         if (input_pressed(state->game_input.keyboard.keys['\e']))
             state->g_layer_menu_is_active = !state->g_layer_menu_is_active;
 
-        if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
-        {
-            printf("LMB pressed at: ");
-            printf("%i ", state->game_input.mouse.pos.x);
-            printf("%i\n", state->game_input.mouse.pos.y);
-        }
-
         if (state->game_input.keyboard.f_key_pressed[1])
-        {
-            printf("f1 pressed\n");
-            render_imgui = !render_imgui;
-        }
-
+            state->render_imgui = !state->render_imgui;
 
         for (int layer = LAYER_COUNT; layer >= 0; layer--)
         {
-            //if (evn.handled) break;
             switch (layer)
             {
                 case LAYER_GAME:
@@ -110,7 +91,6 @@ extern "C" void game_main_loop()
                 case LAYER_MENU:
                 {
                     if (state->g_layer_menu_is_active) {
-                        // if (evn.handled) layer = 0;
                         layer_menu_handle_event();
                         layer = 0; // to break out of loop
                     }
@@ -124,7 +104,7 @@ extern "C" void game_main_loop()
             }
         }
 
-        // UPDATE LOOP /////////////////////////////////////////////////////
+        // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
         for (int layer = LAYER_COUNT; layer >= 0; layer--)
         {
             // TODO hardcoded, implements 'pause' functionality
@@ -142,9 +122,8 @@ extern "C" void game_main_loop()
     state->cycles_left_over = update_iterations;
     state->last_frame_time  = curr_time;
 
-    // RENDERING ///////////////////////////////////////////////////////////
+    // RENDERING ///////////////////////////////////////////////////////////////////////////////////
     platform.render_clear(state->window);
-
     for (int layer = 0; layer < LAYER_COUNT; layer++)
     {
         switch (layer)
@@ -163,7 +142,7 @@ extern "C" void game_main_loop()
     }
 
 #ifdef IMGUI
-    if (render_imgui)
+    if (state->render_imgui)
     {
         layer_imgui_begin();
         for (int layer = 0; layer < LAYER_COUNT; layer++)

@@ -17,11 +17,6 @@
 
 static const int MAX_RENDER_LAYERS = 100;
 
-//static Camera cam;
-//static bool debugDraw = false;
-//static Entity* focusedEntity = nullptr;
-//static rect_t focusArrow = {64,32,16,32}; // TODO hardcoded
-
 #include "memory.h"
 extern game_state_t* state;
 
@@ -76,20 +71,17 @@ void layer_game_handle_event()
             }
         }
     }
-        // case EVENT_KEYDOWN:
-        // {
-        //     switch (evn->key.keycode)
-        //     {
-        //         case KEY_UP:    { cam.rect.y -= 5; } break;
-        //         case KEY_DOWN:  { cam.rect.y += 5; } break;
-        //         case KEY_LEFT:  { cam.rect.x -= 5; } break;
-        //         case KEY_RIGHT: { cam.rect.x += 5; } break;
-        //     }
-        // }    break;
-        // case EVENT_MOUSEWHEEL: {
-        //     //if (evn.wheel.y == -1) cam.rect.w *= 0.5f;
-        //     //if (evn.wheel.y ==  1) cam.rect.w *= 2.0f;
-        // } break;
+
+    if (input_pressed(state->game_input.keyboard.key_up))    state->cam.rect.y -= 5;
+    if (input_pressed(state->game_input.keyboard.key_down))  state->cam.rect.y += 5;
+    if (input_pressed(state->game_input.keyboard.key_left))  state->cam.rect.x -= 5;
+    if (input_pressed(state->game_input.keyboard.key_right)) state->cam.rect.x += 5;
+
+    // TODO zoom in/out on mouse scroll
+    // case EVENT_MOUSEWHEEL: {
+    //     //if (evn.wheel.y == -1) cam.rect.w *= 0.5f;
+    //     //if (evn.wheel.y ==  1) cam.rect.w *= 2.0f;
+    // } break;
 }
 
 void layer_game_update(f32 dt)
@@ -108,7 +100,7 @@ void layer_game_update(f32 dt)
     {
         auto& ent = EntityMgr::getArray()[i];
 
-        // PLAYER CONTROLLER ///////////////////////////////////////////////////
+        // PLAYER CONTROLLER ///////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
         {
             if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
@@ -117,7 +109,7 @@ void layer_game_update(f32 dt)
             }
         }
 
-        // COMMAND REPLAY //////////////////////////////////////////////////////
+        // COMMAND REPLAY //////////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
         {
             if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
@@ -126,7 +118,7 @@ void layer_game_update(f32 dt)
             }
         }
 
-        // COLLISION CHECKING //////////////////////////////////////////////////
+        // COLLISION CHECKING //////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
         {
             bool collided = false;
@@ -163,15 +155,14 @@ void layer_game_update(f32 dt)
             }
         }
 
-        // TIME REWIND /////////////////////////////////////////////////////////
+        // TIME REWIND /////////////////////////////////////////////////////////////////////////////
         if ((ent.flags & (u32) EntityFlag::IS_REWINDABLE))
         {
             Rewind::update(dt, ent);
         }
 
         // NOTE animation should probably be last after input & collision etc.
-        // TODO animation can crash if IS_ANIMATED entities don't have filled
-        // arrays..
+        // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
         if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
         {
             //ent.sprite.box = Animator::animate(dt, ent.anim);
@@ -190,7 +181,7 @@ void layer_game_render()
     Tile* tiles = EntityMgr::getTiles();
     for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
     {
-        // RENDER TILES ////////////////////////////////////////////////////////
+        // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         // TODO tilemap culling
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
@@ -214,7 +205,7 @@ void layer_game_render()
             }
         }
 
-        // RENDER ENTITIES /////////////////////////////////////////////////////
+        // RENDER ENTITIES /////////////////////////////////////////////////////////////////////////
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
             if (!ents[i].active) continue;
@@ -246,10 +237,8 @@ void layer_game_render()
     if (state->focusedEntity)
     {
         sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
-        auto pos = camera_world_to_screen(state->cam, v3f{state->focusedEntity->position});
-        platform.render_sprite(state->window, arrow_sprite,
-                               camera_world_to_screen(state->cam, state->focusedEntity->position),
-                                                      state->cam.scale, 0);
+        auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
+        platform.render_sprite(state->window, arrow_sprite, pos, state->cam.scale, 0);
     }
 
 }

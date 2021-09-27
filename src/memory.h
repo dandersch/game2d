@@ -53,26 +53,11 @@ struct game_state_t
     texture_t* greyout_tex;
     b32 g_layer_menu_is_active;
 
+    b32 render_imgui = false;
+
     // resourcemanager
     std::unordered_map<std::string, texture_t*> pool_textures{};
     std::unordered_map<std::string, font_t*> pool_fonts{};
-};
-
-// NOTE define this in the platform layer (?)
-struct game_memory_t
-{
-    game_state_t* GameState;
-
-    // DEBUG
-    // struct debug_table* DebugTable;
-    // struct debug_state* DebugState;
-
-    // platform_work_queue *HighPriorityQueue;
-    // platform_work_queue *LowPriorityQueue;
-    // struct renderer_texture_queue *TextureQueue;
-
-    // b32 ExecutableReloaded;
-    // platform_api PlatformAPI;
 };
 
 /*

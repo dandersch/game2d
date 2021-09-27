@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 enum Action
 {
     ACTION_MOVE_UP    = (1 << 0),
@@ -37,6 +35,10 @@ struct game_keyboard_input_t
     b32 shift_down, alt_down, ctrl_down;
 
     // TODO up/down/left/right keys
+    game_input_state_t key_up;
+    game_input_state_t key_down;
+    game_input_state_t key_left;
+    game_input_state_t key_right;
 
     // NOTE For debugging only
     b32 f_key_pressed[13]; // NOTE 1 is F1, etc., for clarity - 0 is not used!
@@ -100,7 +102,7 @@ struct game_input_t
 {
     f32 dt_for_frame; // TODO what is this
 
-    game_pad_input_t      pads[MAX_CONTROLLER_COUNT];
+    game_pad_input_t        pads[MAX_CONTROLLER_COUNT];
     game_keyboard_input_t   keyboard;
     game_mouse_input_t      mouse;
 

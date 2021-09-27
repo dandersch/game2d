@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include "animation.h"
 #include "rewind.h"
 #include "command.h"

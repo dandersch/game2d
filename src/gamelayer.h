@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-
 void layer_game_init();
 void layer_game_handle_event();
 void layer_game_update(f32 dt);

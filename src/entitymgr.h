@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include "entity.h"
 #include "tile.h"
 

@@ -1,4 +1,4 @@
-# bear doesn't work w/ mingw apparently
+# NOTE bear doesn't work w/ mingw apparently
 # bear \
 x86_64-w64-mingw32-g++ \
 	-static -static-libgcc -static-libstdc++ \

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include "platform.h"
 
 //extern b32 g_layer_menu_is_active;
@@ -10,6 +9,7 @@ void layer_menu_init();
 void layer_menu_handle_event();
 void layer_menu_render();
 
+#include <functional> // TODO move this into the cpp once game_state is opaque to the platform layer
 struct Button
 {
     const char* label; // TODO font to render

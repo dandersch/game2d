@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# TODO update
 
 # builds js app & start local webserver on localhost:8000
 /usr/lib/emscripten/emcc -v \
