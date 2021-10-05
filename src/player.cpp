@@ -1,7 +1,6 @@
 #include "player.h"
 
 #include "collision.h"
-#include "entitymgr.h"
 #include "entity.h"
 #include "command.h"
 #include "input.h"

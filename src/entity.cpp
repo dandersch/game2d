@@ -1,6 +1,4 @@
-#include "entitymgr.h"
-
-#include "tile.h"
+#include "entity.h"
 
 #include "memory.h"
 extern game_state_t* state;

@@ -5,8 +5,6 @@
 #include "utils.h"
 #include "memory.h"
 #include "entity.h"
-#include "tile.h"
-#include "entitymgr.h"
 #include "input.h"
 #include "camera.h"
 #include "menulayer.h"

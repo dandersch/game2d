@@ -4,7 +4,7 @@
 #include "camera.cpp"
 #include "collision.cpp"
 #include "command.cpp"
-#include "entitymgr.cpp"
+#include "entity.cpp"
 #include "gamelayer.cpp"
 #include "globals.cpp"
 #include "input.cpp"

@@ -3,9 +3,7 @@
 // TODO allocate a chunk of memory once at the start through a call to the
 // platform layer & use a memory arena for management
 
-#include "entity.h"       // for struct Entity
-#include "tile.h"         // for struct Tile
-#include "entitymgr.h"    // for MAX_ENTITIES define
+#include "entity.h"       // for struct Entity, Tile, MAX_ENTITIES
 struct platform_window_t;
 #include "input.h"        // for struct game_input_t
 #include "platform.h"     // for struct platform_api_t

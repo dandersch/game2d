@@ -30,7 +30,7 @@ struct game_memory_t
 };
 
 // TODO temp in platform_api to get level loading to work
-#include "tile.h"
+#include "entity.h"
 struct game_state_t;
 typedef void* (*resourcemgr_texture_load_fn)(const char*, game_state_t*);
 typedef void* (*resourcemgr_font_load_fn)(const char*, game_state_t*, i32);

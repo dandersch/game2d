@@ -7,7 +7,6 @@
 #include "resourcemgr.h"
 #include "rewind.h"
 #include "camera.h"
-#include "entitymgr.h"
 #include "player.h"
 #include "collision.h"
 #include "globals.h"
@@ -248,7 +247,7 @@ void layer_game_imgui_render()
 #ifdef IMGUI
     auto& ent = EntityMgr::getArray()[0];
 
-    ImGui::ShowDemoWindow();
+    //ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
     ImGui::Text("TICKS: %d", platform.ticks());
     ImGui::Text("DT: %f", state->dt);
