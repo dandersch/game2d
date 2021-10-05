@@ -240,6 +240,10 @@ void platform_event_loop(game_input_t* input)
         input->mouse.buttons[btn_idx].up_down_count = 0;
     for(int f_idx = 0; f_idx < 13; /* TODO hardcoded */ ++f_idx)
         input->keyboard.f_key_pressed[f_idx] = false;
+    input->keyboard.key_up.up_down_count = 0;
+    input->keyboard.key_down.up_down_count = 0;
+    input->keyboard.key_left.up_down_count = 0;
+    input->keyboard.key_right.up_down_count = 0;
 
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event))

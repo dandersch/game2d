@@ -72,10 +72,10 @@ void layer_game_handle_event()
         }
     }
 
-    if (input_pressed(state->game_input.keyboard.key_up))    state->cam.rect.y -= 5;
-    if (input_pressed(state->game_input.keyboard.key_down))  state->cam.rect.y += 5;
-    if (input_pressed(state->game_input.keyboard.key_left))  state->cam.rect.x -= 5;
-    if (input_pressed(state->game_input.keyboard.key_right)) state->cam.rect.x += 5;
+    if (state->game_input.keyboard.key_up.is_down)    state->cam.rect.y -= 5;
+    if (state->game_input.keyboard.key_down.is_down)  state->cam.rect.y += 5;
+    if (state->game_input.keyboard.key_left.is_down)  state->cam.rect.x -= 5;
+    if (state->game_input.keyboard.key_right.is_down) state->cam.rect.x += 5;
 
     // TODO zoom in/out on mouse scroll
     // case EVENT_MOUSEWHEEL: {
