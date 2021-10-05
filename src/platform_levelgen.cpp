@@ -1,4 +1,4 @@
-#include "gamelayer.h"
+#include "layer.h"
 #include "entity.h"
 #include "resourcemgr.h"
 #include "rewind.h"

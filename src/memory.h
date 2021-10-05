@@ -8,8 +8,21 @@ struct platform_window_t;
 #include "input.h"        // for struct game_input_t
 #include "platform.h"     // for struct platform_api_t
 #include "camera.h"       // for struct camera
-#include "menulayer.h"    // for struct Button
+//#include "menulayer.h"    // for struct Button
 #include <unordered_map>  // for hashtables
+
+#include <functional> // TODO move this out once game_state is opaque to the platform layer
+struct Button
+{
+    const char* label; // TODO font to render
+    enum State {NONE, HOVER, PRESSED, COUNT} state;
+    rect_t     box;
+    // TODO maybe use 1 tex w/ an array of rects
+    texture_t* tex[COUNT];
+    texture_t* text_texture;
+    rect_t     text_box;
+    std::function<void(void)> callback;
+};
 
 struct game_state_t
 {
