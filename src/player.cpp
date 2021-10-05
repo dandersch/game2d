@@ -2,7 +2,6 @@
 
 #include "collision.h"
 #include "entity.h"
-#include "command.h"
 #include "input.h"
 #include "platform.h"
 

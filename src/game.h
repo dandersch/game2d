@@ -15,6 +15,4 @@
 #include "menulayer.h"
 #include "collision.h"
 #include "animation.h"
-#include "command.h"
-#include "reset.h"
 #include "rewind.h"

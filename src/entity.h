@@ -2,7 +2,6 @@
 
 #include "animation.h"
 #include "rewind.h"
-#include "command.h"
 
 struct sprite_t
 {

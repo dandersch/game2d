@@ -1,7 +1,26 @@
 #pragma once
 
+#include "player.h" // for struct Command
+
 struct Entity;
 
+
+// COMMAND /////////////////////////////////////////////////////////////////////////////////////////
+namespace CommandProcessor
+{
+
+// TODO use move semantics?
+void record(Entity& ent, Command cmd);
+void replay(Entity& ent);
+void initialize(Entity& ent);
+void execute(Entity& ent, Command cmd);
+void onEndUpdate();
+
+//extern u32 cmdIdx;
+
+} // namespace CommandProcessor
+
+// REWIND //////////////////////////////////////////////////////////////////////////////////////////
 struct PointInTime
 {
     v3f pos    = {0,0,0}; // 12b
@@ -29,3 +48,14 @@ namespace Rewind
     //bool canBeDestroyed; // determines if the timebody // & its owner should be
                          // destroyed when the rewind is finished
 } // namespace Rewind
+
+// RESET ///////////////////////////////////////////////////////////////////////////////////////////
+namespace Reset
+{
+    //extern f32 loopTime;
+    //extern bool isRewinding;
+    extern const f32 rewindFactor; // can slow down/speed up rewind
+    extern const f32 TIME_FOR_LOOP;
+
+    void update(f32 dt);
+}

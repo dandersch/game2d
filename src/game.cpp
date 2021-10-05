@@ -3,14 +3,12 @@
 // UNITY BUILD
 #include "camera.cpp"
 #include "collision.cpp"
-#include "command.cpp"
 #include "entity.cpp"
 #include "gamelayer.cpp"
 #include "globals.cpp"
 #include "input.cpp"
 #include "menulayer.cpp"
 #include "player.cpp"
-#include "reset.cpp"
 #include "resourcemgr.cpp"
 #include "rewind.cpp"
 

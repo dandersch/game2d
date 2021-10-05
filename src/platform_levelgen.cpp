@@ -2,7 +2,6 @@
 #include "entity.h"
 #include "resourcemgr.h"
 #include "rewind.h"
-#include "command.h"
 
 #include "tmxlite/Map.hpp"
 #include "tmxlite/ObjectGroup.hpp"
