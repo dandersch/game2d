@@ -1,34 +1,9 @@
 #if defined(PLATFORM_SDL)
+
+// NOTE SDL headers come from pch
 #include "base.h"
 #include "platform.h"
 #include "input.h"
-
-#include <SDL.h>
-#include <SDL_hints.h>
-#include <SDL_rect.h>
-#include <SDL_events.h>
-#include <SDL_keycode.h>
-#include <SDL_mouse.h>
-#include <SDL_timer.h>
-#include <SDL_ttf.h>
-#include <SDL_surface.h>
-#include <SDL_pixels.h>
-#include <SDL_render.h>
-#include <SDL_keyboard.h>
-#include <SDL_image.h>
-#include <SDL_video.h>
-#include <SDL_thread.h>
-#include <SDL_blendmode.h>
-#include <SDL_render.h>
-#include <SDL_events.h>
-#include <SDL_keycode.h>
-#include <SDL_video.h>
-#include <SDL_timer.h>
-#include <SDL_loadso.h>
-
-#if defined(PLATFORM_WEB)
-#include <emscripten.h>
-#endif
 
 // UNITY BUILD
 #include "platform_levelgen.cpp"
@@ -42,7 +17,6 @@ struct platform_window_t
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
 #include "entity.h" // needed for sprite struct, TODO remove
-
 #include "memory.h" // TODO avoid including this
 game_state_t game_state = {};
 
@@ -57,14 +31,77 @@ struct game_api_t
     game_init_fn           init;
     game_main_loop_fn      main_loop;
     game_quit_fn           quit;
+    int                    id;
 };
 static game_api_t game;
 
 void platform_quit();
-b32 platform_reload_code();
 extern platform_api_t platform_api;
-static void* dll_handle = nullptr;
 static b32 game_running = true;
+
+#include <dlfcn.h>    // for opening shared objects (needs to be linked with -ldl)
+#include <sys/stat.h> // for checking if dll changed on disk (TODO does it work crossplatform?)
+static void* dll_handle = nullptr;
+#ifdef PLATFORM_WIN32
+  const char* GAME_DLL = "./dep/libgame.dll";
+#else
+  const char* GAME_DLL = "./dep/libgame.so";
+#endif
+
+// NOTE sdl also offers functions for dll loading, which might be crossplatform
+// SDL_UnloadObject(), SDL_LoadObject(), SDL_LoadFunction()
+// TODO use a (custom ?) error function and not printf
+b32 platform_load_code()
+{
+    // unload old dll
+    if (dll_handle)
+    {
+        game.state_update = nullptr;
+        game.main_loop    = nullptr;
+        game.init         = nullptr;
+        game.quit         = nullptr;
+        game.id           = 0;
+
+        if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
+        dll_handle = nullptr;
+    }
+
+    // See https://nullprogram.com/blog/2014/12/23/
+    // "It’s critically important that dlclose() happens before dlopen(). On my
+    // system, dlopen() looks only at the string it’s given, not the file behind
+    // it. Even though the file has been replaced on the filesystem, dlopen()
+    // will see that the string matches a library already opened and return a
+    // pointer to the old library. (Is this a bug?)"
+
+    // NOTE try opening until it works, otherwise we need to sleep() for a moment to avoid a crash
+    while (dll_handle == nullptr)
+    {
+        dll_handle = dlopen(GAME_DLL, RTLD_NOW);
+        if (dll_handle == nullptr) printf("OPENING GAME DLL FAILED. TRYING AGAIN.\n");
+    }
+
+    if (dll_handle == nullptr)
+    {
+        printf("OPENING LIBGAME.SO FAILED\n");
+        return false;
+    }
+
+    // TODO pass memory to new dll
+    // ...
+
+    game.state_update = (game_state_update_fn) dlsym(dll_handle, "game_state_update");
+    game.main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
+    game.init         = (game_init_fn)         dlsym(dll_handle, "game_init");
+    game.quit         = (game_quit_fn)         dlsym(dll_handle, "game_quit");
+
+    if (!game.main_loop)
+    {
+        printf("FINDING GAME_MAIN FAILED\n");
+        return false;
+    }
+
+    return true;
+}
 
 // entry point
 int main(int argc, char* args[])
@@ -77,12 +114,10 @@ int main(int argc, char* args[])
     //game_state = (game_state_t*) malloc(sizeof(game_state_t));
     //memset(game_state, 0, sizeof(game_state_t));
 
-    platform_reload_code();
+    platform_load_code(); // initial loading of the game dll
     game_state.platform = platform_api;
     game.state_update(&game_state);
-
     game.init(&game_state);
-
     game_running = true;
 
 #if defined(PLATFORM_WEB)
@@ -90,85 +125,23 @@ int main(int argc, char* args[])
 #else
     while (game_running)
     {
-       game.state_update(&game_state);
        game.main_loop();
 
-       static u32 counter = 0;
-       if (counter > 500)
+       // TODO check if dll/so changed on disk
+       // NOTE should only happen in debug builds
+       struct stat attr;
+       if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
        {
-           counter = 0;
            printf("Attempting code reload\n");
-           b32 reload_success = platform_reload_code();
-           if (!reload_success) { printf("game_main not found\n"); }
-       } else {
-           counter++;
+           platform_load_code();
+           game.id = attr.st_ino;
+           game.state_update(&game_state); // pass memory to game dll
        }
     }
 #endif
 
     game.quit();
     platform_quit();
-}
-
-#include <dlfcn.h> // for opening shared objects (needs to be linked with -ldl)
-// TODO try out SDL's functions for loading
-b32 platform_reload_code()
-{
-    // TODO check if dll/so changed on disk
-
-    // unload old dll
-    // SDL_UnloadObject(void *handle);
-    if (dll_handle)
-    {
-        game.state_update = nullptr;
-        game.main_loop    = nullptr;
-        game.init         = nullptr;
-        game.quit         = nullptr;
-
-        if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
-        dll_handle = nullptr;
-
-        //SDL_UnloadObject(dll_handle);
-    }
-
-    // See https://nullprogram.com/blog/2014/12/23/
-    // "It’s critically important that dlclose() happens before dlopen(). On my
-    // system, dlopen() looks only at the string it’s given, not the file behind
-    // it. Even though the file has been replaced on the filesystem, dlopen()
-    // will see that the string matches a library already opened and return a
-    // pointer to the old library. (Is this a bug?)"
-    //dll_handle = SDL_LoadObject("libgame.so"); // NOTE platform dependent names
-
-    // NOTE try opening until it works, otherwise we need to sleep() for a moment to avoid a crash
-    while (dll_handle == nullptr)
-    {
-        dll_handle = dlopen("libgame.so", RTLD_NOW);
-        if (dll_handle == nullptr) printf("OPENING LIBGAME.SO FAILED. TRYING AGAIN.\n");
-    }
-
-    if (dll_handle == nullptr)
-    {
-        printf("OPENING LIBGAME.SO FAILED\n");
-        return false; // bail out and keep using old dll
-    }
-
-    // TODO pass memory to new dll
-    // ...
-
-    // SDL_LoadFunction(void *handle, const char *name);
-    // NOTE game_main needs to be marked extern "C"
-    game.state_update = (game_state_update_fn) dlsym(dll_handle, "game_state_update");
-    game.main_loop    = (game_main_loop_fn) dlsym(dll_handle, "game_main_loop");
-    game.init         = (game_init_fn) dlsym(dll_handle, "game_init");
-    game.quit         = (game_quit_fn) dlsym(dll_handle, "game_quit");
-
-    if (!game.main_loop)
-    {
-        printf("FINDING GAME_MAIN FAILED\n");
-        return false;
-    }
-
-    return true;
 }
 
 platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)

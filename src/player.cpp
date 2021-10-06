@@ -64,7 +64,7 @@ void player_update(f32 dt, Entity &ent)
     if (ent.item != nullptr)
         ent.item->setPivPos({ent.position.x + 8, ent.position.y + (-8), ent.position.z + 0});
 
-// use commands instead of calling tryMove directly
+    // use commands instead of calling tryMove directly
     CommandProcessor::record(ent, {cmdtype, movement});
 }
 

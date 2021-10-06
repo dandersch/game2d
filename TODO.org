@@ -19,14 +19,15 @@
 - [X] platform layer w/ strict separation
 - [X] try setting up a unity build
 - [X] set up hotloading
+- [X] improve code hotloading
 
 - [ ] fix exit button
-- [ ] improve code hotloading
 - [ ] replace tmxlite library
 - [ ] add (debug) logging
-- [ ] implement platform_win32.cpp
-- [ ] set up a renderer api & start using openGL
+- [ ] inline profiling
 - [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
+- [ ] set up a renderer api & start using openGL
+- [ ] implement platform_win32.cpp
 - [ ] use stb-style header files for everything
 - [ ] animation system
 - [ ] timer utility
@@ -40,7 +41,6 @@
 - [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
 - [ ] threadpool
-- [ ] profiling tools
 - [ ] serializing (of cmds[])
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
 - [ ] "AI"controller subsystem

@@ -3,10 +3,9 @@
 #include "resourcemgr.h"
 #include "rewind.h"
 
-#include "tmxlite/Map.hpp"
-#include "tmxlite/ObjectGroup.hpp"
-#include "tmxlite/TileLayer.hpp"
-#include "tmxlite/Tileset.hpp"
+// TODO level generation shouldn't be in the platform layer. Once we remove the
+// external dependencies, we should move this into gamecode that calls
+// platform_file_open() and so on
 
 typedef void* (*resourcemgr_texture_load_fn)(const char*, game_state_t*);
 typedef void* (*resourcemgr_font_load_fn)(const char*, game_state_t*, i32);

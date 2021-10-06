@@ -22,6 +22,6 @@ struct globals_t
     // f32 last_frame_time;
     // f32 cycles_left_over;
 };
-extern globals_t    globals;
+//extern globals_t    globals;
 #include "platform.h"
 extern platform_api_t platform;

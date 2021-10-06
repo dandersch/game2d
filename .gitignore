@@ -7,3 +7,4 @@ bin/
 .dir-local
 imgui.ini
 compile_commands.json
+*.pch

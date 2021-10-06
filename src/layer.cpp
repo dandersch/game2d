@@ -1,5 +1,12 @@
 #include "layer.h"
 
+// IMGUI include TODO maybe move this somewhere else
+#ifdef IMGUI
+#include "imgui.h"
+#include "imgui_sdl.h"
+#include "imgui_impl_sdl.h"
+#endif
+
 #include "collision.h"
 #include "animation.h"
 #include "input.h"
@@ -28,7 +35,6 @@ void layer_game_init()
         exit(1);
 }
 
-// TODO platform code
 void layer_game_handle_event()
 {
     if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
@@ -178,7 +184,8 @@ void layer_game_render()
     u32 maxlayer = 0;
     Entity* ents = EntityMgr::getArray();
     Tile* tiles = EntityMgr::getTiles();
-    for (u32 l = 0; l < MAX_RENDER_LAYERS; l++)
+    for (u32 l = 0; l < MAX_RENDER_LAYERS; l++) // TODO use z coordinate and let
+                                                // renderer sort w/ a cmd key
     {
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         // TODO tilemap culling
@@ -291,7 +298,6 @@ void layer_menu_init()
 {
     state->g_layer_menu_is_active = false;
 
-    // TODO use a resourcemgr or similar
     state->btn_inactive_tex = resourcemgr_texture_load("res/button.png", state);
     state->btn_hover_tex    = resourcemgr_texture_load("res/button_hover.png", state);
     state->btn_pressed_tex  = resourcemgr_texture_load("res/button_pressed.png", state);

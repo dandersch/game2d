@@ -43,7 +43,6 @@ typedef b32 (*platform_level_load_fn)(const std::string&, Entity*, u32,
                                       resourcemgr_font_load_fn, copyEntity_fn, createTile_fn,
                                       initializeFrames_fn, initialize_fn);
 // TODO platform_api struct w/ function pointers and pass it to the game layer on start up
-typedef b32 (*platform_reload_code_fn)();
 typedef platform_window_t* (*platform_window_open_fn)(const char*, u32, u32);
 typedef void               (*platform_window_close_fn)(platform_window_t*);
 typedef void (*platform_event_loop_fn)(game_input_t*);

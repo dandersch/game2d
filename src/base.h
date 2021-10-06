@@ -199,10 +199,3 @@ struct color_t // NOTE maybe add a 24bit version
 #endif
 
 // TODO UNREACHABLE macro
-
-// IMGUI include TODO maybe move this somewhere else
-#ifdef IMGUI
-#include "imgui.h"
-#include "imgui_sdl.h"
-#include "imgui_impl_sdl.h"
-#endif

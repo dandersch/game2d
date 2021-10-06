@@ -4,7 +4,6 @@
 #include "camera.cpp"
 #include "collision.cpp"
 #include "entity.cpp"
-#include "globals.cpp"
 #include "layer.cpp"
 #include "input.cpp"
 #include "player.cpp"
@@ -18,10 +17,10 @@
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
 enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
-// TODO maybe use a bool array for keeping track of in-/active layers, i.e.
-// bool[LAYER_COUNT] = {false};
+// TODO maybe use a bool array for keeping track of in-/active layers, i.e. bool[LAYER_COUNT]
 
 game_state_t* state = nullptr;
+platform_api_t platform = {0};
 
 extern "C" void game_state_update(game_state_t* game_state)
 {
