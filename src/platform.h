@@ -45,6 +45,10 @@ typedef b32 (*platform_level_load_fn)(const std::string&, Entity*, u32,
 // TODO platform_api struct w/ function pointers and pass it to the game layer on start up
 typedef platform_window_t* (*platform_window_open_fn)(const char*, u32, u32);
 typedef void               (*platform_window_close_fn)(platform_window_t*);
+
+typedef void* (*platform_file_load_fn)(const char* file_name);
+//// void* platform_file_save(u8* file_name, u8* buffer);
+
 typedef void (*platform_event_loop_fn)(game_input_t*);
 typedef u32  (*platform_ticks_fn)();
 typedef void (*platform_quit_fn)();
@@ -71,6 +75,7 @@ typedef void (*platform_imgui_begin_fn)(platform_window_t*);
 typedef void (*platform_imgui_end_fn)();
 struct platform_api_t
 {
+    platform_file_load_fn                   file_load;
     platform_level_load_fn                  level_load;
     platform_window_open_fn                 window_open;
     platform_window_close_fn                window_close;
@@ -107,8 +112,8 @@ struct platform_api_t
 //void platform_event_loop(game_input_t* input);
 //u32  platform_ticks();
 //void platform_quit();
-//// void* platform_file_load(char* file_name);
-//// void* platform_file_save(char* file_name, char* buffer);
+//// void* platform_file_load(u8* file_name);
+//// void* platform_file_save(u8* file_name, u8* buffer);
 //
 //// rendering
 //void platform_render_sprite(platform_window_t* window, const sprite_t& spr,

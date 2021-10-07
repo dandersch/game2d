@@ -2,9 +2,9 @@
 
 // IMGUI include TODO maybe move this somewhere else
 #ifdef IMGUI
-#include "imgui.h"
-#include "imgui_sdl.h"
-#include "imgui_impl_sdl.h"
+  #include "imgui.h"
+  #include "imgui_sdl.h"
+  #include "imgui_impl_sdl.h"
 #endif
 
 #include "collision.h"

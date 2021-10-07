@@ -3,6 +3,10 @@
 #include "resourcemgr.h"
 #include "rewind.h"
 
+#if 0
+// TODO use json files for levelgen
+#include "json.h"
+
 // TODO level generation shouldn't be in the platform layer. Once we remove the
 // external dependencies, we should move this into gamecode that calls
 // platform_file_open() and so on
@@ -25,7 +29,7 @@ b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
     if (!map.load(file)) { printf("map didnt load"); return false; }
 
     tmx::Map animMap; // only for chars for now
-    if (!animMap.load("res/character.tmx")) { printf("animmap didnt load"); exit(1); }
+    if (!animMap.load("res/character_anims.tmx")) { printf("animmap didnt load"); exit(1); }
 
     const auto& tilecountXY  = map.getTileCount();
     //u32 max_tiles            = tilecountXY.x * tilecountXY.y;
@@ -231,3 +235,4 @@ b32 platform_level_load(const std::string& file, Entity* ents, u32 max_ents,
 
     return true;
 }
+#endif
