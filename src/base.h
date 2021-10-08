@@ -194,8 +194,10 @@ struct color_t // NOTE maybe add a 24bit version
             REPORT_ASSERT_(#expr, __FILE__, __LINE__);          \
             DEBUG_BREAK();                                      \
         }
+
+    #define UNREACHABLE(msg) printf(msg); ASSERT(false)
 #else
     #define ASSERT(expr)
+    #define UNREACHABLE
 #endif
 
-// TODO UNREACHABLE macro
