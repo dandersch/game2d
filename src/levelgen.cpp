@@ -1,3 +1,4 @@
+#include "json.h"
 #include "layer.h"
 #include "entity.h"
 #include "resourcemgr.h"
@@ -46,8 +47,8 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
             {
                 // create layer
                 tiled_layer_t* layer = &map.layers[map.layer_count++];
-                for (json_object_element_s* obj = ((json_object_element_s*) elem->value);
-                     obj != nullptr; obj = obj->next)
+                for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
+                     obj != NULL; obj = obj->next)
                 {
                     const char* name = obj->name->string;
                     if (strcmp(name, "data") == 0)
@@ -59,17 +60,26 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                         {
                             layer->data[array_idx++] = atoi(json_value_as_number(elem->value)->number);
                         }
-                        printf("data count: %u\n", array_idx);
                     }
-                    else if (strcmp(name, "draworder") == 0) layer->draworder = false; // TODO
+                    else if (strcmp(name, "draworder") == 0)
+                    {
+                        const char* string = (json_value_as_string(obj->value)->string);
+                        if (strcmp(string, "topdown") == 0) layer->draworder = false;
+                        else if (strcmp(string, "index") == 0)   layer->draworder = true;
+                        else UNREACHABLE("Unknown draworder\n");
+                    }
                     else if (strcmp(name, "height") == 0)
                         layer->height = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "id") == 0)
                         layer->id = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "name") == 0)
+                        layer->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
                     else if (strcmp(name, "objects") == 0)
                     {
                         // TODO
                     }
+                    else if (strcmp(name, "opacity") == 0)
+                        layer->opacity = atof(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "type") == 0)
                     {
                         const char* string = (json_value_as_string(obj->value)->string);
@@ -77,11 +87,13 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                         else if (strcmp(string, "objectgroup") == 0) layer->type = TILED_LAYER_TYPE_OBJECTGROUP;
                         else if (strcmp(string, "imagelayer") == 0)  layer->type = TILED_LAYER_TYPE_IMAGELAYER;
                         else if (strcmp(string, "group") == 0)       layer->type = TILED_LAYER_TYPE_GROUP;
+                        else UNREACHABLE("Unknown type for layer\n");
                     }
-                    else if (strcmp(name, "visible") == 0) ; //TODO
-                    else if (strcmp(name, "width") == 0)   ; //TODO
-                    else if (strcmp(name, "x") == 0)       ; //TODO
-                    else if (strcmp(name, "y") == 0)       ; //TODO
+                    else if (strcmp(name, "visible") == 0) layer->visible = !json_value_is_false(obj->value);
+                    else if (strcmp(name, "width") == 0) layer->width = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "x") == 0) layer->x = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "y") == 0) layer->y = atoi(json_value_as_number(obj->value)->number);
+                    else UNREACHABLE("Unknown attribute.\n");
                 }
             }
         }
@@ -92,6 +104,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
             else if (strcmp(orient, "isometric") == 0) map.orientation = TILED_ORIENTATION_ISOMETRIC;
             else if (strcmp(orient, "staggered") == 0) map.orientation = TILED_ORIENTATION_STAGGERED;
             else if (strcmp(orient, "hexagonal") == 0) map.orientation = TILED_ORIENTATION_HEXAGONAL;
+            else UNREACHABLE("unknown orientation for map\n");
         }
         else if (strcmp(name, "renderorder") == 0)
         {
@@ -103,6 +116,15 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
         }
         else if (strcmp(name, "tileheight") == 0)
             map.tileheight = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "tilesets") == 0)
+        {
+            // TODO
+            // iterate through array
+
+            // if (strcmp(name, "columns") == 0) {}
+            //else if (strcmp(name, "firstgid") == 0) {}
+            //else if (strcmp(name, "image") == 0) {}
+        }
         else if (strcmp(name, "tilewidth") == 0)
             map.tilewidth = atoi(json_value_as_number(elem->value)->number);
         else if (strcmp(name, "width") == 0)
@@ -119,10 +141,13 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
     printf("data 0: %u\n", map.layers[0].data[0]);
     printf("data 1: %u\n", map.layers[0].data[1]);
     printf("data 2: %u\n", map.layers[0].data[2]);
+    printf("layer 1 is visible: %u\n", map.layers[0].visible);
+    printf("layer 1 width: %u\n", map.layers[0].width);
+    printf("layer 1 opacity: %f\n", map.layers[0].opacity);
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+    {
     tmx::Map map;
     if (!map.load(file)) { printf("map didnt load"); return false; }
 
@@ -330,7 +355,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
     //        entts[i].anim = entts[i].anims[0];
     //    }
     //}
-#endif
+    }
 
     return true;
 }

@@ -52,11 +52,11 @@ struct tiled_layer_t
     u32 id;     // Incremental ID - unique across all layers
     // char* image;              // imagelayer only
     // tiled_layer_t layers[];   // group only
-    // char* name;
+    const char* name;
     tiled_object_t objects[TILED_MAX_OBJECTS_PER_LAYER]; // objectgroup only
     // f64 offsetx; // Horizontal layer offset in pixels (default: 0)
     // f64 offsety; // Vertical layer offset in pixels (default: 0)
-    // f64 opacity; // from 0 to 1
+    f64 opacity; // from 0 to 1
     // f64 parallaxx // Horizontal parallax factor for this layer (default: 1).
     // f64 parallaxy // Vertical parallax factor for this layer (default: 1).
     // tiled_property_t properties[];
@@ -113,7 +113,7 @@ struct tiled_tile_t
 #define TILED_MAX_TILES_IN_TILESET 1000 // TODO find better max
 struct tiled_tileset_t
 {
-    char* backgroundcolor; // Hex-formatted color (#RRGGBB or #AARRGGBB) (optional)
+    //char* backgroundcolor; // Hex-formatted color (#RRGGBB or #AARRGGBB) (optional)
     u32   columns;         // The number of tile columns in the tileset
     u32   firstgid;        // GID corresponding to the first tile in the set
     // tiled_grid_t grid   // Grid (optional)
