@@ -1,44 +1,39 @@
 #!/bin/bash
-#
-# build on linux w/ sdl2 as a backend
 
 mkdir -p bin
-rm compile_commands.json
+rm -f compile_commands.json
 
-# NOTE comment out `bear -- \` line if you don't need a compile_commands.json
-CmnFlags="-g -DIMGUI -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts -fPIC "
-# other flags that could be useful:
-# -Werror -Wno-comment -Wno-multichar -Wno-write-strings -Wno-unused-variable
-# -Wno-unused-function -Wno-sign-compare -Wno-unused-result
-# -Wno-strict-aliasing -Wno-int-to-pointer-cast -Wno-switch
-# -Wno-logical-not-parentheses -Wno-return-type -Wno-array-bounds -maes
-# -msse4.1 -std=c++11 -fno-rtti -fno-exceptions
-CmnFlags+=$(sdl2-config --cflags)
-#CmnIncludes="-include ./src/base.h -I./src/ -I./dep/ -I./dep/imgui-1.82"
+# TODO add back -fno-exceptions and -std=c++11 once we stop using tmxlite
+CmnFlags="-g -std=c++14 -DIMGUI -DENABLE_ASSERTS -fPIC -fno-rtti
+          -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
+          -Wno-unused-function -Wno-unused-variable "
+# other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings
+# -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing
+# -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses
+# -Wno-return-type -Wno-array-bounds -maes msse4.1
 CmnIncludes="-I./src/ -I./dep/imgui-1.82"
 CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ -limgui_sdl"
-SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 
-# NOTE trying out precompiled header for game layer (c++ std & tmxlite)
-# TODO use our compile defs (like -DIMGUI)
-bear --append -- \
-clang++ -c -DIMGUI -I./dep/ -I./src/ -I./dep/imgui-1.82 -fPIC ./src/game.hpp -o game.pch
+# precompiled header for game layer
+clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch
 
 # build game as dll
-bear --append -- \
-clang++ ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${CmnLibs} \
-         -include-pch game.pch \
-        ./src/game.cpp -o ./dep/libgame.so
+clang++ -MJ json.b ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${CmnLibs} \
+        -include-pch game.pch ./src/game.cpp -o ./dep/libgame.so
 
-# NOTE trying out precompiled header for platform layer (sdl stuff)
-# see clang docs: https://clang.llvm.org/docs/PCHInternals.html
-# TODO use our compile defs (like -DIMGUI)
-bear --append -- \
-clang++ -c -DIMGUI -I./dep/ -I./src/ -I./dep/imgui-1.82 -I/usr/include/SDL2 -D_REENTRANT -pthread -fPIC ./src/platform_sdl.hpp -o platform_sdl.pch
+# add platform specific flags
+CmnFlags+=$(sdl2-config --cflags)
+SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
+
+# pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
+clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch
 
 # TODO compilation w/ gcc seems broken here (gets stuck)
 # build platform layer as executable
-bear --append -- \
-clang++ ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
-         -include-pch platform_sdl.pch \
-        ./src/platform_sdl.cpp -o ./bin/megastruct
+clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
+           -include-pch platform_sdl.pch ./src/platform_sdl.cpp -o ./bin/megastruct
+
+# put together compile_commands.json
+# see https://github.com/Sarcasm/notes/blob/master/dev/compilation-database.rst#clang
+sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' json.* > compile_commands.json
+rm json.*
