@@ -3,39 +3,126 @@
 #include "resourcemgr.h"
 #include "rewind.h"
 
+#include "levelgen.h"
+
 // TODO use json files for levelgen
-void json_array_traversal(struct json_array_s* array);
-void json_object_traversal(struct json_object_s* object);
-b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents,
-                        game_state_t* game_state)
-
+void create_map_from_json(struct json_value_s* root, tiled_map_t* map);
+void json_array_traversal(struct json_array_s* array, tiled_map_t* map);
+void json_object_traversal(struct json_object_s* object, tiled_map_t* map);
+b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
-    { // testing json loading & parsing
+    // testing json loading & parsing
+    file_t json_file = platform.file_load("res/tiletest.json");
 
-        file_t file = platform.file_load("res/tiletest.json");
+    // get the root of the json DOM
+    // NOTE uses malloc, but can given an alloc_fun_ptr w/ user_data
+    struct json_parse_result_s result;
+    struct json_value_s* json_dom = json_parse_ex(json_file.buffer, json_file.size, 0,
+                                                  NULL, NULL, &result);
+    // close file & free buffer
+    platform.file_close(json_file);
 
-        // get the root of the json DOM
-        // NOTE uses malloc, but can given an alloc_fun_ptr w/ user_data
-        struct json_parse_result_s result;
-        struct json_value_s* json_dom = json_parse_ex(file.buffer, file.size, 0,
-                                                      NULL, NULL, &result);
-        // close file & free buffer
-        platform.file_close(file);
-
-        if (!json_dom)
-        {
-            printf("json didn't parse\n");
-            printf("json error type: %zu\n", result.error);
-            printf("json error at line: %zu\n", result.error_line_no);
-        }
-
-        struct json_object_s* object = (struct json_object_s*) json_dom->payload;
-
-        // traverse the linked list
-        // NOTE recursively calls object_traversal & array_traversal
-        json_object_traversal(object);
+    if (!json_dom)
+    {
+        printf("json didn't parse\n");
+        printf("json error type: %zu\n", result.error);
+        printf("json error at line: %zu\n", result.error_line_no);
     }
 
+    tiled_map_t map = {};
+
+    struct json_object_s* object = (struct json_object_s*) json_dom->payload;
+    for (json_object_element_s* elem = object->start; elem != nullptr; elem = elem->next)
+    {
+        const char* name = elem->name->string;
+
+        if (strcmp(name, "height") == 0) map.height = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "layers") == 0)
+        {
+            // array traversal
+            struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
+            size_t arr_len = array->length;
+            for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+            {
+                // create layer
+                tiled_layer_t* layer = &map.layers[map.layer_count++];
+                for (json_object_element_s* obj = ((json_object_element_s*) elem->value);
+                     obj != nullptr; obj = obj->next)
+                {
+                    const char* name = obj->name->string;
+                    if (strcmp(name, "data") == 0)
+                    {
+                        // fill layer->data array
+                        struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
+                        u32 array_idx = 0;
+                        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+                        {
+                            layer->data[array_idx++] = atoi(json_value_as_number(elem->value)->number);
+                        }
+                        printf("data count: %u\n", array_idx);
+                    }
+                    else if (strcmp(name, "draworder") == 0) layer->draworder = false; // TODO
+                    else if (strcmp(name, "height") == 0)
+                        layer->height = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "id") == 0)
+                        layer->id = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "objects") == 0)
+                    {
+                        // TODO
+                    }
+                    else if (strcmp(name, "type") == 0)
+                    {
+                        const char* string = (json_value_as_string(obj->value)->string);
+                        if (strcmp(string, "tilelayer") == 0)        layer->type = TILED_LAYER_TYPE_TILELAYER;
+                        else if (strcmp(string, "objectgroup") == 0) layer->type = TILED_LAYER_TYPE_OBJECTGROUP;
+                        else if (strcmp(string, "imagelayer") == 0)  layer->type = TILED_LAYER_TYPE_IMAGELAYER;
+                        else if (strcmp(string, "group") == 0)       layer->type = TILED_LAYER_TYPE_GROUP;
+                    }
+                    else if (strcmp(name, "visible") == 0) ; //TODO
+                    else if (strcmp(name, "width") == 0)   ; //TODO
+                    else if (strcmp(name, "x") == 0)       ; //TODO
+                    else if (strcmp(name, "y") == 0)       ; //TODO
+                }
+            }
+        }
+        else if (strcmp(name, "orientation") == 0)
+        {
+            const char* orient = json_value_as_string(elem->value)->string;
+            if (strcmp(orient, "orthogonal") == 0)     map.orientation = TILED_ORIENTATION_ORTHOGONAL;
+            else if (strcmp(orient, "isometric") == 0) map.orientation = TILED_ORIENTATION_ISOMETRIC;
+            else if (strcmp(orient, "staggered") == 0) map.orientation = TILED_ORIENTATION_STAGGERED;
+            else if (strcmp(orient, "hexagonal") == 0) map.orientation = TILED_ORIENTATION_HEXAGONAL;
+        }
+        else if (strcmp(name, "renderorder") == 0)
+        {
+            const char* order = json_value_as_string(elem->value)->string;
+            if (strcmp(order, "right-down") == 0)     map.renderorder = TILED_RENDERORDER_RIGHT_DOWN;
+            else if (strcmp(order, "right-up") == 0)  map.renderorder = TILED_RENDERORDER_RIGHT_UP;
+            else if (strcmp(order, "left-down") == 0) map.renderorder = TILED_RENDERORDER_LEFT_DOWN;
+            else if (strcmp(order, "left-up") == 0)   map.renderorder = TILED_RENDERORDER_LEFT_UP;
+        }
+        else if (strcmp(name, "tileheight") == 0)
+            map.tileheight = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "tilewidth") == 0)
+            map.tilewidth = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "width") == 0)
+            map.width = atoi(json_value_as_number(elem->value)->number);
+    }
+
+    //create_map_from_json(json_dom, &map);
+    printf("LAYERCOUNT: %u\n", map.layer_count);
+    printf("mapheight: %u\n", map.height);
+    printf("mapwidth: %u\n", map.width);
+    printf("tileheight: %u\n", map.tileheight);
+    printf("tilewidth: %u\n", map.tilewidth);
+
+    printf("data 0: %u\n", map.layers[0].data[0]);
+    printf("data 1: %u\n", map.layers[0].data[1]);
+    printf("data 2: %u\n", map.layers[0].data[2]);
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+#if 0
     tmx::Map map;
     if (!map.load(file)) { printf("map didnt load"); return false; }
 
@@ -243,11 +330,12 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents,
     //        entts[i].anim = entts[i].anims[0];
     //    }
     //}
+#endif
 
     return true;
 }
 
-void json_object_traversal(struct json_object_s* object)
+void json_object_traversal(struct json_object_s* object, tiled_map_t* map)
 {
     for (json_object_element_s* elem = object->start; elem != nullptr; elem = elem->next)
     {
@@ -268,7 +356,7 @@ void json_object_traversal(struct json_object_s* object)
             case json_type_object:
             {
                 json_object_s* obj = (json_object_s*) elem->value->payload;
-                json_object_traversal(obj);
+                json_object_traversal(obj, map);
             } break;
 
             // TODO
@@ -279,7 +367,13 @@ void json_object_traversal(struct json_object_s* object)
                 size_t arr_len = array->length;
                 struct json_array_element_s* first_elem = array->start;
                 printf("%s array has length %zu\n", elem->name->string, arr_len);
-                json_array_traversal(array);
+
+                if (strcmp(elem->name->string, "layers"))
+                {
+                    // create layers
+                    // map->layers[layer_count]...
+                }
+                json_array_traversal(array, map);
             } break;
 
             case json_type_true:
@@ -298,7 +392,7 @@ void json_object_traversal(struct json_object_s* object)
     }
 }
 
-void json_array_traversal(struct json_array_s* array)
+void json_array_traversal(struct json_array_s* array, tiled_map_t* map)
 {
     for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
     {
@@ -319,7 +413,7 @@ void json_array_traversal(struct json_array_s* array)
             case json_type_object:
             {
                 json_object_s* obj = (json_object_s*) elem->value->payload;
-                json_object_traversal(obj);
+                json_object_traversal(obj, map);
             } break;
 
             // traverse through the layers
@@ -329,7 +423,7 @@ void json_array_traversal(struct json_array_s* array)
                 size_t arr_len = array->length;
                 struct json_array_element_s* first_elem = array->start;
                 printf("%s array has length %zu\n", ((json_string_s*)elem->value->payload)->string, arr_len);
-                json_array_traversal(array);
+                json_array_traversal(array, map);
             } break;
 
             case json_type_true:
@@ -348,90 +442,12 @@ void json_array_traversal(struct json_array_s* array)
     }
 }
 
-void create_map_from_json(struct json_object_s* root)
+void create_map_from_json(struct json_value_s* root, tiled_map_t* map)
 {
-    // https://doc.mapeditor.org/en/stable/reference/json-map-format/
+    struct json_object_s* object = (struct json_object_s*) root->payload;
+    // traverse the linked list
+    // NOTE recursively calls object_traversal & array_traversal
+    json_object_traversal(object, map);
 
-    // A MAP IN TILED IS MADE UP OUT OF:
-    //
-    // s32 compressionlevel
-    // u32 height
-    // b32 infinite
-    // layer_t layers[] ...
-    // u32 nextlayerid // TODO what is thiss
-    // u32 nextobjectid
-    // orientation_e orientation // orthogonal, isometric, ...
-    // renderorder_e renderorder // right-down, ...
-    // char* tiledversion // e.g. "1.7.2"
-    // u32 tileheight
-    // tileset_t tilesets[] // TODO actually just contains "firstgid" & "source" (path)
-    // u32 tilewidth
-    // char* version // TODO version of what?
-    // u32 width
 
-    // A TILELAYER IN TILED IS MADE UP OUT OF:
-    // u32 data[] // IDs that map to a sprite from a tileset
-    // u32 height
-    // u32 id
-    // char* name
-    // f32 opacity
-    // type_t type // tilelayer,
-    // b32 visible
-    // u32 width
-    // u32 x
-    // u32 y
-    //
-    // AN OBJECTLAYER IN TILED IS MADE UP OUT OF:
-    // draworder_e draworder // topdown, ...
-    // u32 id
-    // char* name
-    // object_t objects[]
-    // f32 opacity
-    // type_t type // tilelayer,
-    // b32 visible
-    // u32 x
-    // u32 y
-
-    // A TILESET IN TILED IS MADE UP OUT OF:
-    //
-    // u32 columns
-    // char* image // path to imagefile
-    // u32 imageheight
-    // u32 imagewidth
-    // u32 margin
-    // char* name
-    // u32 spacing
-    // u32 tilecount
-    // char* tiledversion
-    // u32 tileheight
-    // tile_t tiles[]
-    // u32 tilewidth
-    // type_t type // tileset, ...
-    // char* version
-
-    // A TILE IN TILED IS MADE UP OUT OF:
-    // u32 id
-    // objectgroup_t objectgroup
-    //
-    // AN OBJECTGROUP IN TILED IS MADE UP OUT OF:
-    // draworder_e draworder // index, ...
-    // u32 id
-    // char* name
-    // object_t object
-    // f32 opacity
-    // type_t type // objectgroup, ...
-    // b32 visible
-    // u32 x
-    // u32 y
-    //
-    // AN OBJECT IN TILED IS MADE UP OUT OF:
-    // u32 height
-    // u32 id
-    // char* name
-    // f32 rotation
-    // type_t type // TODO ...
-    // b32 visible
-    // u32 width
-    // u32 x
-    // u32 y
 }
