@@ -16,7 +16,7 @@ extern game_state_t* state;
 // TODO use move semantics?
 void CommandProcessor::record(Entity& ent, Command cmd)
 {
-    ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
+    ASSERT(state->cmdIdx <= MAX_CMD_COUNT - 1);
 
     ent.cmds[state->cmdIdx] = cmd;
     execute(ent, ent.cmds[state->cmdIdx]);
@@ -24,7 +24,7 @@ void CommandProcessor::record(Entity& ent, Command cmd)
 
 void CommandProcessor::replay(Entity& ent)
 {
-    ASSERT(cmdIdx <= MAX_CMD_COUNT - 1);
+    ASSERT(state->cmdIdx <= MAX_CMD_COUNT - 1);
 
     execute(ent, ent.cmds[state->cmdIdx]);
 }

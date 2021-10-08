@@ -142,7 +142,6 @@ namespace EntityMgr
 {
     // TODO std::move?
     bool copyEntity(const Entity ent);
-    Entity* getArray();
     void freeTemporaryStorage();
     bool copyTempEntity(const Entity ent);
 

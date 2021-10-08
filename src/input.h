@@ -20,8 +20,6 @@ namespace Input
 
 } // namespace Input
 
-
-
 struct game_input_state_t
 {
     i32 up_down_count; // count of up/down or down/up transitions

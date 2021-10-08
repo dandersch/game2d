@@ -23,10 +23,23 @@ enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 game_state_t* state = nullptr;
 platform_api_t platform = {0};
 
-extern "C" void game_state_update(game_state_t* game_state)
+void game_state_init(game_state_t* game_state)
+{
+    game_state->initialized   = true;
+    for (int i = 0; i < MAX_ENTITIES; i++) game_state->ents[i]  = {};
+    for (int i = 0; i < MAX_TILES; i++)    game_state->tiles[i] = {};
+    game_state->focusArrow    = {64,32,16,32};
+    game_state->cam           = {};
+    game_state->game_running  = true;
+    game_state->pool_textures = std::unordered_map<std::string, texture_t*>();
+    game_state->pool_fonts    = std::unordered_map<std::string, font_t*>();
+}
+
+extern "C" void game_state_update(game_state_t* game_state, platform_api_t platform_api)
 {
     state    = game_state;
-    platform = state->platform; // TODO maybe just use state.platform...
+    if (!game_state->initialized) game_state_init(game_state);
+    platform = platform_api;
 }
 
 extern "C" b32 game_init(game_state_t* game_state)

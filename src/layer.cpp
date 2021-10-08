@@ -10,8 +10,7 @@
 #include "collision.h"
 #include "globals.h"
 #include "utils.h"
-extern b32 levelgen_level_load(const std::string& file, Entity* ents,
-                               u32 max_ents, game_state_t* game_state);
+extern b32 levelgen_level_load(const std::string&, Entity*, u32, game_state_t*);
 
 #include "platform.h"
 
@@ -23,12 +22,7 @@ static const int MAX_RENDER_LAYERS = 100;
 
 void layer_game_init()
 {
-    if (!levelgen_level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state
-                             //&resourcemgr_texture_load, &resourcemgr_font_load,
-                             //&EntityMgr::copyEntity, &EntityMgr::createTile,
-                             //&Rewind::initializeFrames, &CommandProcessor::initialize
-                             )
-        )
+    if (!levelgen_level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state))
         exit(1);
 }
 
@@ -55,7 +49,7 @@ void layer_game_handle_event()
         // get 'clicked on' playable entity
         for (u32 i = 0; i < MAX_ENTITIES; i++)
         {
-            auto ents = EntityMgr::getArray();
+            auto ents = state->ents;
             if (!ents[i].active) continue;
             if (!(ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)) continue;
             point_t  clickpoint = {(i32) click.x, (i32) click.y};
@@ -100,7 +94,7 @@ void layer_game_update(f32 dt)
     // entity vs. every "system" has its own loop
     for (u32 i = 0; i < MAX_ENTITIES; i++)
     {
-        auto& ent = EntityMgr::getArray()[i];
+        auto& ent = state->ents[i];
 
         // PLAYER CONTROLLER ///////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
@@ -138,7 +132,7 @@ void layer_game_update(f32 dt)
 
                 for (u32 j = 0; j < MAX_ENTITIES; j++)
                 {
-                    Entity& e2 = EntityMgr::getArray()[j];
+                    Entity& e2 = state->ents[j];
                     if (!e2.active) continue;
                     if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
                         collided |= Collision::checkCollision(ent, e2);
@@ -179,7 +173,7 @@ void layer_game_update(f32 dt)
 void layer_game_render()
 {
     u32 maxlayer = 0;
-    Entity* ents = EntityMgr::getArray();
+    Entity* ents = state->ents;
     Tile* tiles = EntityMgr::getTiles();
     for (u32 l = 0; l < MAX_RENDER_LAYERS; l++) // TODO use z coordinate and let
                                                 // renderer sort w/ a cmd key
@@ -189,7 +183,7 @@ void layer_game_render()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            platform.render_sprite(state->window, tiles[i].sprite,
+            platform.render_sprite(state->window, tiles[i].sprite.tex, tiles[i].sprite.box,
                                    camera_world_to_screen(state->cam, tiles[i].position),
                                    state->cam.scale, tiles[i].sprite.flip);
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
@@ -213,7 +207,7 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            platform.render_sprite(state->window, ents[i].sprite,
+            platform.render_sprite(state->window, ents[i].sprite.tex, ents[i].sprite.box,
                                    camera_world_to_screen(state->cam, ents[i].position),
                                    state->cam.scale, ents[i].sprite.flip);
 
@@ -225,8 +219,8 @@ void layer_game_render()
                 if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
 
                 platform.render_set_draw_color(state->window, c.r, c.g, c.b, c.a);
-                platform.debug_draw(state->window, ents[i],
-                                    camera_world_to_screen(state->cam, ents[i].position));
+                auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
+                platform.debug_draw(state->window, ents[i].collider, ent_pos, ents[i].scale);
                 platform.render_set_draw_color(state->window, 0, 0, 0, 255);
             }
 
@@ -241,7 +235,8 @@ void layer_game_render()
     {
         sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
         auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
-        platform.render_sprite(state->window, arrow_sprite, pos, state->cam.scale, 0);
+        platform.render_sprite(state->window, arrow_sprite.tex, arrow_sprite.box,
+                               pos, state->cam.scale, 0);
     }
 
 }
@@ -249,7 +244,7 @@ void layer_game_render()
 void layer_game_imgui_render()
 {
 #ifdef IMGUI
-    auto& ent = EntityMgr::getArray()[0];
+    auto& ent = state->ents[0];
 
     //ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");

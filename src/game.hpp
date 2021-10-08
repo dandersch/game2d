@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------------------------//
 
 #include <string>
+#include <cstring> // for memset
 #include <vector>
 #include <map>
 #include <functional>

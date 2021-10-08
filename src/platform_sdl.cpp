@@ -16,14 +16,10 @@ struct platform_window_t
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
-#include "entity.h" // needed for sprite struct, TODO remove
-#include "memory.h" // TODO avoid including this
-game_state_t game_state = {};
-
 // game functions
 typedef void (*game_main_loop_fn)();
 typedef b32  (*game_init_fn)(game_state_t*);
-typedef void (*game_state_update_fn)(game_state_t*);
+typedef void (*game_state_update_fn)(game_state_t*, platform_api_t);
 typedef b32  (*game_quit_fn)();
 struct game_api_t
 {
@@ -103,21 +99,18 @@ b32 platform_load_code()
     return true;
 }
 
+struct game_state_t;
+game_state_t* game_state = nullptr;
+#define GAME_MEMORY_SIZE 67108864 // 2^26
 // entry point
 int main(int argc, char* args[])
 {
     //platform_init();
-
-    // NOTE eventually we should malloc the game memory, but then we would have
-    // to write out all init values here or use C++'s new keyword (so that the
-    // default values written in the struct definitions are used)
-    //game_state = (game_state_t*) malloc(sizeof(game_state_t));
-    //memset(game_state, 0, sizeof(game_state_t));
-
+    game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
+    memset(game_state, 0, GAME_MEMORY_SIZE);
     platform_load_code(); // initial loading of the game dll
-    game_state.platform = platform_api;
-    game.state_update(&game_state);
-    game.init(&game_state);
+    game.state_update(game_state, platform_api);
+    game.init(game_state);
     game_running = true;
 
 #if defined(PLATFORM_WEB)
@@ -127,15 +120,14 @@ int main(int argc, char* args[])
     {
        game.main_loop();
 
-       // TODO check if dll/so changed on disk
-       // NOTE should only happen in debug builds
+       // check if dll/so changed on disk NOTE: should only happen in debug builds
        struct stat attr;
        if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
        {
            printf("Attempting code reload\n");
            platform_load_code();
            game.id = attr.st_ino;
-           game.state_update(&game_state); // pass memory to game dll
+           game.state_update(game_state, platform_api); // pass memory to game dll
        }
     }
 #endif
@@ -312,18 +304,15 @@ void platform_event_loop(game_input_t* input)
 }
 
 // TODO replace all calls to this with calls to platform_render_texture
-void platform_render_sprite(platform_window_t* window, const sprite_t& spr,
+// NOTE we are not actually doing anything w/ flip_type
+void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, rect_t sprite_box,
                             v3f position, f32 scale, u32 flip_type)
 {
-   SDL_Rect dst = {(int) position.x, (int) position.y,
-                   (i32) (scale * spr.box.w), (i32) (scale * spr.box.h)};
+    SDL_Rect dst = {(int) position.x, (int) position.y,
+                    (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
 
-   // NOTE: flipping seems expensive, maybe just store flipped sprites in
-   // the spritesheet & add dedicated animations for those
-   SDL_RenderCopyEx(window->renderer, (SDL_Texture*) spr.tex, (SDL_Rect*) &spr.box,
-                    &dst, 0, NULL, (SDL_RendererFlip) flip_type);
-   //SDL_RenderCopy(renderer, spr.tex, &spr.box, &dst);
-
+    // NOTE: we could flip the texture w/ SDL_RenderCopyEx
+    SDL_RenderCopy(window->renderer, (SDL_Texture*) sprite_tex, (SDL_Rect*) &sprite_box, &dst);
 }
 
 void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
@@ -346,10 +335,10 @@ void platform_render_set_draw_color(platform_window_t* window, u8 r, u8 g, u8 b,
     SDL_SetRenderDrawColor(window->renderer, r, g, b, a);
 }
 
-void platform_debug_draw(platform_window_t* window, const Entity& e, v3f pos)
+void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, u32 scale)
 {
-    SDL_Rect dst = {(int) pos.x + e.collider.x, (int) pos.y + e.collider.y,
-                    (i32) (e.scale * e.collider.w), (i32) (e.scale * e.collider.h)};
+    SDL_Rect dst = {(int) pos.x + collider_box.x, (int) pos.y + collider_box.y,
+                    (i32) (scale * collider_box.w), (i32) (scale * collider_box.h)};
 
     // don't draw 'empty' colliders (otherwise it will draw points & lines)
     if (!SDL_RectEmpty(&dst)) // if (!(dst.h <= 0.f && dst.w <= 0.f))
@@ -494,7 +483,6 @@ void platform_imgui_end()
     ImGuiSDL::Render(ImGui::GetDrawData());
 #endif
 }
-#endif // PLATFORM_SDL
 
 platform_api_t platform_api =
 {
@@ -528,3 +516,5 @@ platform_api_t platform_api =
   &platform_imgui_begin,
   &platform_imgui_end
 };
+
+#endif // PLATFORM_SDL

@@ -3,9 +3,6 @@
 // opaque platform structs
 struct platform_window_t;
 struct platform_sound_device_t;
-
-struct sprite_t;
-struct Entity;
 struct game_input_t;
 
 typedef void texture_t;
@@ -47,7 +44,7 @@ typedef b32    (*platform_file_close_fn)(file_t file);
 typedef void (*platform_event_loop_fn)(game_input_t*);
 typedef u32  (*platform_ticks_fn)();
 typedef void (*platform_quit_fn)();
-typedef void (*platform_render_sprite_fn)(platform_window_t*, const sprite_t&, v3f, f32, u32);
+typedef void (*platform_render_sprite_fn)(platform_window_t*, texture_t*, rect_t, v3f, f32, u32);
 typedef void (*platform_render_texture_fn)(platform_window_t*, texture_t*, rect_t*, rect_t*);
 typedef void (*platform_render_clear_fn)(platform_window_t*);
 typedef void (*platform_render_present_fn)(platform_window_t*);
@@ -61,7 +58,7 @@ typedef void       (*platform_surface_destroy_fn)(surface_t*);
 typedef void       (*platform_font_init_fn)();
 typedef font_t*    (*platform_font_load_fn)(const char*, i32);
 typedef surface_t* (*platform_text_render_fn)(font_t*, const char*, color_t, u32);
-typedef void (*platform_debug_draw_fn)(platform_window_t*, const Entity&, v3f);
+typedef void (*platform_debug_draw_fn)(platform_window_t*, rect_t, v3f, u32);
 typedef void (*platform_debug_draw_rect_fn)(platform_window_t*, rect_t*);
 typedef void (*platform_imgui_init_fn)(platform_window_t*, u32, u32);
 typedef void (*platform_imgui_destroy_fn)();

@@ -8,10 +8,7 @@ struct platform_window_t;
 #include "input.h"        // for struct game_input_t
 #include "platform.h"     // for struct platform_api_t
 #include "camera.h"       // for struct camera
-//#include "menulayer.h"    // for struct Button
-#include <unordered_map>  // for hashtables
 
-#include <functional> // TODO move this out once game_state is opaque to the platform layer
 struct Button
 {
     const char* label; // TODO font to render
@@ -26,6 +23,8 @@ struct Button
 
 struct game_state_t
 {
+    b32 initialized;
+
     Entity ents[MAX_ENTITIES];
     u32    temp_count = 0;
     Tile   tiles[MAX_TILES];

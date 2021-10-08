@@ -7,11 +7,7 @@ void layer_game_update(f32 dt);
 void layer_game_render();
 void layer_game_imgui_render();
 
-
 // MENULAYER ///////////////////////////////////////////////////////////////////////////////////////
-//extern b32 g_layer_menu_is_active;
-
-struct game_state_t;
 void layer_menu_init();
 void layer_menu_handle_event();
 void layer_menu_render();

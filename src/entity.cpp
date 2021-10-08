@@ -3,7 +3,6 @@
 #include "memory.h"
 extern game_state_t* state;
 
-// TODO std::move?
 bool EntityMgr::copyEntity(const Entity ent)
 {
     for (u32 i = 0; i < MAX_ENTITIES_WO_TEMP; i++)
@@ -23,11 +22,10 @@ bool EntityMgr::copyEntity(const Entity ent)
     return false;
 }
 
-#include <cstring>
 void EntityMgr::freeTemporaryStorage()
 {
-    memset(&state->ents[MAX_ENTITIES_WO_TEMP],
-           0, MAX_ENTITIES - MAX_ENTITIES_WO_TEMP);
+    // NOTE we shouldn't have to zero out the memory
+    memset(&state->ents[MAX_ENTITIES_WO_TEMP], 0, MAX_ENTITIES - MAX_ENTITIES_WO_TEMP);
     state->temp_count = 0;
 }
 
@@ -43,7 +41,7 @@ Tile* EntityMgr::getTiles()
 
 bool EntityMgr::createTile(const Tile tile)
 {
-    ASSERT(tile_count < MAX_TILES);
+    ASSERT(state->tile_count < MAX_TILES);
 
     state->tiles[state->tile_count++] = tile;
     return true;
@@ -51,13 +49,8 @@ bool EntityMgr::createTile(const Tile tile)
 
 bool EntityMgr::copyTempEntity(const Entity ent)
 {
-    ASSERT(temp_count < 100);
+    ASSERT(state->temp_count < 100);
     state->ents[MAX_ENTITIES_WO_TEMP + state->temp_count] = ent;
     state->temp_count++;
     return true; // TODO
-}
-
-Entity* EntityMgr::getArray()
-{
-    return &state->ents[0];
 }
