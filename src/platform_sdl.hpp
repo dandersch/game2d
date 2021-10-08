@@ -30,12 +30,6 @@
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
-// for levelgen
-#include "tmxlite/Map.hpp"
-#include "tmxlite/ObjectGroup.hpp"
-#include "tmxlite/TileLayer.hpp"
-#include "tmxlite/Tileset.hpp"
-
 // IMGUI include TODO maybe move this somewhere else
 #ifdef IMGUI
   #include "imgui.h"

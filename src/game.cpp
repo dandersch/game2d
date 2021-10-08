@@ -9,6 +9,7 @@
 #include "player.cpp"
 #include "resourcemgr.cpp"
 #include "rewind.cpp"
+#include "levelgen.cpp"
 
 // TIMESTEP constants
 #define MAXIMUM_FRAME_RATE 60

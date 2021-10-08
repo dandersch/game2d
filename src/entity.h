@@ -33,7 +33,7 @@ enum EntityState
     STATE_COUNT
 };
 
-enum Orientation
+enum EntityOrientation
 {
     ORIENT_DOWN, ORIENT_RIGHT, ORIENT_UP, ORIENT_LEFT,
     ORIENT_COUNT

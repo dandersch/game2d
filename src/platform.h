@@ -29,25 +29,20 @@ struct game_memory_t
     // platform_api PlatformAPI;
 };
 
-// TODO temp in platform_api to get level loading to work
-#include "entity.h"
-struct game_state_t;
-typedef void* (*resourcemgr_texture_load_fn)(const char*, game_state_t*);
-typedef void* (*resourcemgr_font_load_fn)(const char*, game_state_t*, i32);
-typedef bool (*copyEntity_fn)(const Entity);
-typedef bool (*createTile_fn)(const Tile tile);
-typedef void (*initializeFrames_fn)(Entity& e);
-typedef void (*initialize_fn)(Entity& ent);
-typedef b32 (*platform_level_load_fn)(const std::string&, Entity*, u32,
-                                      game_state_t*, resourcemgr_texture_load_fn,
-                                      resourcemgr_font_load_fn, copyEntity_fn, createTile_fn,
-                                      initializeFrames_fn, initialize_fn);
 // TODO platform_api struct w/ function pointers and pass it to the game layer on start up
 typedef platform_window_t* (*platform_window_open_fn)(const char*, u32, u32);
 typedef void               (*platform_window_close_fn)(platform_window_t*);
 
-typedef void* (*platform_file_load_fn)(const char* file_name);
-//// void* platform_file_save(u8* file_name, u8* buffer);
+// file operations
+struct file_t
+{
+    void* handle;
+    u64   size;   // size in bytes
+    u8*   buffer;
+};
+typedef file_t (*platform_file_load_fn)(const char* file_name);
+typedef b32    (*platform_file_save_fn)(u8* file_name, u8* buffer);
+typedef b32    (*platform_file_close_fn)(file_t file);
 
 typedef void (*platform_event_loop_fn)(game_input_t*);
 typedef u32  (*platform_ticks_fn)();
@@ -76,7 +71,8 @@ typedef void (*platform_imgui_end_fn)();
 struct platform_api_t
 {
     platform_file_load_fn                   file_load;
-    platform_level_load_fn                  level_load;
+    platform_file_save_fn                   file_save;
+    platform_file_close_fn                  file_close;
     platform_window_open_fn                 window_open;
     platform_window_close_fn                window_close;
     platform_event_loop_fn                  event_loop;

@@ -1,12 +1,5 @@
 #include "layer.h"
 
-// IMGUI include TODO maybe move this somewhere else
-#ifdef IMGUI
-  #include "imgui.h"
-  #include "imgui_sdl.h"
-  #include "imgui_impl_sdl.h"
-#endif
-
 #include "collision.h"
 #include "animation.h"
 #include "input.h"
@@ -17,6 +10,8 @@
 #include "collision.h"
 #include "globals.h"
 #include "utils.h"
+extern b32 levelgen_level_load(const std::string& file, Entity* ents,
+                               u32 max_ents, game_state_t* game_state);
 
 #include "platform.h"
 
@@ -28,10 +23,12 @@ static const int MAX_RENDER_LAYERS = 100;
 
 void layer_game_init()
 {
-    if (!platform.level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state,
-                             &resourcemgr_texture_load, &resourcemgr_font_load,
-                             &EntityMgr::copyEntity, &EntityMgr::createTile,
-                             &Rewind::initializeFrames, &CommandProcessor::initialize))
+    if (!levelgen_level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state
+                             //&resourcemgr_texture_load, &resourcemgr_font_load,
+                             //&EntityMgr::copyEntity, &EntityMgr::createTile,
+                             //&Rewind::initializeFrames, &CommandProcessor::initialize
+                             )
+        )
         exit(1);
 }
 

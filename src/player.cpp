@@ -70,7 +70,7 @@ void player_update(f32 dt, Entity &ent)
 
 void player_try_move(v3f movement, Entity& ent)
 {
-    Orientation newOrient = (Orientation) ent.orient;
+    EntityOrientation newOrient = (EntityOrientation) ent.orient;
     if      (movement.y < 0.0f) newOrient = ORIENT_UP;
     else if (movement.y > 0.0f) newOrient = ORIENT_DOWN;
     else if (movement.x > 0.0f) newOrient = ORIENT_RIGHT;

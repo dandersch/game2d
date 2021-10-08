@@ -2,6 +2,9 @@
 #
 # build on linux w/ sdl2 as a backend
 
+mkdir -p bin
+rm compile_commands.json
+
 # NOTE comment out `bear -- \` line if you don't need a compile_commands.json
 CmnFlags="-g -DIMGUI -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts -fPIC "
 # other flags that could be useful:
@@ -12,24 +15,30 @@ CmnFlags="-g -DIMGUI -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscrip
 # -msse4.1 -std=c++11 -fno-rtti -fno-exceptions
 CmnFlags+=$(sdl2-config --cflags)
 #CmnIncludes="-include ./src/base.h -I./src/ -I./dep/ -I./dep/imgui-1.82"
-CmnIncludes="-I./src/ -I./dep/ -I./dep/imgui-1.82"
+CmnIncludes="-I./src/ -I./dep/imgui-1.82"
 CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ -limgui_sdl"
 SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 
+# NOTE trying out precompiled header for game layer (c++ std & tmxlite)
+# TODO use our compile defs (like -DIMGUI)
+bear --append -- \
+clang++ -c -DIMGUI -I./dep/ -I./src/ -I./dep/imgui-1.82 -fPIC ./src/game.hpp -o game.pch
+
 # build game as dll
-bear -- \
+bear --append -- \
 clang++ ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${CmnLibs} \
+         -include-pch game.pch \
         ./src/game.cpp -o ./dep/libgame.so
 
 # NOTE trying out precompiled header for platform layer (sdl stuff)
 # see clang docs: https://clang.llvm.org/docs/PCHInternals.html
 # TODO use our compile defs (like -DIMGUI)
 bear --append -- \
-clang++ -c -DIMGUI -I./dep/ -I./dep/imgui-1.82 -I/usr/include/SDL2 -D_REENTRANT -pthread -fPIC ./src/platform_sdl.hpp -o platform_sdl.pch
+clang++ -c -DIMGUI -I./dep/ -I./src/ -I./dep/imgui-1.82 -I/usr/include/SDL2 -D_REENTRANT -pthread -fPIC ./src/platform_sdl.hpp -o platform_sdl.pch
 
 # TODO compilation w/ gcc seems broken here (gets stuck)
 # build platform layer as executable
 bear --append -- \
-clang++ ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} -ltmxlite \
+clang++ ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
          -include-pch platform_sdl.pch \
         ./src/platform_sdl.cpp -o ./bin/megastruct
