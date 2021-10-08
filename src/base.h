@@ -195,7 +195,7 @@ struct color_t // NOTE maybe add a 24bit version
             DEBUG_BREAK();                                      \
         }
 
-    #define UNREACHABLE(msg) printf(msg); ASSERT(false)
+    #define UNREACHABLE(msg) { printf(msg); ASSERT(false) }
 #else
     #define ASSERT(expr)
     #define UNREACHABLE
