@@ -6,10 +6,6 @@
 
 #include "levelgen.h"
 
-// TODO use json files for levelgen
-void create_map_from_json(struct json_value_s* root, tiled_map_t* map);
-void json_array_traversal(struct json_array_s* array, tiled_map_t* map);
-void json_object_traversal(struct json_object_s* object, tiled_map_t* map);
 b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
     // testing json loading & parsing
@@ -62,10 +58,9 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     {
                         // fill layer->data array
                         struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
-                        u32 array_idx = 0;
                         for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
                         {
-                            layer->data[array_idx++] = atoi(json_value_as_number(elem->value)->number);
+                            layer->data[layer->tile_count++] = atoi(json_value_as_number(elem->value)->number);
                         }
                     }
                     else if (strcmp(name, "draworder") == 0)
@@ -316,23 +311,10 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
         else UNREACHABLE("Unknown attribut '%s' for map", name);
     }
 
-    //create_map_from_json(json_dom, &map);
-    printf("LAYERCOUNT: %u\n", map->layer_count);
-    printf("mapheight: %u\n", map->height);
-    printf("mapwidth: %u\n", map->width);
-    printf("tileheight: %u\n", map->tileheight);
-    printf("tilewidth: %u\n", map->tilewidth);
-
-    printf("data 1: %u\n", map->layers[0].data[1]);
-    printf("data 2: %u\n", map->layers[0].data[2]);
-    printf("layer 1 is visible: %u\n", map->layers[0].visible);
-    printf("layer 1 width: %u\n", map->layers[0].width);
-    printf("layer 1 opacity: %f\n", map->layers[0].opacity);
-
-    printf("gid: %u\n", map->tilesets[0].tiles[0].objectgroup.objects[0].id);
-    printf("height: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].height);
-    printf("x: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].x);
-    printf("y: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].y);
+    //printf("gid: %u\n", map->tilesets[0].tiles[0].objectgroup.objects[0].id);
+    //printf("height: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].height);
+    //printf("x: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].x);
+    //printf("y: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].y);
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -340,14 +322,11 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
     //const tmx::Vector2u& tilecountXY  = { map->width, map->height };
     //u32 max_tiles            = tilecountXY.x * tilecountXY.y;
     const tiled_layer_t* layers       = map->layers;
-    u32 layercount                    = 0;
-    u32 tilecount                     = 0;
     const tiled_tileset_t* tilesets   = map->tilesets;
     const tiled_tileset_t* ts         = nullptr;
 
     for(u32 i = 0; i < map->layer_count; i++)
     {
-        tilecount = 0;
         // for items & characters
         if (layers[i].type == TILED_LAYER_TYPE_OBJECTGROUP)
         {
@@ -359,7 +338,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                 Entity newEnt = {0};
                 newEnt.active       = true;
                 newEnt.freed        = false;
-                newEnt.renderLayer  = layercount;
+                newEnt.renderLayer  = i;
 
                 const tiled_tile_t* t = nullptr;
                 ts                    = nullptr;
@@ -380,42 +359,16 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
 
                 u32 last_gid = ts->firstgid + ts->tiles[ts->tile_count-1].id;
                 u32 tile_id = (last_gid - ts->firstgid) - (last_gid - o->gid);
-                /*
-                for (int k = 0; k < ts->tile_count; k++)
-                {
-                    if (ts->tiles[k].id == tile_id) t = &ts->tiles[k];
-                    //if (strcmp(type,"Item")==0)
-                    printf("idx: %u, tile id: %u\n", k, ts->tiles[k].id);
-                }
-                */
-                printf("obj_gid %u ", o->gid);
-                printf("first_gid %u ", ts->firstgid);
-                printf("last_gid %u ", last_gid);
-                printf("tile_id %u ", tile_id);
-                printf("image %s ", ts->image);
-                printf("done for %s\n", type);
-                //ASSERT(t != nullptr);
-                //t  = &ts->tiles[tile_id]; // TODO correct?
-
-                // auto t = ts->getTile(o.getTileID());
-
                 i32 row_idx = tile_id % ts->columns;
                 i32 col_idx = tile_id / ts->columns;
                 u32 x_pos   = ts->margin + row_idx * (ts->tilewidth  + ts->spacing);
                 u32 y_pos   = ts->margin + col_idx * (ts->tileheight + ts->spacing);
 
-                //spritebox = { (i32) t->imagePosition.x, (i32) t->imagePosition.y,
-                //              (i32) t->imageSize.x,     (i32) t->imageSize.y };
-
                 // TODO
                 //rect_t collider = {(i32) t->objectgroup.objects[0].x, (i32) t->objectgroup.objects[0].y,
-                //rect_t collider = {0,0,
                 //                   (i32) t->objectgroup.objects[0].width, (i32) t->objectgroup.objects[0].height};
 
-                // to create the spritebox
-                rect_t spritebox = {0};
-                //spritebox = { (i32) x_pos, (i32) y_pos, (i32) t->imagewidth, (i32) t->imageheight };
-                spritebox = { (i32) x_pos, (i32) y_pos, (i32) o->width, (i32) o->height };
+                rect_t spritebox = { (i32) x_pos, (i32) y_pos, (i32) o->width, (i32) o->height };
 
                 // TODO entity_create_character()
                 if (strcmp(type, "Character") == 0)
@@ -426,8 +379,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.5f};
                     newEnt.state        = STATE_MOVE;
-                    // TODO why -24
-                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0});
+                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
 
                     // TODO platform code (?)
                     // TODO better string allocations
@@ -470,14 +422,80 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
                     Rewind::initializeFrames(newEnt);
                 }
-                // copy new entity into array TODO slow
-                EntityMgr::copyEntity(newEnt);
-
-                // TODO tiles
-
+                EntityMgr::copyEntity(newEnt); // copy new entity into array TODO slow
             } // object loop
         } // objectlayer
-        layercount++;
+
+        // for static tiles w/ and w/o colliders
+        if (layers[i].type == TILED_LAYER_TYPE_TILELAYER)
+        {
+            for (u32 tile_idx = 0; tile_idx < layers[i].tile_count; tile_idx++)
+            {
+                u32 tile_gid = layers[i].data[tile_idx];
+                ts = nullptr;
+                // determine tileset for this object
+                // TODO is there a direct way?
+                for (int k = 0; k < map->tileset_count; k++)
+                {
+                    auto ts_tilecount = map->tilesets[k].tilecount;
+                    auto last_gid = map->tilesets[k].firstgid + ts_tilecount;
+
+                    // if (tileset_has_tile(tile_idx))
+                    if (tile_gid >= map->tilesets[k].firstgid &&
+                        tile_gid <= (map->tilesets[k].firstgid + last_gid))
+                    {
+                        ts = &map->tilesets[k];
+                        break;
+                    }
+                }
+                if (!ts) { continue; }
+                ASSERT(ts != nullptr);
+
+                u32 last_gid = ts->firstgid + ts->tilecount;
+                u32 tile_id = tile_gid - ts->firstgid; // local tileID
+
+                i32 row_idx = tile_id % ts->columns;
+                i32 col_idx = tile_id / ts->columns;
+                u32 x_pos   = ts->margin + row_idx * (ts->tilewidth  + ts->spacing);
+                u32 y_pos   = ts->margin + col_idx * (ts->tileheight + ts->spacing);
+
+                // to create the spritebox
+                rect_t bb = bb = { (i32) x_pos, (i32) y_pos, (i32) ts->tilewidth, (i32) ts->tileheight };
+
+                // CONSTRUCT TILE
+                Tile newTile = {0};
+
+                // TODO collision data
+                /*
+                if (!tile->objectGroup.getObjects().empty())
+                {
+                    // TODO collision box data uses pixels as units, we
+                    // might want to convert this to a 0-1 range
+                    const auto& aabb = tile->objectGroup.getObjects().at(0).getAABB();
+                    newTile.collider  = {(i32) aabb.left,  (i32) aabb.top,
+                                        (i32) aabb.width, (i32) aabb.height};
+                    newTile.collidable = true;
+                }
+                */
+
+                u32 x = tile_idx % layers[i].width;
+                u32 y = tile_idx / layers[i].height;
+
+                newTile.renderLayer  = i;
+                newTile.sprite.box   = bb;
+                newTile.sprite.pivot = {0.5f, 0.5f};
+
+                // TODO better string allocation
+                char *result = (char*) malloc(strlen("res/") + strlen(ts->image) + 1); // +1 for the null-terminator
+                strcpy(result, "res/"); strcat(result, ts->image);
+                newTile.sprite.tex   = resourcemgr_texture_load(result, game_state);
+
+                newTile.setPivPos({x * 16.f, y * 16.f, 0});
+
+                // copy new tile into array TODO slow
+                EntityMgr::createTile(newTile);
+            } // tile loop
+        } // tilelayer
     } // layer loop
 #endif
 
@@ -698,6 +716,9 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
     return true;
 }
 
+void json_object_traversal(struct json_object_s* object, tiled_map_t* map);
+void create_map_from_json(struct json_value_s* root, tiled_map_t* map);
+void json_array_traversal(struct json_array_s* array, tiled_map_t* map);
 void json_object_traversal(struct json_object_s* object, tiled_map_t* map)
 {
     for (json_object_element_s* elem = object->start; elem != nullptr; elem = elem->next)

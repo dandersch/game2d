@@ -2,6 +2,11 @@
 
 // see https://doc.mapeditor.org/en/stable/reference/json-map-format/
 
+// TODO utility functions:
+// b32 tileset_has_tile(ts, u32 gid) { if (gid between first_gid and last_gid of tileset) return true; }
+// rect_t tileset_get_bb_of_tile(ts, u32 gid) { ... }
+// u32 tileset_last_gid() { return ... }
+
 struct tiled_property_t
 {
     // TODO
@@ -75,7 +80,8 @@ struct tiled_layer_t
     u32 x; // Horizontal layer offset in tiles. Always 0.
     u32 y; // Vertical layer offset in tiles. Always 0.
 
-    u32 obj_count = 0; // ours
+    u32 obj_count  = 0; // ours
+    u32 tile_count = 0; // nr of gids in data (ours)
 };
 
 // A tileset that associates information with each tile, like its image path or
@@ -146,7 +152,7 @@ struct tiled_tileset_t
     // char* version         // The JSON format version
     // wangsets[]            // array of wangsets
 
-    u32 tile_count = 0;
+    u32 tile_count = 0; // NOTE nr of *special* tiles in this tileset (ours)
 };
 
 struct tiled_chunk_t
