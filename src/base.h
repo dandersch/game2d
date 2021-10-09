@@ -195,8 +195,7 @@ struct color_t // NOTE maybe add a 24bit version
             DEBUG_BREAK();                                      \
         }
 
-    // TODO make UNREACHABLE work like printf, i.e. allow format strings
-    #define UNREACHABLE(msg) { printf(msg); ASSERT(false) }
+    #define UNREACHABLE(msg, ...) { printf(msg,##__VA_ARGS__); ASSERT(false) }
 #else
     #define ASSERT(expr)
     #define UNREACHABLE
