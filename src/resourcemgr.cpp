@@ -11,11 +11,15 @@
 static char res_folder[MAX_CHARS_FOR_FILENAME] = "res/";
 static const u32 str_len = 4; // TODO hardcoded
 
+// NOTE we use this to concatenate every filename w/ the resource folder "res/"
+// this means filepaths can't be longer than 256 characters
+#define MAX_CHARS_FOR_FILEPATH 256
+#define RESOURCE_FOLDER "res/"
 texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
 {
-    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILENAME - str_len));
-    strcpy(&res_folder[str_len], filename);
-    filename = res_folder;
+    char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
+    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
+    strcat(filepath, filename);
 
     if (state->pool_textures.find(filename) != state->pool_textures.end()) // found
     {
@@ -23,7 +27,7 @@ texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
     }
     else // not found
     {
-        state->pool_textures[filename] = platform.texture_load(state->window, filename);
+        state->pool_textures[filename] = platform.texture_load(state->window, filepath);
         if (!state->pool_textures[filename]) return state->pool_textures["missing"];
     }
 
@@ -32,9 +36,9 @@ texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
 
 font_t* resourcemgr_font_load(const char* filename, game_state_t* state, i32 ptsize)
 {
-    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILENAME - str_len));
-    strcpy(&res_folder[str_len], filename);
-    filename = res_folder;
+    char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
+    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
+    strcat(filepath, filename);
 
     if (state->pool_fonts.find(filename) != state->pool_fonts.end()) // found
     {
@@ -42,7 +46,7 @@ font_t* resourcemgr_font_load(const char* filename, game_state_t* state, i32 pts
     }
     else // not found
     {
-        state->pool_fonts[filename] = platform.font_load(filename, ptsize);
+        state->pool_fonts[filename] = platform.font_load(filepath, ptsize);
         if (!state->pool_fonts[filename]) return state->pool_fonts["missing"];
     }
 
