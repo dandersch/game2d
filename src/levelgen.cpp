@@ -124,7 +124,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                         copy_json_string(layer->name, sizeof(layer->name), json_value_as_string(obj->value)->string);
                     else if (strcmp(name, "objects") == 0)
                     {
-			fill_objects_array(obj->value, layer);
+                        fill_objects_array(obj->value, layer);
                     }
                     else if (strcmp(name, "opacity") == 0)
                         layer->opacity = atof(json_value_as_number(obj->value)->number);
@@ -282,16 +282,10 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
 
     free(json_dom); // NOTE we can only free this bc we copy out the strings
 
-    //printf("gid: %u\n", map->tilesets[0].tiles[0].objectgroup.objects[0].id);
-    //printf("height: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].height);
-    //printf("x: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].x);
-    //printf("y: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].y);
-
     //////////////////////////////////////////////////////////////////////////////////////////////
 
     // use map for level generation
-    //const tmx::Vector2u& tilecountXY  = { map->width, map->height };
-    //u32 max_tiles            = tilecountXY.x * tilecountXY.y;
+    //u32 max_tiles                   = map->width * map->height;
     const tiled_layer_t* layers       = map->layers;
     const tiled_tileset_t* tilesets   = map->tilesets;
     const tiled_tileset_t* ts         = nullptr;
@@ -317,10 +311,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 // TODO is there a direct way?
                 for (int k = 0; k < map->tileset_count; k++)
                 {
-                    // TODO get correct last_gid
-                    if (o->gid >= map->tilesets[k].firstgid &&
-                        o->gid <= (map->tilesets[k].firstgid + map->tilesets[k].tiles[map->tilesets[k].tile_count-1].id))
-                        //(map->tilesets[k].firstgid + map->tilesets[k].tile_count) >= o->gid)
+                    // TODO write a utils function & use that here
+                    u32 last_gid = map->tilesets[k].firstgid + map->tilesets[k].tilecount;
+                    if (o->gid >= map->tilesets[k].firstgid && o->gid < last_gid)
                     {
                         ts = &map->tilesets[k];
                         break;
@@ -329,16 +322,32 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 }
                 ASSERT(ts != nullptr);
 
-                u32 last_gid = ts->firstgid + ts->tiles[ts->tile_count-1].id;
-                u32 tile_id = (last_gid - ts->firstgid) - (last_gid - o->gid);
+                u32 tile_id = o->gid - ts->firstgid; // local tile ID
                 i32 row_idx = tile_id % ts->columns;
                 i32 col_idx = tile_id / ts->columns;
                 u32 x_pos   = ts->margin + row_idx * (ts->tilewidth  + ts->spacing);
                 u32 y_pos   = ts->margin + col_idx * (ts->tileheight + ts->spacing);
 
-                // TODO
-                //rect_t collider = {(i32) t->objectgroup.objects[0].x, (i32) t->objectgroup.objects[0].y,
-                //                   (i32) t->objectgroup.objects[0].width, (i32) t->objectgroup.objects[0].height};
+                // get collider
+                rect_t collider = {0};
+                const tiled_tile_t* special_tile = nullptr;
+                // find special tile in tileset
+                for (int k = 0; k < ts->tile_count; k++)
+                {
+                    if (ts->tiles[k].id == tile_id)
+                    {
+                        special_tile = &ts->tiles[k];
+                        // special tile has collision data
+                        if (special_tile->objectgroup.obj_count != 0)
+                        {
+                            collider = {(i32) special_tile->objectgroup.objects[0].x,
+                                        (i32) special_tile->objectgroup.objects[0].y,
+                                        (i32) special_tile->objectgroup.objects[0].width,
+                                        (i32) special_tile->objectgroup.objects[0].height};
+                        }
+                    }
+                }
+                //collider = {0, 0, 16, 32}; // NOTE hardcoded aabb
 
                 rect_t spritebox = { (i32) x_pos, (i32) y_pos, (i32) o->width, (i32) o->height };
 
@@ -346,24 +355,39 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 if (strcmp(type, "Character") == 0)
                 {
                     // TODO load in anims in here
+                    // load in animations TODO this only needs to be loaded in
+                    // once & not per character
+                    //u32 anim_idx = 0;
+                    //for (auto anim : animMap.getAnimatedTiles())
+                    //{
+                    //    std::vector<AnimationFrame> new_frames;
+                    //    //u32 frame_count = 0;
+                    //    for (auto frame : anim.second.animation.frames)
+                    //    {
+                    //        auto tileID = frame.tileID;
+                    //        // TODO get proper tileset
+                    //        auto pos    = animMap.getTilesets().at(0).getTile(tileID)->imagePosition;
+                    //        auto size   = animMap.getTilesets().at(0).getTile(tileID)->imageSize;
+                    //        //auto pos    = ts->getTile(tileID)->imagePosition;
+                    //        //auto size   = ts->getTile(tileID)->imageSize;
+                    //        rect_t bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
+                    //        new_frames.push_back({bb, (f32) frame.duration/100.f}); // TODO why cast?
+                    //    }
+                    //    newEnt.clips[newEnt.clip_count].frames = new_frames;
+                    //    newEnt.clips[newEnt.clip_count].loop   = true;
+                    //    newEnt.clip_count++;
+                    //    newEnt.flags       |= (u32) EntityFlag::IS_ANIMATED;
+                    //}
 
                     // TODO charID
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.5f};
                     newEnt.state        = STATE_MOVE;
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
-
-                    // TODO platform code (?)
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
-
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state); // TODO platform code (?)
                     newEnt.renderLayer  = 1;
                     newEnt.orient       = ORIENT_DOWN;
-
-                    // TODO collider box
-                    //const auto& aabb    = o.getAABB();
-                    //newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
-                    //                       (i32) aabb.width, (i32) aabb.height};
-                    //newEnt.collider     = collider;
+                    newEnt.collider     = collider;
                     newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
                     //newEnt.flags       |= (u32) EntityFlag::PLAYER_CONTROLLED;
                     newEnt.flags       |= (u32) EntityFlag::CMD_CONTROLLED;
@@ -374,14 +398,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 } else if (strcmp(type, "Item") == 0) {
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.75f};
-                    // TODO why -24
-                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0});
+                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
-
-                    // TODO collider box
-                    //const auto& aabb    = o.getAABB();
-                    //newEnt.collider     = {/*(i32) aabb.left,  (i32) aabb.top,*/ 0, 0,
-                    //                       (i32) aabb.width, (i32) aabb.height};
+                    newEnt.collider     = collider;
                     newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
                     newEnt.flags       |= (u32) EntityFlag::IS_ITEM;
                     newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
@@ -405,7 +424,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     auto ts_tilecount = map->tilesets[k].tilecount;
                     auto last_gid = map->tilesets[k].firstgid + ts_tilecount;
 
-                    // if (tileset_has_tile(tile_idx))
+                    // TODO if (tileset_has_tile(tile_idx))
                     if (tile_gid >= map->tilesets[k].firstgid &&
                         tile_gid <= (map->tilesets[k].firstgid + last_gid))
                     {
@@ -416,9 +435,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 if (!ts) { continue; }
                 ASSERT(ts != nullptr);
 
-                u32 last_gid = ts->firstgid + ts->tilecount;
                 u32 tile_id = tile_gid - ts->firstgid; // local tileID
-
                 i32 row_idx = tile_id % ts->columns;
                 i32 col_idx = tile_id / ts->columns;
                 u32 x_pos   = ts->margin + row_idx * (ts->tilewidth  + ts->spacing);
@@ -430,23 +447,29 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 // CONSTRUCT TILE
                 Tile newTile = {0};
 
+                const tiled_tile_t* special_tile = nullptr;
+                // find special tile in tileset
+                for (int k = 0; k < ts->tile_count; k++)
+                {
+                    if (ts->tiles[k].id == tile_id)
+                    {
+                        special_tile = &ts->tiles[k];
+                        // special tile has collision data
+                        if (special_tile->objectgroup.obj_count != 0)
+                        {
+                            newTile.collider = {(i32) special_tile->objectgroup.objects[0].x,
+                                                (i32) special_tile->objectgroup.objects[0].y,
+                                                (i32) special_tile->objectgroup.objects[0].width,
+                                                (i32) special_tile->objectgroup.objects[0].height};
+                            newTile.collidable = true;
+                        }
+                    }
+                }
+
                 // TODO the foremost layer (Tile Layer 2 w/ the trees and the
                 // grid as of rn) is not properly lined up w/ the rest. This
                 // only seems to be the case for the horizontal purple grid
                 // elements. Compare preview in Tiled w/ the game to see this.
-
-                // TODO collision data
-                /*
-                if (!tile->objectGroup.getObjects().empty())
-                {
-                    // TODO collision box data uses pixels as units, we
-                    // might want to convert this to a 0-1 range
-                    const auto& aabb = tile->objectGroup.getObjects().at(0).getAABB();
-                    newTile.collider  = {(i32) aabb.left,  (i32) aabb.top,
-                                        (i32) aabb.width, (i32) aabb.height};
-                    newTile.collidable = true;
-                }
-                */
 
                 u32 x = tile_idx % layers[i].width;
                 u32 y = tile_idx / layers[i].height;
@@ -455,11 +478,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
                 newTile.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
+                newTile.setPivPos({x * 16.f, y * 16.f, 0}); // TODO hardcoded
 
-                newTile.setPivPos({x * 16.f, y * 16.f, 0});
-
-                // copy new tile into array TODO slow
-                EntityMgr::createTile(newTile);
+                EntityMgr::createTile(newTile); // copy new tile into array TODO slow
             } // tile loop
         } // tilelayer
     } // layer loop

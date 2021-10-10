@@ -142,7 +142,7 @@ struct tiled_tileset_t
     // char* version                   // The JSON format version
     // wangsets[]                      // array of wangsets
 
-    u32 tile_count = 0; // NOTE nr of *special* tiles in this tileset (ours)
+    u32 tile_count = 0; // NOTE nr of *special* tiles in this tileset (ours) TODO better name
 };
 
 struct tiled_chunk_t
