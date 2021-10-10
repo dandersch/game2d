@@ -4,9 +4,10 @@ mkdir -p bin
 rm -f compile_commands.json
 
 # TODO add back -fno-exceptions and -std=c++11 once we stop using tmxlite
-CmnFlags="-g -std=c++14 -DIMGUI -DENABLE_ASSERTS -fPIC -fno-rtti
+CmnFlags="-g -std=c++14 -DENABLE_ASSERTS -fPIC -fno-rtti
           -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
           -Wno-unused-function -Wno-unused-variable "
+CmnFlags+="-DIMGUI "
 # other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings
 # -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing
 # -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses
@@ -37,3 +38,5 @@ clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
 # see https://github.com/Sarcasm/notes/blob/master/dev/compilation-database.rst#clang
 sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' json.* > compile_commands.json
 rm json.*
+
+#./bin/megastruct

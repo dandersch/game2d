@@ -30,9 +30,6 @@
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
-#include <unordered_map>
-#include <functional>
-
 // IMGUI include TODO maybe move this somewhere else
 #ifdef IMGUI
   #include "imgui.h"

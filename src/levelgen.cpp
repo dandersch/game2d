@@ -1,4 +1,3 @@
-#include "json.h"
 #include "layer.h"
 #include "entity.h"
 #include "resourcemgr.h"
@@ -496,6 +495,8 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
             } // tile loop
         } // tilelayer
     } // layer loop
+
+    free(map);
 
     return true;
 }
