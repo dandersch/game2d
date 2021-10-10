@@ -1,5 +1,7 @@
 #!/bin/bash
 
+start_timer=$(date +%s.%N)
+
 mkdir -p bin
 rm -f compile_commands.json
 
@@ -16,27 +18,29 @@ CmnIncludes="-I./src/ -I./dep/imgui-1.82"
 CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ -limgui_sdl"
 
 # precompiled header for game layer
-clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch
+clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch &&
 
 # build game as dll
 clang++ -MJ json.b ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${CmnLibs} \
-        -include-pch game.pch ./src/game.cpp -o ./dep/libgame.so
+        -include-pch game.pch ./src/game.cpp -o ./dep/libgame.so &&
 
 # add platform specific flags
 CmnFlags+=$(sdl2-config --cflags)
 SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 
 # pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
-clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch
+clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
 
 # TODO compilation w/ gcc seems broken here (gets stuck)
 # build platform layer as executable
 clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
-           -include-pch platform_sdl.pch ./src/platform_sdl.cpp -o ./bin/megastruct
+           -include-pch platform_sdl.pch ./src/platform_sdl.cpp -o ./bin/megastruct &&
 
 # put together compile_commands.json
 # see https://github.com/Sarcasm/notes/blob/master/dev/compilation-database.rst#clang
-sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' json.* > compile_commands.json
-rm json.*
-
-#./bin/megastruct
+sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' json.* > compile_commands.json &&
+rm json.* &&
+end_timer=$(date +%s.%N)
+compile_time=$(echo "$end_timer - $start_timer" | bc -l)
+echo "Compile time (real): ${compile_time}s" \
+&& ./bin/megastruct
