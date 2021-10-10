@@ -31,8 +31,6 @@ void game_state_init(game_state_t* game_state)
     game_state->focusArrow    = {64,32,16,32};
     game_state->cam           = {};
     game_state->game_running  = true;
-    game_state->pool_textures = std::unordered_map<std::string, texture_t*>();
-    game_state->pool_fonts    = std::unordered_map<std::string, font_t*>();
 }
 
 extern "C" void game_state_update(game_state_t* game_state, platform_api_t platform_api)

@@ -112,7 +112,7 @@ typedef float    f32;
 typedef double   f64;
 
 // TODO "override" some keywords
-// #define internal static
+#define internal static
 #define local    static
 // #define global   static // NOTE only true with 1 translation unit
 

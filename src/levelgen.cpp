@@ -496,7 +496,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
         } // tilelayer
     } // layer loop
 
-    free(map);
+    //free(map); // NOTE we need to make sure not to keep any pointers to the
+                 // strings inside map, which is the case rn for the hash table of
+                 // the resourcemgr
 
     return true;
 }

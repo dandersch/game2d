@@ -64,10 +64,6 @@ struct game_state_t
     b32 g_layer_menu_is_active;
 
     b32 render_imgui = false;
-
-    // resourcemanager
-    std::unordered_map<std::string, texture_t*> pool_textures{};
-    std::unordered_map<std::string, font_t*> pool_fonts{};
 };
 
 /*
