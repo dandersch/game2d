@@ -10,7 +10,7 @@
 #include "collision.h"
 #include "globals.h"
 #include "utils.h"
-extern b32 levelgen_level_load(const std::string&, Entity*, u32, game_state_t*);
+extern b32 levelgen_level_load(const char*, Entity*, u32, game_state_t*);
 
 #include "platform.h"
 
@@ -290,9 +290,9 @@ void layer_menu_init()
 {
     state->g_layer_menu_is_active = false;
 
-    state->btn_inactive_tex = resourcemgr_texture_load("res/button.png", state);
-    state->btn_hover_tex    = resourcemgr_texture_load("res/button_hover.png", state);
-    state->btn_pressed_tex  = resourcemgr_texture_load("res/button_pressed.png", state);
+    state->btn_inactive_tex = resourcemgr_texture_load("button.png", state);
+    state->btn_hover_tex    = resourcemgr_texture_load("button_hover.png", state);
+    state->btn_pressed_tex  = resourcemgr_texture_load("button_pressed.png", state);
 
     Button b1 = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100},
                   .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
@@ -317,11 +317,11 @@ void layer_menu_init()
     state->btns.push_back(b3);
 
     // for greying out game in the background when paused
-    state->greyout_tex = resourcemgr_texture_load("res/greyout.png", state);
+    state->greyout_tex = resourcemgr_texture_load("greyout.png", state);
 
     // ADD TEXT TO BUTTONS
     platform.font_init();
-    font_t* btn_font   = resourcemgr_font_load("res/ubuntumono.ttf", state);
+    font_t* btn_font   = resourcemgr_font_load("ubuntumono.ttf", state);
     color_t text_color = {200,200,200,230};
     for (auto& b : state->btns)
     {

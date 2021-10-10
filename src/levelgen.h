@@ -7,6 +7,8 @@
 // rect_t tileset_get_bb_of_tile(ts, u32 gid) { ... }
 // u32 tileset_last_gid() { return ... }
 
+#define MAX_STRING_SIZE 30 // NOTE arbitrary for now, we could change to malloc'ed strings if needed
+
 struct tiled_property_t
 {
     // TODO
@@ -18,7 +20,7 @@ struct tiled_object_t
     u32 gid; // Global tile ID, only if object represents a tile
     f64 height; // TODO why double
     u32 id; // incremental ID, unique across all objects
-    const char* name;
+    char name[MAX_STRING_SIZE];
     // b32 point
     // polygon[]
     // polyline[]
@@ -26,7 +28,7 @@ struct tiled_object_t
     // rotation     // TODO
     // template
     // text
-    const char* type;   // custom string
+    char type[MAX_STRING_SIZE];   // custom string
     b32 visible;
     f64 width; // TODO why double
     f32 x; // x coordinate in pixels NOTE is a float in json?
@@ -62,7 +64,7 @@ struct tiled_layer_t
     u32 id;     // Incremental ID - unique across all layers
     // char* image;              // imagelayer only
     // tiled_layer_t layers[];   // group only
-    const char* name;
+    char name[MAX_STRING_SIZE];
     tiled_object_t objects[TILED_MAX_OBJECTS_PER_LAYER]; // objectgroup only
     // f64 offsetx; // Horizontal layer offset in pixels (default: 0)
     // f64 offsety; // Vertical layer offset in pixels (default: 0)
@@ -95,62 +97,50 @@ struct tiled_layer_t
 struct tiled_tile_t
 {
     tiled_frame_t animation[TILED_MAX_FRAMES_FOR_TILE_ANIMATION];
-    u32 id;                    // Local ID of the tile
-    const char* image;         // Image representing this tile (optional)
-    u32 imageheight;           // Height of the tile image in pixels
-    u32 imagewidth;            // Width of the tile image in pixels
-    tiled_layer_t objectgroup; // Layer with type objectgroup, when collision
-                               // shapes are specified (optional)
-                               // TODO causes a SEGBUS when stack allocated
-    // f64 probability // percentage chance this tile is chosen when competing with others in the editor (optional)
-    // properties // Array of Properties
-    // terrain[]  // Index of terrain for each corner of tile (optional)
-    const char* type; // The type of the tile (optional)
-
-    // A TILE IN TILED IS MADE UP OUT OF:
-    // u32 id
-    // objectgroup_t objectgroup
-    //
-    // AN OBJECTGROUP IN TILED IS MADE UP OUT OF:
-    // draworder_e draworder // index, ...
-    // u32 id
-    // char* name
-    // object_t object
-    // f32 opacity
-    // type_t type // objectgroup, ...
-    // b32 visible
-    // f32 x
-    // f32 y
+    u32 id;                      // Local ID of the tile
+    char image[MAX_STRING_SIZE]; // Image representing this tile (optional)
+    u32 imageheight;             // Height of the tile image in pixels
+    u32 imagewidth;              // Width of the tile image in pixels
+    tiled_layer_t objectgroup;   // Layer with type objectgroup, when collision
+                                 // shapes are specified (optional)
+                                 // NOTE causes a SEGBUS when stack allocated
+    // f64 probability           // percentage chance this tile is chosen when competing
+                                 // with others in the editor (optional)
+    // properties                // Array of Properties
+    // terrain[]                 // Index of terrain for each corner of tile (optional)
+    char type[MAX_STRING_SIZE];  // The type of the tile (optional)
 };
 
 #define TILED_MAX_TILES_IN_TILESET 1000 // TODO find better max
 struct tiled_tileset_t
 {
-    //char* backgroundcolor; // Hex-formatted color (#RRGGBB or #AARRGGBB) (optional)
-    u32   columns;         // The number of tile columns in the tileset
-    u32   firstgid;        // GID corresponding to the first tile in the set
-    // tiled_grid_t grid   // Grid (optional)
-    const char* image;     // Image used for tiles in this set
-    u32 imageheight;       // Height of source image in pixels
-    u32 imagewidth;        // Width of source image in pixels
-    u32 margin;            // Buffer between image edge and first tile (pixels)
-    const char* name;      // Name given to this tileset
-    //objectalignment        // Alignment to use for tile objects (unspecified (default), topleft, top, topright, left, center, right, bottomleft, bottom or bottomright) (since 1.4)
-    //properties             // Array of Properties
-    const char* source;          // The external file that contains this tilesets data
-    u32 spacing;           // Spacing between adjacent tiles in image (pixels)
-    // terrains[];           // Array of Terrains (optional)
-    u32 tilecount;         // The number of tiles in this tileset
-    // char* tiledversion;   // The Tiled version used to save the file
-    u32 tileheight;        // Maximum height of tiles in this set
-    // tiled_tiledoffset_t tileoffset;           // Tile Offset (optional)
+    //char* backgroundcolor;           // Hex-formatted color (#RRGGBB or #AARRGGBB) (optional)
+    u32   columns;                     // The number of tile columns in the tileset
+    u32   firstgid;                    // GID corresponding to the first tile in the set
+    // tiled_grid_t grid               // Grid (optional)
+    char image[MAX_STRING_SIZE];       // Image used for tiles in this set
+    u32 imageheight;                   // Height of source image in pixels
+    u32 imagewidth;                    // Width of source image in pixels
+    u32 margin;                        // Buffer between image edge and first tile (pixels)
+    char name[MAX_STRING_SIZE];        // Name given to this tileset
+    //objectalignment                  // Alignment to use for tile objects: (unspecified (default),
+                                       // topleft, top, topright, left, center, right, bottomleft,
+                                       // bottom or bottomright)
+    //properties                       // Array of Properties
+    char source[MAX_STRING_SIZE];      // The external file that contains this tilesets data
+    u32 spacing;                       // Spacing between adjacent tiles in image (pixels)
+    // terrains[];                     // Array of Terrains (optional)
+    u32 tilecount;                     // The number of tiles in this tileset
+    // char* tiledversion;             // The Tiled version used to save the file
+    u32 tileheight;                    // Maximum height of tiles in this set
+    // tiled_tiledoffset_t tileoffset; // Tile Offset (optional)
     tiled_tile_t tiles[TILED_MAX_TILES_IN_TILESET];  // (optional)
-    u32 tilewidth;         // Maximum width of tiles in this set
+    u32 tilewidth;                     // Maximum width of tiles in this set
     // tiled_transformation_t transformations // Allowed transformations (optional)
-    // char* transparentcolor // Hex-formatted color (#RRGGBB) (optional)
-    // char* type            // "tileset"
-    // char* version         // The JSON format version
-    // wangsets[]            // array of wangsets
+    // char* transparentcolor          // Hex-formatted color (#RRGGBB) (optional)
+    // char* type                      // "tileset"
+    // char* version                   // The JSON format version
+    // wangsets[]                      // array of wangsets
 
     u32 tile_count = 0; // NOTE nr of *special* tiles in this tileset (ours)
 };
@@ -181,16 +171,14 @@ enum tiled_renderorder_e
 #define TILED_MAX_TILESETS 5
 struct tiled_map_t
 {
-    // A MAP IN TILED IS MADE UP OUT OF:
-    //
-    // char* backgroundcolor // hex-formatted color;
+    // char* backgroundcolor                      // hex-formatted color;
     u32 compressionlevel;
-    u32 height;              // number of tilerows
+    u32 height;                                   // number of tilerows
     // i32 hexsidelength;
     b32 infinite;
     tiled_layer_t layers[TILED_MAX_LAYERS];
-    u32 nextlayerid;  // TODO what is this
-    u32 nextobjectid; // TODO what is this
+    u32 nextlayerid;                              // TODO what is this
+    u32 nextobjectid;                             // TODO what is this
     tiled_orientation_e orientation;
     tiled_renderorder_e renderorder;
     // char* staggeraxis                          // x or y
@@ -199,7 +187,7 @@ struct tiled_map_t
     u32 tileheight;                               // Map grid height
     tiled_tileset_t tilesets[TILED_MAX_TILESETS]; // only embedded tilesets are supported
     u32 tilewidth;                                // Map grid width
-    const char* type;                             // = "map"
+    char type[MAX_STRING_SIZE];                   // = "map"
     // char* version                              // JSON format version
     u32 width;                                    // Number of tile columns
 

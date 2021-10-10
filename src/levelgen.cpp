@@ -7,6 +7,13 @@
 #include "levelgen.h"
 
 //internal
+void copy_json_string(char* str_buf, u32 buf_size, const char* string)
+{
+    ASSERT(buf_size >= strlen(string));
+    strcpy(str_buf, string);
+}
+
+//internal
 void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
 {
     struct json_array_s* array = ((struct json_array_s*) value->payload);
@@ -22,7 +29,8 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
             if (strcmp(name, "gid") == 0) o->gid = atoi(json_value_as_number(obj->value)->number);
             else if (strcmp(name, "height") == 0) o->height = atof(json_value_as_number(obj->value)->number);
             else if (strcmp(name, "id") == 0) o->id = atoi(json_value_as_number(obj->value)->number);
-            else if (strcmp(name, "name") == 0) o->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+            else if (strcmp(name, "name") == 0)
+                copy_json_string(o->name, sizeof(o->name), json_value_as_string(obj->value)->string);
             else if (strcmp(name, "properties") == 0)
             {
                 // TODO
@@ -31,7 +39,8 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
             {
                 // TODO
             }
-            else if (strcmp(name, "type") == 0) o->type = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+            else if (strcmp(name, "type") == 0)
+                copy_json_string(o->type, sizeof(o->type), json_value_as_string(obj->value)->string);
             else if (strcmp(name, "visible") == 0) o->visible = !json_value_is_false(obj->value);
             else if (strcmp(name, "width") == 0) o->width = atof(json_value_as_number(obj->value)->number);
             else if (strcmp(name, "x") == 0) o->x = atof(json_value_as_number(obj->value)->number);
@@ -41,7 +50,7 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
     }
 }
 
-b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, game_state_t* game_state)
+b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
     // TODO measure performance of json parsing vs xml parsing
 
@@ -112,7 +121,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     else if (strcmp(name, "id") == 0)
                         layer->id = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "name") == 0)
-                        layer->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+                        copy_json_string(layer->name, sizeof(layer->name), json_value_as_string(obj->value)->string);
                     else if (strcmp(name, "objects") == 0)
                     {
 			fill_objects_array(obj->value, layer);
@@ -179,18 +188,18 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     if (strcmp(name, "columns") == 0) tileset->columns = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "firstgid") == 0)
                         tileset->firstgid = atoi(json_value_as_number(obj->value)->number);
-                    else if (strcmp(name, "image") == 0)
-                        tileset->image = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+                    else if (strcmp(name, "image") == 0) copy_json_string(tileset->image, sizeof(tileset->image),
+                                                                          json_value_as_string(obj->value)->string);
                     else if (strcmp(name, "imageheight") == 0)
                         tileset->imageheight = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "imagewidth") == 0)
                         tileset->imagewidth = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "margin") == 0)
                         tileset->margin = atoi(json_value_as_number(obj->value)->number);
-                    else if (strcmp(name, "name") == 0)
-                        tileset->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
-                    else if (strcmp(name, "source") == 0)
-                        tileset->source = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+                    else if (strcmp(name, "name") == 0) copy_json_string(tileset->name, sizeof(tileset->name),
+                                                                         json_value_as_string(obj->value)->string);
+                    else if (strcmp(name, "source") == 0) copy_json_string(tileset->source, sizeof(tileset->source),
+                                                                           json_value_as_string(obj->value)->string);
                     else if (strcmp(name, "spacing") == 0)
                         tileset->spacing = atoi(json_value_as_number(obj->value)->number);
                     else if (strcmp(name, "tilecount") == 0)
@@ -218,7 +227,8 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                                     tile->id = atoi(json_value_as_number(obj->value)->number);
                                 }
                                 else if (strcmp(name, "image") == 0)
-                                    tile->image = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+                                    copy_json_string(tile->image, sizeof(tile->image),
+                                                     json_value_as_string(obj->value)->string);
                                 else if (strcmp(name, "imageheight") == 0)
                                 {
                                     tile->imageheight = atoi(json_value_as_number(obj->value)->number);
@@ -250,7 +260,8 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                                     }
                                 }
                                 else if (strcmp(name, "type") == 0)
-                                    tile->type = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+                                    copy_json_string(tile->type, sizeof(tile->type),
+                                                     json_value_as_string(obj->value)->string);
                                 else UNREACHABLE("unknown attribut '%s' for tile\n", name)
                             }
                         }
@@ -262,13 +273,14 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
             }
         }
         else if (strcmp(name, "tilewidth") == 0) map->tilewidth = atoi(json_value_as_number(elem->value)->number);
-        else if (strcmp(name, "type") == 0) map->type = "map"; // NOTE no other types as of 1.7.2
+        else if (strcmp(name, "type") == 0)
+            copy_json_string(map->type, sizeof(map->type), "map"); // NOTE no other types as of 1.7.2
         else if (strcmp(name, "version") == 0) { /* TODO */ }
         else if (strcmp(name, "width") == 0) map->width = atoi(json_value_as_number(elem->value)->number);
         else UNREACHABLE("Unknown attribut '%s' for map", name);
     }
 
-    //free(json_dom); // we can only free this once we copy the strings
+    free(json_dom); // NOTE we can only free this bc we copy out the strings
 
     //printf("gid: %u\n", map->tilesets[0].tiles[0].objectgroup.objects[0].id);
     //printf("height: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].height);
@@ -293,7 +305,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
             {
                 const tiled_object_t* o = &layers[i].objects[j];
                 const char* type = o->type;
-                // const std::string& name = o.name;
+                // const char* name = o.name;
                 Entity newEnt = {0};
                 newEnt.active       = true;
                 newEnt.freed        = false;
@@ -305,6 +317,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                 // TODO is there a direct way?
                 for (int k = 0; k < map->tileset_count; k++)
                 {
+                    // TODO get correct last_gid
                     if (o->gid >= map->tilesets[k].firstgid &&
                         o->gid <= (map->tilesets[k].firstgid + map->tilesets[k].tiles[map->tilesets[k].tile_count-1].id))
                         //(map->tilesets[k].firstgid + map->tilesets[k].tile_count) >= o->gid)
@@ -341,10 +354,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
 
                     // TODO platform code (?)
-                    // TODO better string allocations
-                    char *result = (char*) malloc(strlen("res/") + strlen(ts->image) + 1); // +1 for the null-terminator
-                    strcpy(result, "res/"); strcat(result, ts->image);
-                    newEnt.sprite.tex   = resourcemgr_texture_load(result, game_state);
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
 
                     newEnt.renderLayer  = 1;
                     newEnt.orient       = ORIENT_DOWN;
@@ -366,11 +376,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                     newEnt.sprite.pivot = {0.5f, 0.75f};
                     // TODO why -24
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0});
-
-                    // TODO better string allocations
-                    char *result = (char*) malloc(strlen("res/") + strlen(ts->image) + 1); // +1 for the null-terminator
-                    strcpy(result, "res/"); strcat(result, ts->image);
-                    newEnt.sprite.tex   = resourcemgr_texture_load(result, game_state);
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
 
                     // TODO collider box
                     //const auto& aabb    = o.getAABB();
@@ -424,6 +430,11 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                 // CONSTRUCT TILE
                 Tile newTile = {0};
 
+                // TODO the foremost layer (Tile Layer 2 w/ the trees and the
+                // grid as of rn) is not properly lined up w/ the rest. This
+                // only seems to be the case for the horizontal purple grid
+                // elements. Compare preview in Tiled w/ the game to see this.
+
                 // TODO collision data
                 /*
                 if (!tile->objectGroup.getObjects().empty())
@@ -443,11 +454,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                 newTile.renderLayer  = i;
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
-
-                // TODO better string allocation
-                char *result = (char*) malloc(strlen("res/") + strlen(ts->image) + 1); // +1 for the null-terminator
-                strcpy(result, "res/"); strcat(result, ts->image);
-                newTile.sprite.tex   = resourcemgr_texture_load(result, game_state);
+                newTile.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
 
                 newTile.setPivPos({x * 16.f, y * 16.f, 0});
 
@@ -489,8 +496,8 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
 
             for (const auto& o : objs)
             {
-                const std::string& type = o.getType();
-                //const std::string& name = o.getName();
+                const char* type = o.getType();
+                //const char* name = o.getName();
                 Entity newEnt = {0};
                 newEnt.active       = true;
                 newEnt.freed        = false;
