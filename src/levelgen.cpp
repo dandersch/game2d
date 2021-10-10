@@ -52,6 +52,8 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
 #include "debug.h" // for rudimentary profiling
 b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
+    // TODO measure performance of json parsing vs xml parsing
+
     struct json_value_s* json_dom;
     { // JSON PARSING
         file_t json_file = platform.file_load("res/tiletest.json");
@@ -85,356 +87,210 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
     // if (strcmp(name, "layers") == 0) { ... }
     // ...
     // if (elem != nullptr) UNREACHABLE("Unknown attribute '%s' for _\n", name);
-    //
-    // NOTE this relies on the ordering of the json objects (alphabetical),
-    // which cannot be relied upon for any given json file.
 
-    #define NEXT_NODE(obj, name_str) obj = obj->next; if(obj) name_str = obj->name->string
-    json_object_element_s* elem = object->start;
-    const char* name = elem->name->string;
-    if (strcmp(name, "compressionlevel") == 0)
+    for (json_object_element_s* elem = object->start; elem != nullptr; elem = elem->next)
     {
-        map->compressionlevel = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "height") == 0)
-    {
-        map->height = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "infinite") == 0)
-    {
-        map->infinite = !json_value_is_false(elem->value);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "layers") == 0)
-    {
-        // array traversal
-        struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
-        size_t arr_len = array->length;
-        // NOTE we could dynamically allocate memory for the layers array based on arr_len here
-        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+        const char* name = elem->name->string;
+
+        if (strcmp(name, "compressionlevel") == 0)
+            map->compressionlevel = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "height") == 0) map->height = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "infinite") == 0) map->infinite = !json_value_is_false(elem->value);
+        else if (strcmp(name, "layers") == 0)
         {
-            // create layer
-            tiled_layer_t* layer = &map->layers[map->layer_count++];
-            json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
-            const char* name = obj->name->string;
-            if (strcmp(name, "data") == 0)
+            // array traversal
+            struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
+            size_t arr_len = array->length;
+            // NOTE we could dynamically allocate memory for the layers array based on arr_len here
+            for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
             {
-                // fill layer->data array
-                struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
-                for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+                // create layer
+                tiled_layer_t* layer = &map->layers[map->layer_count++];
+                for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
+                     obj != NULL; obj = obj->next)
                 {
-                    layer->data[layer->tile_count++] = atoi(json_value_as_number(elem->value)->number);
-                }
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "draworder") == 0)
-            {
-                const char* string = (json_value_as_string(obj->value)->string);
-                if (strcmp(string, "topdown") == 0) layer->draworder = false;
-                else if (strcmp(string, "index") == 0)   layer->draworder = true;
-                else UNREACHABLE("Unknown draworder '%s'\n", name);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "height") == 0)
-            {
-                layer->height = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "id") == 0)
-            {
-                layer->id = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "name") == 0)
-            {
-                copy_json_string(layer->name, sizeof(layer->name), json_value_as_string(obj->value)->string);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "objects") == 0)
-            {
-                fill_objects_array(obj->value, layer);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "opacity") == 0)
-            {
-                layer->opacity = atof(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "type") == 0)
-            {
-                const char* string = (json_value_as_string(obj->value)->string);
-                if (strcmp(string, "tilelayer") == 0)        layer->type = TILED_LAYER_TYPE_TILELAYER;
-                else if (strcmp(string, "objectgroup") == 0) layer->type = TILED_LAYER_TYPE_OBJECTGROUP;
-                else if (strcmp(string, "imagelayer") == 0)  layer->type = TILED_LAYER_TYPE_IMAGELAYER;
-                else if (strcmp(string, "group") == 0)       layer->type = TILED_LAYER_TYPE_GROUP;
-                else UNREACHABLE("Unknown type '%s' for layer\n", string);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "visible") == 0)
-            {
-                layer->visible = !json_value_is_false(obj->value);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "width") == 0)
-            {
-                layer->width = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "x") == 0)
-            {
-                layer->x = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj,name);
-            }
-            if (strcmp(name, "y") == 0)
-            {
-                layer->y = atoi(json_value_as_number(obj->value)->number);
-                obj = obj->next; // NOTE don't use the macro for last node
-            }
-            if (obj != nullptr) UNREACHABLE("Unknown attribute '%s' for layer\n", name);
-        }
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "nextlayerid") == 0)
-    {
-        map->nextlayerid = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "nextobjectid") == 0)
-    {
-        map->nextobjectid = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "orientation") == 0)
-    {
-        const char* orient = json_value_as_string(elem->value)->string;
-        if (strcmp(orient, "orthogonal") == 0)     map->orientation = TILED_ORIENTATION_ORTHOGONAL;
-        else if (strcmp(orient, "isometric") == 0) map->orientation = TILED_ORIENTATION_ISOMETRIC;
-        else if (strcmp(orient, "staggered") == 0) map->orientation = TILED_ORIENTATION_STAGGERED;
-        else if (strcmp(orient, "hexagonal") == 0) map->orientation = TILED_ORIENTATION_HEXAGONAL;
-        else UNREACHABLE("unknown orientation '%s' for map\n", orient);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "renderorder") == 0)
-    {
-        const char* order = json_value_as_string(elem->value)->string;
-        if (strcmp(order, "right-down") == 0)     map->renderorder = TILED_RENDERORDER_RIGHT_DOWN;
-        else if (strcmp(order, "right-up") == 0)  map->renderorder = TILED_RENDERORDER_RIGHT_UP;
-        else if (strcmp(order, "left-down") == 0) map->renderorder = TILED_RENDERORDER_LEFT_DOWN;
-        else if (strcmp(order, "left-up") == 0)   map->renderorder = TILED_RENDERORDER_LEFT_UP;
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "tiledversion") == 0)
-    {
-        /* TODO */
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "tileheight") == 0)
-    {
-        map->tileheight = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "tilesets") == 0)
-    {
-        // iterate through array
-        struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
-        size_t arr_len = array->length;
-        // NOTE we could dynamically allocate memory for the tilesets array based on arr_len here
-        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
-        {
-            // NOTE tilesets inside a map only contain the gid & the filename of the tileset when the
-            // tilemap is not exported w/ the export option "embed tileset". Currently we only support
-            // embedded tilesets
-            tiled_tileset_t* tileset = &map->tilesets[map->tileset_count++];
-            json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
-            const char* name = obj->name->string;
-            if (strcmp(name, "columns") == 0)
-            {
-                tileset->columns = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "firstgid") == 0)
-            {
-                tileset->firstgid = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "image") == 0)
-            {
-                copy_json_string(tileset->image, sizeof(tileset->image), json_value_as_string(obj->value)->string);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "imageheight") == 0)
-            {
-                tileset->imageheight = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "imagewidth") == 0)
-            {
-                tileset->imagewidth = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "margin") == 0)
-            {
-               tileset->margin = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "name") == 0)
-            {
-                copy_json_string(tileset->name, sizeof(tileset->name), json_value_as_string(obj->value)->string);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "source") == 0)
-            {
-                copy_json_string(tileset->source, sizeof(tileset->source), json_value_as_string(obj->value)->string);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "spacing") == 0)
-            {
-                tileset->spacing = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "tilecount") == 0)
-            {
-                tileset->tilecount = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "tileheight") == 0)
-            {
-                tileset->tileheight = atoi(json_value_as_number(obj->value)->number);
-                NEXT_NODE(obj, name);
-            }
-            if (strcmp(name, "tiles") == 0)
-            {
-                struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
-                size_t arr_len = array->length;
-                // NOTE we could dynamically allocate memory for the tiles array based on arr_len here
-                for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
-                {
-                    tiled_tile_t* tile = &tileset->tiles[tileset->tile_count++];
-                    json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
                     const char* name = obj->name->string;
-                    if (strcmp(name, "animation") == 0)
+                    if (strcmp(name, "data") == 0)
                     {
-                        // TODO iterate through the array of frames
-                        NEXT_NODE(obj, name);
+                        // fill layer->data array
+                        struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
+                        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+                        {
+                            layer->data[layer->tile_count++] = atoi(json_value_as_number(elem->value)->number);
+                        }
                     }
-                    if (strcmp(name, "id") == 0)
+                    else if (strcmp(name, "draworder") == 0)
                     {
-                        tile->id = atoi(json_value_as_number(obj->value)->number);
-                        NEXT_NODE(obj, name);
+                        const char* string = (json_value_as_string(obj->value)->string);
+                        if (strcmp(string, "topdown") == 0) layer->draworder = false;
+                        else if (strcmp(string, "index") == 0)   layer->draworder = true;
+                        else UNREACHABLE("Unknown draworder '%s'\n", name);
                     }
-                    if (strcmp(name, "image") == 0)
+                    else if (strcmp(name, "height") == 0)
+                        layer->height = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "id") == 0)
+                        layer->id = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "name") == 0)
+                        copy_json_string(layer->name, sizeof(layer->name), json_value_as_string(obj->value)->string);
+                    else if (strcmp(name, "objects") == 0)
                     {
-                        copy_json_string(tile->image, sizeof(tile->image), json_value_as_string(obj->value)->string);
-                        NEXT_NODE(obj, name);
+                        fill_objects_array(obj->value, layer);
                     }
-                    if (strcmp(name, "imageheight") == 0)
+                    else if (strcmp(name, "opacity") == 0)
+                        layer->opacity = atof(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "type") == 0)
                     {
-                        tile->imageheight = atoi(json_value_as_number(obj->value)->number);
-                        NEXT_NODE(obj, name);
+                        const char* string = (json_value_as_string(obj->value)->string);
+                        if (strcmp(string, "tilelayer") == 0)        layer->type = TILED_LAYER_TYPE_TILELAYER;
+                        else if (strcmp(string, "objectgroup") == 0) layer->type = TILED_LAYER_TYPE_OBJECTGROUP;
+                        else if (strcmp(string, "imagelayer") == 0)  layer->type = TILED_LAYER_TYPE_IMAGELAYER;
+                        else if (strcmp(string, "group") == 0)       layer->type = TILED_LAYER_TYPE_GROUP;
+                        else UNREACHABLE("Unknown type '%s' for layer\n", string);
                     }
-                    if (strcmp(name, "imagewidth") == 0)
-                    {
-                        tile->imagewidth = atoi(json_value_as_number(obj->value)->number);
-                        NEXT_NODE(obj, name);
-                    }
-                    if (strcmp(name, "objectgroup") == 0)
-                    {
-                        tiled_layer_t* obj_group = &tile->objectgroup;
-                        obj_group->type = TILED_LAYER_TYPE_OBJECTGROUP; // type is always objectgroup here
-                        json_object_element_s* elem = ((json_object_element_s*) obj->value)->next;
-                        const char* name = elem->name->string;
-                        // TODO
-                        if (strcmp(name, "draworder") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "id") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "name") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "objects") == 0)
-                        {
-                            fill_objects_array(elem->value, obj_group);
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "opacity") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "type") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "visible") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "x") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (strcmp(name, "y") == 0)
-                        {
-                            NEXT_NODE(elem, name);
-                        }
-                        if (elem != nullptr)
-                        {
-                            UNREACHABLE("unknown attribut '%s' for objectgroup layer\n", name);
-                        }
-                        NEXT_NODE(obj, name);
-                    }
-                    if (strcmp(name, "type") == 0)
-                    {
-                        copy_json_string(tile->type, sizeof(tile->type), json_value_as_string(obj->value)->string);
-                        NEXT_NODE(obj, name);
-                    }
-                    if (obj != nullptr)
-                    {
-                        UNREACHABLE("unknown attribut '%s' for tile\n", name);
-                    }
+                    else if (strcmp(name, "visible") == 0) layer->visible = !json_value_is_false(obj->value);
+                    else if (strcmp(name, "width") == 0) layer->width = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "x") == 0) layer->x = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "y") == 0) layer->y = atoi(json_value_as_number(obj->value)->number);
+                    else UNREACHABLE("Unknown attribute '%s' for layer\n", name);
                 }
-                NEXT_NODE(obj, name);
             }
-            if (strcmp(name, "tilewidth") == 0)
-            {
-                tileset->tilewidth = atoi(json_value_as_number(obj->value)->number);
-                obj = obj->next; // NOTE don't use the macro for last node
-            }
-            else UNREACHABLE("unknown attribute '%s' for tileset\n", name);
-
         }
-        NEXT_NODE(elem, name);
+        else if (strcmp(name, "nextlayerid") == 0)
+            map->nextlayerid = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "nextobjectid") == 0)
+            map->nextobjectid = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "orientation") == 0)
+        {
+            const char* orient = json_value_as_string(elem->value)->string;
+            if (strcmp(orient, "orthogonal") == 0)     map->orientation = TILED_ORIENTATION_ORTHOGONAL;
+            else if (strcmp(orient, "isometric") == 0) map->orientation = TILED_ORIENTATION_ISOMETRIC;
+            else if (strcmp(orient, "staggered") == 0) map->orientation = TILED_ORIENTATION_STAGGERED;
+            else if (strcmp(orient, "hexagonal") == 0) map->orientation = TILED_ORIENTATION_HEXAGONAL;
+            else UNREACHABLE("unknown orientation '%s' for map\n", orient);
+        }
+        else if (strcmp(name, "renderorder") == 0)
+        {
+            const char* order = json_value_as_string(elem->value)->string;
+            if (strcmp(order, "right-down") == 0)     map->renderorder = TILED_RENDERORDER_RIGHT_DOWN;
+            else if (strcmp(order, "right-up") == 0)  map->renderorder = TILED_RENDERORDER_RIGHT_UP;
+            else if (strcmp(order, "left-down") == 0) map->renderorder = TILED_RENDERORDER_LEFT_DOWN;
+            else if (strcmp(order, "left-up") == 0)   map->renderorder = TILED_RENDERORDER_LEFT_UP;
+        }
+        else if (strcmp(name, "tiledversion") == 0) { /* TODO */ }
+        else if (strcmp(name, "tileheight") == 0) map->tileheight = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "tilesets") == 0)
+        {
+            // iterate through array
+            struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
+            size_t arr_len = array->length;
+            // NOTE we could dynamically allocate memory for the tilesets array based on arr_len here
+            for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+            {
+                // NOTE tilesets inside a map only contain the gid & the filename of the tileset when the
+                // tilemap is not exported w/ the export option "embed tileset". Currently we only support
+                // embedded tilesets
+                tiled_tileset_t* tileset = &map->tilesets[map->tileset_count++];
+                for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
+                     obj != NULL; obj = obj->next)
+                {
+                    const char* name = obj->name->string;
+
+                    if (strcmp(name, "columns") == 0) tileset->columns = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "firstgid") == 0)
+                        tileset->firstgid = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "image") == 0) copy_json_string(tileset->image, sizeof(tileset->image),
+                                                                          json_value_as_string(obj->value)->string);
+                    else if (strcmp(name, "imageheight") == 0)
+                        tileset->imageheight = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "imagewidth") == 0)
+                        tileset->imagewidth = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "margin") == 0)
+                        tileset->margin = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "name") == 0) copy_json_string(tileset->name, sizeof(tileset->name),
+                                                                         json_value_as_string(obj->value)->string);
+                    else if (strcmp(name, "source") == 0) copy_json_string(tileset->source, sizeof(tileset->source),
+                                                                           json_value_as_string(obj->value)->string);
+                    else if (strcmp(name, "spacing") == 0)
+                        tileset->spacing = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "tilecount") == 0)
+                        tileset->tilecount = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "tileheight") == 0)
+                        tileset->tileheight = atoi(json_value_as_number(obj->value)->number);
+                    else if (strcmp(name, "tiles") == 0)
+                    {
+                        struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
+                        size_t arr_len = array->length;
+                        // NOTE we could dynamically allocate memory for the tiles array based on arr_len here
+                        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+                        {
+                            tiled_tile_t* tile = &tileset->tiles[tileset->tile_count++];
+                            for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
+                                 obj != NULL; obj = obj->next)
+                            {
+                                const char* name = obj->name->string;
+                                if (strcmp(name, "animation") == 0)
+                                {
+                                    // TODO iterate through the array of frames
+                                }
+                                else if (strcmp(name, "id") == 0)
+                                {
+                                    tile->id = atoi(json_value_as_number(obj->value)->number);
+                                }
+                                else if (strcmp(name, "image") == 0)
+                                    copy_json_string(tile->image, sizeof(tile->image),
+                                                     json_value_as_string(obj->value)->string);
+                                else if (strcmp(name, "imageheight") == 0)
+                                {
+                                    tile->imageheight = atoi(json_value_as_number(obj->value)->number);
+                                }
+                                else if (strcmp(name, "imagewidth") == 0)
+                                    tile->imagewidth = atoi(json_value_as_number(obj->value)->number);
+                                else if (strcmp(name, "objectgroup") == 0)
+                                {
+                                    tiled_layer_t* obj_group = &tile->objectgroup;
+                                    obj_group->type = TILED_LAYER_TYPE_OBJECTGROUP;
+                                    for (json_object_element_s* elem = ((json_object_element_s*) obj->value)->next;
+                                         elem != NULL; elem = elem->next)
+                                    {
+                                        const char* name = elem->name->string;
+                                        // TODO
+                                        if (strcmp(name, "draworder") == 0) ;
+                                        else if (strcmp(name, "id") == 0) ;
+                                        else if (strcmp(name, "name") == 0) ;
+                                        else if (strcmp(name, "objects") == 0)
+                                        {
+                                            fill_objects_array(elem->value, obj_group);
+                                        }
+                                        else if (strcmp(name, "opacity") == 0) ;
+                                        else if (strcmp(name, "type") == 0) ;
+                                        else if (strcmp(name, "visible") == 0) ;
+                                        else if (strcmp(name, "x") == 0) ;
+                                        else if (strcmp(name, "y") == 0) ;
+                                        else UNREACHABLE("unknown attribut '%s' for objectgroup layer\n", name);
+                                    }
+                                }
+                                else if (strcmp(name, "type") == 0)
+                                    copy_json_string(tile->type, sizeof(tile->type),
+                                                     json_value_as_string(obj->value)->string);
+                                else UNREACHABLE("unknown attribut '%s' for tile\n", name)
+                            }
+                        }
+                    }
+                    else if (strcmp(name, "tilewidth") == 0)
+                        tileset->tilewidth = atoi(json_value_as_number(obj->value)->number);
+                    else UNREACHABLE("unknown attribute '%s' for tileset\n", name);
+                }
+            }
+        }
+        else if (strcmp(name, "tilewidth") == 0) map->tilewidth = atoi(json_value_as_number(elem->value)->number);
+        else if (strcmp(name, "type") == 0)
+            copy_json_string(map->type, sizeof(map->type), "map"); // NOTE no other types as of 1.7.2
+        else if (strcmp(name, "version") == 0) { /* TODO */ }
+        else if (strcmp(name, "width") == 0) map->width = atoi(json_value_as_number(elem->value)->number);
+        else UNREACHABLE("Unknown attribut '%s' for map", name);
     }
-    if (strcmp(name, "tilewidth") == 0)
-    {
-        map->tilewidth = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "type") == 0)
-    {
-        copy_json_string(map->type, sizeof(map->type), "map"); // NOTE no other types as of 1.7.2
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "version") == 0)
-    {
-        /* TODO */
-        NEXT_NODE(elem, name);
-    }
-    if (strcmp(name, "width") == 0)
-    {
-        map->width = atoi(json_value_as_number(elem->value)->number);
-        NEXT_NODE(elem, name);
-    }
-    if (elem != nullptr) UNREACHABLE("Unknown attribut '%s' for map\n", name);
 
     free(json_dom); // NOTE we can only free this bc we copy out the strings
-
     } // TIMED_BLOCK
 
     //////////////////////////////////////////////////////////////////////////////////////////////
