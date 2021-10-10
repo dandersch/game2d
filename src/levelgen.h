@@ -49,7 +49,7 @@ enum tiled_layer_type_e
     TILED_LAYER_TYPE_GROUP,
     TILED_LAYER_TYPE_COUNT
 };
-#define TILED_MAX_GIDS_PER_LAYER 100000  // TODO find a better max
+#define TILED_MAX_GIDS_PER_LAYER 10000   // TODO find a better max
 #define TILED_MAX_OBJECTS_PER_LAYER 1000 // TODO find a better max
 struct tiled_layer_t
 {
