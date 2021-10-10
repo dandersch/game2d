@@ -6,8 +6,45 @@
 
 #include "levelgen.h"
 
+//internal
+void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
+{
+    struct json_array_s* array = ((struct json_array_s*) value->payload);
+    size_t arr_len = array->length;
+    // NOTE we could dynamically allocate memory here
+    for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
+    {
+        tiled_object_t* o = &layer->objects[layer->obj_count++];
+        for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next; obj != NULL; obj = obj->next)
+        {
+            // TODO this is duplicated from above; pull into function
+            const char* name = obj->name->string;
+            if (strcmp(name, "gid") == 0) o->gid = atoi(json_value_as_number(obj->value)->number);
+            else if (strcmp(name, "height") == 0) o->height = atof(json_value_as_number(obj->value)->number);
+            else if (strcmp(name, "id") == 0) o->id = atoi(json_value_as_number(obj->value)->number);
+            else if (strcmp(name, "name") == 0) o->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+            else if (strcmp(name, "properties") == 0)
+            {
+                // TODO
+            }
+            else if (strcmp(name, "rotation") == 0)
+            {
+                // TODO
+            }
+            else if (strcmp(name, "type") == 0) o->type = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
+            else if (strcmp(name, "visible") == 0) o->visible = !json_value_is_false(obj->value);
+            else if (strcmp(name, "width") == 0) o->width = atof(json_value_as_number(obj->value)->number);
+            else if (strcmp(name, "x") == 0) o->x = atof(json_value_as_number(obj->value)->number);
+            else if (strcmp(name, "y") == 0) o->y = atof(json_value_as_number(obj->value)->number);
+            else UNREACHABLE("unknown attribute '%s' for tiled object\n", name);
+        }
+    }
+}
+
 b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
+    // TODO measure performance of json parsing vs xml parsing
+
     // testing json loading & parsing
     file_t json_file = platform.file_load("res/tiletest.json");
 
@@ -78,45 +115,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                         layer->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
                     else if (strcmp(name, "objects") == 0)
                     {
-                        // TODO fill objects array in layer
-                        struct json_array_s* array = ((struct json_array_s*) obj->value->payload);
-                        u32 array_idx = 0;
-                        for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
-                        {
-                            tiled_object_t* t_obj = &layer->objects[layer->obj_count++];
-                            for (json_object_element_s* obj = ((json_object_element_s*) elem->value)->next;
-                                 obj != NULL; obj = obj->next)
-                            {
-                                const char* name = obj->name->string;
-                                if (strcmp(name, "gid") == 0)
-                                    t_obj->gid = atoi(json_value_as_number(obj->value)->number);
-                                else if (strcmp(name, "height") == 0)
-                                    t_obj->height = atof(json_value_as_number(obj->value)->number);
-                                else if (strcmp(name, "id") == 0)
-                                    t_obj->id = atoi(json_value_as_number(obj->value)->number);
-                                else if (strcmp(name, "name") == 0)
-                                    t_obj->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
-                                else if (strcmp(name, "properties") == 0)
-                                {
-                                    // TODO
-                                }
-                                else if (strcmp(name, "rotation") == 0)
-                                {
-                                    // TODO
-                                }
-                                else if (strcmp(name, "type") == 0)
-                                    t_obj->type = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
-                                else if (strcmp(name, "visible") == 0)
-                                    t_obj->visible = !json_value_is_false(obj->value);
-                                else if (strcmp(name, "width") == 0)
-                                    t_obj->width = atof(json_value_as_number(obj->value)->number);
-                                else if (strcmp(name, "x") == 0)
-                                    t_obj->x = atof(json_value_as_number(obj->value)->number);
-                                else if (strcmp(name, "y") == 0)
-                                    t_obj->y = atof(json_value_as_number(obj->value)->number);
-                                else UNREACHABLE("unknown attribute '%s' for tiled object\n", name);
-                            }
-                        }
+			fill_objects_array(obj->value, layer);
                     }
                     else if (strcmp(name, "opacity") == 0)
                         layer->opacity = atof(json_value_as_number(obj->value)->number);
@@ -217,7 +216,6 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                                 else if (strcmp(name, "id") == 0)
                                 {
                                     tile->id = atoi(json_value_as_number(obj->value)->number);
-                                    printf("id: %u\n", tile->id);
                                 }
                                 else if (strcmp(name, "image") == 0)
                                     tile->image = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
@@ -241,48 +239,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                                         else if (strcmp(name, "name") == 0) ;
                                         else if (strcmp(name, "objects") == 0)
                                         {
-                                            struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
-                                            size_t arr_len = array->length;
-                                            // NOTE we could dynamically allocate memory here
-                                            for (json_array_element_s* elem = array->start;
-                                                 elem != nullptr; elem = elem->next)
-                                            {
-                                                tiled_object_t* o = &obj_group->objects[obj_group->obj_count++];
-                                                for (json_object_element_s* obj =
-                                                         ((json_object_element_s*) elem->value)->next;
-                                                     obj != NULL; obj = obj->next)
-                                                {
-                                                    // TODO this is duplicated from above; pull into function
-                                                    const char* name = obj->name->string;
-                                                    if (strcmp(name, "gid") == 0)
-                                                        o->gid = atoi(json_value_as_number(obj->value)->number);
-                                                    else if (strcmp(name, "height") == 0)
-                                                        o->height = atof(json_value_as_number(obj->value)->number);
-                                                    else if (strcmp(name, "id") == 0)
-                                                        o->id = atoi(json_value_as_number(obj->value)->number);
-                                                    else if (strcmp(name, "name") == 0)
-                                                        o->name = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
-                                                    else if (strcmp(name, "properties") == 0)
-                                                    {
-                                                        // TODO
-                                                    }
-                                                    else if (strcmp(name, "rotation") == 0)
-                                                    {
-                                                        // TODO
-                                                    }
-                                                    else if (strcmp(name, "type") == 0)
-                                                        o->type = json_value_as_string(obj->value)->string; // TODO use sth. like strcpy()
-                                                    else if (strcmp(name, "visible") == 0)
-                                                        o->visible = !json_value_is_false(obj->value);
-                                                    else if (strcmp(name, "width") == 0)
-                                                        o->width = atof(json_value_as_number(obj->value)->number);
-                                                    else if (strcmp(name, "x") == 0)
-                                                        o->x = atof(json_value_as_number(obj->value)->number);
-                                                    else if (strcmp(name, "y") == 0)
-                                                        o->y = atof(json_value_as_number(obj->value)->number);
-                                                    else UNREACHABLE("unknown attribute '%s' for tiled object\n", name);
-                                                }
-                                            }
+                                            fill_objects_array(elem->value, obj_group);
                                         }
                                         else if (strcmp(name, "opacity") == 0) ;
                                         else if (strcmp(name, "type") == 0) ;
@@ -310,6 +267,8 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
         else if (strcmp(name, "width") == 0) map->width = atoi(json_value_as_number(elem->value)->number);
         else UNREACHABLE("Unknown attribut '%s' for map", name);
     }
+
+    //free(json_dom); // we can only free this once we copy the strings
 
     //printf("gid: %u\n", map->tilesets[0].tiles[0].objectgroup.objects[0].id);
     //printf("height: %f\n", map->tilesets[0].tiles[0].objectgroup.objects[0].height);
@@ -460,7 +419,7 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
                 u32 y_pos   = ts->margin + col_idx * (ts->tileheight + ts->spacing);
 
                 // to create the spritebox
-                rect_t bb = bb = { (i32) x_pos, (i32) y_pos, (i32) ts->tilewidth, (i32) ts->tileheight };
+                rect_t bb = { (i32) x_pos, (i32) y_pos, (i32) ts->tilewidth, (i32) ts->tileheight };
 
                 // CONSTRUCT TILE
                 Tile newTile = {0};
@@ -714,124 +673,4 @@ b32 levelgen_level_load(const std::string& file, Entity* ents, u32 max_ents, gam
 #endif
 
     return true;
-}
-
-void json_object_traversal(struct json_object_s* object, tiled_map_t* map);
-void create_map_from_json(struct json_value_s* root, tiled_map_t* map);
-void json_array_traversal(struct json_array_s* array, tiled_map_t* map);
-void json_object_traversal(struct json_object_s* object, tiled_map_t* map)
-{
-    for (json_object_element_s* elem = object->start; elem != nullptr; elem = elem->next)
-    {
-        switch (elem->value->type)
-        {
-            case json_type_string:
-            {
-                printf("%s has string %s\n", elem->name->string,
-                       ((json_string_s*) elem->value->payload)->string);
-            } break;
-
-            case json_type_number:
-            {
-                printf("%s has number %s\n", elem->name->string,
-                       ((json_number_s*) elem->value->payload)->number);
-            } break;
-
-            case json_type_object:
-            {
-                json_object_s* obj = (json_object_s*) elem->value->payload;
-                json_object_traversal(obj, map);
-            } break;
-
-            // TODO
-            // traverse through the layers
-            case json_type_array:
-            {
-                struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
-                size_t arr_len = array->length;
-                struct json_array_element_s* first_elem = array->start;
-                printf("%s array has length %zu\n", elem->name->string, arr_len);
-
-                if (strcmp(elem->name->string, "layers"))
-                {
-                    // create layers
-                    // map->layers[layer_count]...
-                }
-                json_array_traversal(array, map);
-            } break;
-
-            case json_type_true:
-            {
-                printf("%s is set to TRUE\n", elem->name->string);
-            } break;
-            case json_type_false:
-            {
-                printf("%s is set to FALSE\n", elem->name->string);
-            } break;
-            case json_type_null:
-            {
-                printf("%s is set to NULL\n", elem->name->string);
-            } break;
-        }
-    }
-}
-
-void json_array_traversal(struct json_array_s* array, tiled_map_t* map)
-{
-    for (json_array_element_s* elem = array->start; elem != nullptr; elem = elem->next)
-    {
-        switch (elem->value->type)
-        {
-            case json_type_string:
-            {
-                printf("%s has string %s\n", ((json_string_s*)elem->value->payload)->string,
-                       ((json_string_s*) elem->value->payload)->string);
-            } break;
-
-            case json_type_number:
-            {
-                printf("%s has number %s\n", ((json_string_s*)elem->value->payload)->string,
-                       ((json_number_s*) elem->value->payload)->number);
-            } break;
-
-            case json_type_object:
-            {
-                json_object_s* obj = (json_object_s*) elem->value->payload;
-                json_object_traversal(obj, map);
-            } break;
-
-            // traverse through the layers
-            case json_type_array:
-            {
-                struct json_array_s* array = ((struct json_array_s*) elem->value->payload);
-                size_t arr_len = array->length;
-                struct json_array_element_s* first_elem = array->start;
-                printf("%s array has length %zu\n", ((json_string_s*)elem->value->payload)->string, arr_len);
-                json_array_traversal(array, map);
-            } break;
-
-            case json_type_true:
-            {
-                //printf("%s is set to TRUE\n", elem->name->string);
-            } break;
-            case json_type_false:
-            {
-                //printf("%s is set to FALSE\n", elem->name->string);
-            } break;
-            case json_type_null:
-            {
-                //printf("%s is set to NULL\n", elem->name->string);
-            } break;
-        }
-    }
-}
-
-void create_map_from_json(struct json_value_s* root, tiled_map_t* map)
-{
-    struct json_object_s* object = (struct json_object_s*) root->payload;
-    // traverse the linked list
-    // NOTE recursively calls object_traversal & array_traversal
-    json_object_traversal(object, map);
-
-
 }
