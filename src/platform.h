@@ -60,6 +60,7 @@ typedef font_t*    (*platform_font_load_fn)(const char*, i32);
 typedef surface_t* (*platform_text_render_fn)(font_t*, const char*, color_t, u32);
 typedef void (*platform_debug_draw_fn)(platform_window_t*, rect_t, v3f, u32);
 typedef void (*platform_debug_draw_rect_fn)(platform_window_t*, rect_t*);
+typedef u64  (*platform_debug_performance_counter_fn)();
 typedef void (*platform_imgui_init_fn)(platform_window_t*, u32, u32);
 typedef void (*platform_imgui_destroy_fn)();
 typedef void (*platform_imgui_event_handle_fn)(game_input_t*);
@@ -91,6 +92,7 @@ struct platform_api_t
     platform_text_render_fn                 text_render;
     platform_debug_draw_fn                  debug_draw;
     platform_debug_draw_rect_fn             debug_draw_rect;
+    platform_debug_performance_counter_fn   debug_performance_counter;
     platform_imgui_init_fn                  imgui_init;
     platform_imgui_destroy_fn               imgui_destroy;
     platform_imgui_event_handle_fn          imgui_event_handle;

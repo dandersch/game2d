@@ -356,6 +356,11 @@ void platform_debug_draw_rect(platform_window_t* window, rect_t* dst)
     SDL_RenderDrawRect(window->renderer, (SDL_Rect*) dst);
 }
 
+u64 platform_debug_performance_counter()
+{
+    return SDL_GetPerformanceCounter();
+}
+
 texture_t* platform_texture_create_from_surface(platform_window_t* window, surface_t* surface)
 {
     SDL_Texture* tex = SDL_CreateTextureFromSurface(window->renderer, (SDL_Surface*) surface);
@@ -510,6 +515,7 @@ platform_api_t platform_api =
   &platform_text_render,
   &platform_debug_draw,
   &platform_debug_draw_rect,
+  &platform_debug_performance_counter,
   &platform_imgui_init,
   &platform_imgui_destroy,
   &platform_imgui_event_handle,
