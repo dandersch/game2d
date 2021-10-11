@@ -23,15 +23,16 @@ struct render_entry_header
 
 struct render_entry_type_draw_texture_t // all data needed for this render command
 {
-    texture_t* texture;
-    rect_t src;
-    rect_t dst;
+    texture_t* tex;
+    rect_t     src;
+    rect_t     dst;
     //rect_t  rect;
     //color_t color;
 };
 
 void renderer_init();
 void renderer_push_texture(render_entry_type_draw_texture_t draw_tex);
+void renderer_cmd_buf_process();
 
 // to issue the render command, we push it on the buffer with the right header
 //render_entry_rect_t render_entry_rect = renderer_cmd_buf_push(cmd_buf, RENDER_ENTRY_TYPE_RECT);

@@ -1,53 +1,73 @@
 #include "platform_renderer.h"
+#include "utils.h"
 
 // TODO what happens if buffer is full?
-#define MAX_CMD_BUF_SIZE 16384 // TODO find better max
+#define MAX_CMD_BUF_SIZE 500000 // TODO find better max
+//#define MAX_CMD_BUF_SIZE 16384 // TODO find better max
+//#define MAX_CMD_BUF_SIZE 350 // TODO find better max
 struct renderer_cmd_buf_t
 {
     u8  buf[MAX_CMD_BUF_SIZE];
     //u64 base_addr;
-    u8* buf_offset;
+    u8* buf_offset;            // TODO better name
+    u32 entry_count;
 };
 
-static renderer_cmd_buf_t cmds = {0};
+static renderer_cmd_buf_t cmds = {0}; // TODO allocate differently
 
 void renderer_init()
 {
-    //cmds.base_addr = cmds.buf;
-    cmds.buf_offset = cmds.buf;
+    cmds.buf_offset  = cmds.buf;
+    cmds.entry_count = 0;
 }
 
+// TODO this should be just in the renderer api and not in the opengl specific code
 void renderer_push_texture(render_entry_type_draw_texture_t draw_tex)
 {
-    render_entry_type_draw_texture_t* new_loc = (render_entry_type_draw_texture_t*) &cmds.buf_offset;
+    ASSERT(cmds.buf_offset < &cmds.buf[MAX_CMD_BUF_SIZE]);
+
+    render_entry_header header      = {RENDER_ENTRY_TYPE_DRAW_TEXTURE};
+    render_entry_header* header_loc = (render_entry_header*) cmds.buf_offset;
+    *header_loc                     = header;
+    cmds.buf_offset                += sizeof(render_entry_header);
+
+    render_entry_type_draw_texture_t* new_loc = (render_entry_type_draw_texture_t*) cmds.buf_offset;
     *new_loc = draw_tex;
-    cmds.buf_offset += sizeof(draw_tex);
-    printf("%p\n", cmds.buf_offset);
+    cmds.buf_offset += sizeof(render_entry_type_draw_texture_t);
+
+    cmds.entry_count++;
 }
 
-// TODO this should actually be the same across renderer backends, so it shouldn't be here
-void* renderer_cmd_buf_push(u8* cmd_buf, u32 render_entry_type)
+void renderer_cmd_buf_process(platform_window_t* window)
 {
-    /*
-    void* result;
-    switch (render_entry_type)
+    u8* curr_entry = cmds.buf;
+    for (s32 entry_nr = 0; entry_nr < cmds.entry_count; ++entry_nr)
     {
-        case RENDER_ENTRY_TYPE_RECT:
+        render_entry_header* entry_header = (render_entry_header*) curr_entry;
+        switch (entry_header->type)
         {
-            cmd_buf[curr_pos] = {render_entry_type_t};
-            result            = cmd_buf[curr_pos];
-            curr_pos         += sizeof(render_entry_rect_t);
+            case RENDER_ENTRY_TYPE_DRAW_TEXTURE:
+            {
+                curr_entry += sizeof(render_entry_header);
+                render_entry_type_draw_texture_t* draw_tex = (render_entry_type_draw_texture_t*) curr_entry;
+
+                // NOTE we need to do this here because SDL_RenderCopy expects
+                // pointers & NULL has special meaning (and a nullptr doesn't do
+                // the same things as an empty rectangle)
+                SDL_Rect* src = (SDL_Rect*) &draw_tex->src;
+                SDL_Rect* dst = (SDL_Rect*) &draw_tex->dst;
+                if (utils_rect_empty(draw_tex->src)) src = NULL;
+                if (utils_rect_empty(draw_tex->dst)) dst = NULL;
+
+                SDL_RenderCopy(window->renderer, (SDL_Texture*) draw_tex->tex, src, dst);
+                curr_entry += sizeof(render_entry_type_draw_texture_t);
+            } break;
         }
     }
 
-    return result;
-    */
+    cmds.entry_count = 0;
+    cmds.buf_offset  = cmds.buf;
 
-    return nullptr;
-}
-
-void renderer_cmd_buf_process()
-{
 #if 0
     u8* currentRenderBufferEntry = bufferToRender.baseAddress;
     for (s32 entryNumber = 0; entryNumber < bufferToRender.entryCount; ++entryNumber)

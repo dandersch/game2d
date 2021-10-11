@@ -5,14 +5,14 @@
 #include "platform.h"
 #include "input.h"
 
-// UNITY BUILD
-#include "platform_renderer_opengl.cpp" // NOTE not really opengl as of now
-
 struct platform_window_t
 {
     SDL_Window*   handle;
     SDL_Renderer* renderer;
 };
+
+// UNITY BUILD
+#include "platform_renderer_opengl.cpp" // NOTE not really opengl as of now
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
@@ -313,20 +313,9 @@ void platform_event_loop(game_input_t* input)
     }
 }
 
-// TODO replace all calls to this with calls to platform_render_texture
-// NOTE we are not actually doing anything w/ flip_type
-void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, rect_t sprite_box,
-                            v3f position, f32 scale, u32 flip_type)
-{
-    SDL_Rect dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
-
-    // NOTE: we could flip the texture w/ SDL_RenderCopyEx
-    SDL_RenderCopy(window->renderer, (SDL_Texture*) sprite_tex, (SDL_Rect*) &sprite_box, &dst);
-}
-
 void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
 {
-    SDL_RenderCopy(window->renderer, (SDL_Texture*) texture, (SDL_Rect*) src, (SDL_Rect*) dst);
+    //SDL_RenderCopy(window->renderer, (SDL_Texture*) texture, (SDL_Rect*) src, (SDL_Rect*) dst);
 
     rect_t copy_src = {0};
     rect_t copy_dst = {0};
@@ -336,6 +325,20 @@ void platform_render_texture(platform_window_t* window, texture_t* texture, rect
     renderer_push_texture(draw_tex);
 }
 
+// TODO replace all calls to this with calls to platform_render_texture
+// NOTE we are not actually doing anything w/ flip_type
+void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, rect_t sprite_box,
+                            v3f position, f32 scale, u32 flip_type)
+{
+    //SDL_Rect dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
+    rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
+
+    // NOTE: we could flip the texture w/ SDL_RenderCopyEx
+    //SDL_RenderCopy(window->renderer, (SDL_Texture*) sprite_tex, (SDL_Rect*) &sprite_box, &dst);
+
+    platform_render_texture(window, sprite_tex, &sprite_box, &dst);
+}
+
 void platform_render_clear(platform_window_t* window)
 {
     SDL_RenderClear(window->renderer);
@@ -343,6 +346,7 @@ void platform_render_clear(platform_window_t* window)
 
 void platform_render_present(platform_window_t* window)
 {
+    renderer_cmd_buf_process(window);
     SDL_RenderPresent(window->renderer);
 }
 

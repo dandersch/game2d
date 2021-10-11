@@ -303,7 +303,9 @@ void layer_menu_init()
     state->btns[2] = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100},
                        .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
 
-    // ADD CALLBACKS
+    // ADD CALLBACKS TODO this does not work with code hotloading: sometimes the
+    // function pointers get mixed up with other lambdas & sometimes a button
+    // press will just cause a segfault on
     state->btns[0].callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
     state->btns[1].callback = [](game_state_t* state) { printf("Options button pressed\n"); };
     state->btns[2].callback = [](game_state_t* state)  { state->game_running = false; }; // TODO signal to platform layer
