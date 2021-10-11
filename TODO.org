@@ -20,18 +20,18 @@
 - [X] try setting up a unity build
 - [X] set up hotloading
 - [X] improve code hotloading
-
+- [X] inline profiling
+- [X] replace tmxlite library
 - [ ] fix exit button
-- [ ] replace tmxlite library
 - [ ] add (debug) logging
-- [ ] inline profiling
+- [ ] improve inline profiling
 - [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
 - [ ] set up a renderer api & start using openGL
-- [ ] implement platform_win32.cpp
+- [ ] timer utility
 - [ ] use stb-style header files for everything
 - [ ] animation system
-- [ ] timer utility
 - [ ] use interpolation for movement
+- [ ] implement platform_win32.cpp
 - [ ] sound/audiosystem
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] tilemap culling

@@ -5,16 +5,11 @@
 struct Entity;
 
 // COMMAND /////////////////////////////////////////////////////////////////////////////////////////
-namespace CommandProcessor
-{
-
-void record(Entity& ent, Command cmd);
-void replay(Entity& ent);
-void initialize(Entity& ent);
-void execute(Entity& ent, Command cmd);
-void onEndUpdate();
-
-} // namespace CommandProcessor
+void command_record(Entity& ent, Command cmd);
+void command_replay(Entity& ent);
+void command_init(Entity& ent);
+void command_exec(Entity& ent, Command cmd);
+void command_on_update_end();
 
 // REWIND //////////////////////////////////////////////////////////////////////////////////////////
 struct PointInTime
@@ -36,10 +31,6 @@ namespace Rewind
     u32 TimeToIndex(f32 dt);
     void rewind(f32 dt, Entity& e);
 
-    // TODO
-    //bool canBeDestroyed; // determines if the timebody
-                           // & its owner should be
-                           // destroyed when the rewind is finished
 } // namespace Rewind
 
 // RESET ///////////////////////////////////////////////////////////////////////////////////////////

@@ -9,16 +9,9 @@ enum Action
     ACTION_PICKUP     = (1 << 4),
     ACTION_ATTACK     = (1 << 5),
     ACTION_RESTART    = (1 << 6),
-    ACTION_COUNT      = 7
 };
 
-namespace Input
-{
-    //extern u32 actionState;
-    //b8 actionState[ACTION_COUNT] = {0};
-    void update();
-
-} // namespace Input
+void input_update();
 
 struct game_input_state_t
 {

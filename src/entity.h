@@ -1,115 +1,102 @@
 #pragma once
-
 #include "animation.h"
 #include "rewind.h"
 
 struct sprite_t
 {
     rect_t box;
-    void*  tex;                  // SDL_Texture*  tex;
-    v2f    pivot = {0.5f, 0.5f}; //glm::vec2   pivot = {0.5f, 0.5f};
-    u32    flip  = 0;            // SDL_RendererFlip flip = SDL_FLIP_NONE;
+    texture_t*  tex;
+    v2f    pivot = {0.5f, 0.5f};
+    u32    flip  = 0;            // == SDL_RendererFlip flip = SDL_FLIP_NONE; NOTE unused
 };
 
-// TODO use regular enum...
-enum class EntityFlag : u32
+enum entity_flag_e
 {
-    NONE               = 0,
-    PLAYER_CONTROLLED  = (1 << 0),
-    CMD_CONTROLLED     = (1 << 1),
-    IS_ITEM            = (1 << 2),
-    IS_TILE            = (1 << 3),
-    IS_COLLIDER        = (1 << 4),
-    PICKUP_BOX         = (1 << 5),
-    ATTACK_BOX         = (1 << 6),
-    IS_ENEMY           = (1 << 7), // max for collision callbacks array
-    IS_ANIMATED        = (1 << 8),
-    IS_REWINDABLE      = (1 << 9),
+    ENT_FLAG_NONE               = 0,
+    ENT_FLAG_PLAYER_CONTROLLED  = (1 << 0),
+    ENT_FLAG_CMD_CONTROLLED     = (1 << 1),
+    ENT_FLAG_IS_ITEM            = (1 << 2),
+    ENT_FLAG_IS_TILE            = (1 << 3),
+    ENT_FLAG_IS_COLLIDER        = (1 << 4),
+    ENT_FLAG_PICKUP_BOX         = (1 << 5),
+    ENT_FLAG_ATTACK_BOX         = (1 << 6),
+    ENT_FLAG_IS_ENEMY           = (1 << 7), // max for collision callbacks array
+    ENT_FLAG_IS_ANIMATED        = (1 << 8),
+    ENT_FLAG_IS_REWINDABLE      = (1 << 9),
 };
 
-enum EntityState
+enum entity_state_e
 {
-    STATE_IDLE, STATE_MOVE, STATE_ATTACK,
-    STATE_COUNT
+    ENT_STATE_IDLE,
+    ENT_STATE_MOVE,
+    ENT_STATE_ATTACK,
+    ENT_STATE_COUNT
 };
 
-enum EntityOrientation
+enum entity_orientation_e
 {
-    ORIENT_DOWN, ORIENT_RIGHT, ORIENT_UP, ORIENT_LEFT,
-    ORIENT_COUNT
+    ENT_ORIENT_UP,
+    ENT_ORIENT_DOWN,
+    ENT_ORIENT_RIGHT,
+    ENT_ORIENT_LEFT,
+    ENT_ORIENT_COUNT
 };
 
 // TODO default values
 struct Entity
 {
-    // sets position in regards of entities pivot point (center by default)
-    void setPivPos(v3f pos)
-    {
-        position = {pos.x - (sprite.box.w * sprite.pivot.x),
-                    pos.y - (sprite.box.h * sprite.pivot.y), 0};
-    }
-
-    // get position without pivot (i.e. topleft of spritebox)
-    v3f getUnpivPos()
-    {
-        return {position.x + (sprite.box.w * sprite.pivot.x),
-                position.y + (sprite.box.h * sprite.pivot.y), 0};
-    }
-
-    // collider itself is relative to entity
-    rect_t getColliderInWorld()
-    {
-        return {(i32) (position.x + collider.x),
-                (i32) (position.y + collider.y),
-                collider.w, collider.h};
-    }
-
-    b32  active; // determines if needs updating
-    b32  freed = true;  // determines if can be replaced with new entity
-    u32  flags;
-    v3f  position; // NOTE maybe make private or similar bc we want pos to be set with setPivPos
-    f32  scale = 1.0f;
-    u32  orient;
-    u32  renderLayer;
-
+    // u32 charID; // TODO read in from .tmx
+    b32      active;               // determines if needs updating NOTE ZII violation ?
+    b32      freed        = true;  // determines if can be replaced with new entity NOTE ZII violation
+    u32      flags;
+    u32      state;
+    u32      orient;
+    v3f      position;             // NOTE maybe make private or similar bc we want pos to be set with setPivPos
+    f32      scale        = 1.0f;  // NOTE violation against ZII
+    u32      renderLayer;
     sprite_t sprite;
+    rect_t   collider;             // TODO box2d?
+    v3f      movement;             // desired movement for this frame, used by physics
 
-    rect_t collider; // TODO box2d?
-    //MyTile tile;
-
-    u32  state;
-
-    //AnimationClip clips[STATE_COUNT * ORIENT_COUNT] = {};
-    AnimationClip clips[1000] = {};
-    Animator anim = {nullptr, 0, 0};
-    u32 clip_count = 0;
-    //Animation anim; // TODO use an index that accesses into anims instead
+    // ANIMATION TODO
+    AnimationClip clips[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
+    Animator      anim                              = {nullptr, 0, 0};
+    u32           clip_count                        = 0;
+    //Animation anim;    // TODO use an index that accesses into anims instead
     //Animation anims[STATE_COUNT * ORIENT_COUNT];
-
-    v3f movement; // desired movement for this frame, used by physics
 
     // TODO fill up with nullcommands at start?
     //Command* cmds[MAX_CMD_COUNT]; // command array for replay
     Command* cmds = nullptr; // command array for replay
     //u32 cmdIdx = 0;
+    PointInTime* frames = nullptr;   // contains pos, state, orient, active
 
-    // contains pos, state, orient, active
-    PointInTime* frames = nullptr;
+    // ITEMS
+    Entity* owner = nullptr; // who is holding this entity
+    Entity* item  = nullptr; // what is this entity holding
+    // SoundBuffer sfx[];
 
-    Entity* owner = nullptr; // for items
-    Entity* item  = nullptr;
+    void setPivPos(v3f pos) // sets position in regards of entities pivot point (center by default)
+    {
+        position = {pos.x - (sprite.box.w * sprite.pivot.x), pos.y - (sprite.box.h * sprite.pivot.y), 0};
+    }
 
-    /*
-    u32 charID; // TODO read in from .tmx
-    SoundBuffer sfx[];
-    */
+    v3f getUnpivPos() // get position without pivot (i.e. topleft of spritebox)
+    {
+        return {position.x + (sprite.box.w * sprite.pivot.x), position.y + (sprite.box.h * sprite.pivot.y), 0};
+    }
+
+    rect_t getColliderInWorld() // collider itself is relative to entity
+    {
+        return {(i32) (position.x + collider.x), (i32) (position.y + collider.y), collider.w, collider.h};
+    }
 };
 
 // TILES ///////////////////////////////////////////////////////////////////////////////////////////
-enum class TileType
+enum tile_type_e
 {
-    GRASS,
-    DIRT
+    TILE_TYPE_GRASS,
+    TILE_TYPE_DIRT
 };
 
 struct Tile
@@ -130,7 +117,6 @@ struct Tile
 };
 
 // ENTITYMANAGER ///////////////////////////////////////////////////////////////////////////////////
-
 #define MAX_ENTITIES          1100
 #define MAX_TILES             15000
 #define MAX_ENTITIES_WO_TEMP  1000

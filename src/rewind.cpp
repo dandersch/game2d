@@ -2,7 +2,6 @@
 
 #include "entity.h"
 #include "input.h"
-#include <cmath> // for std::round
 
 static const u32 FPS       = 60;  // TODO support variable fps
 static const u32 TOLERANCE = 100;
@@ -14,23 +13,23 @@ extern game_state_t* state;
 #define MAX_CMD_COUNT 10000
 
 // TODO use move semantics?
-void CommandProcessor::record(Entity& ent, Command cmd)
+void command_record(Entity& ent, Command cmd)
 {
     ASSERT(state->cmdIdx <= MAX_CMD_COUNT - 1);
 
     ent.cmds[state->cmdIdx] = cmd;
-    execute(ent, ent.cmds[state->cmdIdx]);
+    command_exec(ent, ent.cmds[state->cmdIdx]);
 }
 
-void CommandProcessor::replay(Entity& ent)
+void command_replay(Entity& ent)
 {
     ASSERT(state->cmdIdx <= MAX_CMD_COUNT - 1);
 
-    execute(ent, ent.cmds[state->cmdIdx]);
+    command_exec(ent, ent.cmds[state->cmdIdx]);
 }
 
 // TODO use move semantics?
-void CommandProcessor::execute(Entity& ent, Command cmd)
+void command_exec(Entity& ent, Command cmd)
 {
     switch (cmd.type)
     {
@@ -51,12 +50,12 @@ void CommandProcessor::execute(Entity& ent, Command cmd)
     }
 }
 
-void CommandProcessor::initialize(Entity& ent)
+void command_init(Entity& ent)
 {
     ent.cmds = new Command[MAX_CMD_COUNT];
 }
 
-void CommandProcessor::onEndUpdate()
+void command_on_update_end()
 {
     state->cmdIdx++;
 }

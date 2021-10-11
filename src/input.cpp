@@ -12,7 +12,7 @@ extern game_state_t* state;
 // This function doesn't take into account whether shift has been pressed
 // or not.
 
-void Input::update()
+void input_update()
 {
     state->actionState = 0;
 

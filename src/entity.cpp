@@ -10,7 +10,7 @@ bool EntityMgr::copyEntity(const Entity ent)
         if (state->ents[i].freed)
         {
             state->ents[i] = ent;
-            if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
+            if (ent.flags & ENT_FLAG_IS_ANIMATED)
             {
                 // TODO should be done elsewhere
                 state->ents[i].anim.current_clip = &state->ents[i].clips[0];

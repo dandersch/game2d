@@ -387,24 +387,24 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     //    newEnt.clips[newEnt.clip_count].frames = new_frames;
                     //    newEnt.clips[newEnt.clip_count].loop   = true;
                     //    newEnt.clip_count++;
-                    //    newEnt.flags       |= (u32) EntityFlag::IS_ANIMATED;
+                    //    newEnt.flags       |= ENT_FLAG_IS_ANIMATED;
                     //}
 
                     // TODO charID
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.5f};
-                    newEnt.state        = STATE_MOVE;
+                    newEnt.state        = ENT_STATE_MOVE;
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state); // TODO platform code (?)
                     newEnt.renderLayer  = 1;
-                    newEnt.orient       = ORIENT_DOWN;
+                    newEnt.orient       = ENT_ORIENT_DOWN;
                     newEnt.collider     = collider;
-                    newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
-                    //newEnt.flags       |= (u32) EntityFlag::PLAYER_CONTROLLED;
-                    newEnt.flags       |= (u32) EntityFlag::CMD_CONTROLLED;
-                    newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
+                    newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
+                    //newEnt.flags       |= ENT_FLAG_PLAYER_CONTROLLED;
+                    newEnt.flags       |= ENT_FLAG_CMD_CONTROLLED;
+                    newEnt.flags       |= ENT_FLAG_IS_REWINDABLE;
                     Rewind::initializeFrames(newEnt);
-                    CommandProcessor::initialize(newEnt);
+                    command_init(newEnt);
 
                 } else if (strcmp(type, "Item") == 0) {
                     newEnt.sprite.box   = spritebox;
@@ -412,9 +412,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
                     newEnt.collider     = collider;
-                    newEnt.flags       |= (u32) EntityFlag::IS_COLLIDER;
-                    newEnt.flags       |= (u32) EntityFlag::IS_ITEM;
-                    newEnt.flags       |= (u32) EntityFlag::IS_REWINDABLE;
+                    newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
+                    newEnt.flags       |= ENT_FLAG_IS_ITEM;
+                    newEnt.flags       |= ENT_FLAG_IS_REWINDABLE;
                     Rewind::initializeFrames(newEnt);
                 }
                 EntityMgr::copyEntity(newEnt); // copy new entity into array TODO slow

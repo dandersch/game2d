@@ -52,18 +52,18 @@ void layer_game_handle_event()
         {
             auto ents = state->ents;
             if (!ents[i].active) continue;
-            if (!(ents[i].flags & (u32) EntityFlag::CMD_CONTROLLED)) continue;
+            if (!(ents[i].flags & ENT_FLAG_CMD_CONTROLLED)) continue;
             point_t  clickpoint = {(i32) click.x, (i32) click.y};
             rect_t   coll       = ents[i].getColliderInWorld();
-            if (point_in_rect(clickpoint, coll)) // TODO
+            if (utils_point_in_rect(clickpoint, coll)) // TODO
             {
                 if (state->focusedEntity)
                 {
-                    state->focusedEntity->flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
-                    state->focusedEntity->flags |= (u32) EntityFlag::CMD_CONTROLLED;
+                    state->focusedEntity->flags ^= ENT_FLAG_PLAYER_CONTROLLED;
+                    state->focusedEntity->flags |= ENT_FLAG_CMD_CONTROLLED;
                 }
-                ents[i].flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
-                ents[i].flags ^= (u32) EntityFlag::CMD_CONTROLLED;
+                ents[i].flags |= ENT_FLAG_PLAYER_CONTROLLED;
+                ents[i].flags ^= ENT_FLAG_CMD_CONTROLLED;
                 state->focusedEntity = &ents[i];
             }
         }
@@ -86,7 +86,7 @@ void layer_game_update(f32 dt)
     EntityMgr::freeTemporaryStorage();
 
     // update input
-    Input::update();
+    input_update();
     Reset::update(dt); // TODO fixed delta time
 
     auto tiles = EntityMgr::getTiles();
@@ -100,7 +100,7 @@ void layer_game_update(f32 dt)
         // PLAYER CONTROLLER ///////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
         {
-            if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+            if (ent.flags & ENT_FLAG_PLAYER_CONTROLLED)
             {
                 player_update(dt, ent);
             }
@@ -109,21 +109,24 @@ void layer_game_update(f32 dt)
         // COMMAND REPLAY //////////////////////////////////////////////////////////////////////////
         if (!state->isRewinding && ent.active)
         {
-            if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
+            if (ent.flags & ENT_FLAG_CMD_CONTROLLED)
             {
-                CommandProcessor::replay(ent);
+                command_replay(ent);
             }
         }
 
         // COLLISION CHECKING //////////////////////////////////////////////////////////////////////
-        if (!state->isRewinding && ent.active)
+        if (!state->isRewinding && ent.active && i != MAX_ENTITIES)
         {
             bool collided = false;
-            if ((ent.flags & (u32) EntityFlag::IS_COLLIDER) &&
-                ((ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED) ||
-                 (ent.flags & (u32) EntityFlag::CMD_CONTROLLED) ||
-                 (ent.flags & (u32) EntityFlag::ATTACK_BOX) || // TODO improve this
-                 (ent.flags & (u32) EntityFlag::PICKUP_BOX)))
+            if ((ent.flags & ENT_FLAG_IS_COLLIDER)
+                /*
+                && ((ent.flags & ENT_FLAG_PLAYER_CONTROLLED) ||
+                    (ent.flags & ENT_FLAG_CMD_CONTROLLED) ||
+                    (ent.flags & ENT_FLAG_ATTACK_BOX) || // TODO improve this
+                    (ent.flags & ENT_FLAG_PICKUP_BOX))
+                    */
+                )
             {
                 for (u32 k = 0; k < EntityMgr::getTileCount(); k++)
                 {
@@ -132,11 +135,11 @@ void layer_game_update(f32 dt)
                     if (collided) break;
                 }
 
-                for (u32 j = 0; j < MAX_ENTITIES; j++)
+                for (u32 j = i+1; j < MAX_ENTITIES; j++)
                 {
                     Entity& e2 = state->ents[j];
                     if (!e2.active) continue;
-                    if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
+                    if ((e2.flags & ENT_FLAG_IS_COLLIDER))
                         collided |= physics_check_collision(ent, e2);
                 }
             }
@@ -146,22 +149,18 @@ void layer_game_update(f32 dt)
                 ent.position = {ent.position.x + ent.movement.x,
                                 ent.position.y + ent.movement.y,
                                 ent.position.z + ent.movement.z};
-                // TODO interpolate here
-                // start = ent.position;
-                // end   = ent.position + ent.movement;
-                // ent.position = glm::mix(start, end, interpolant)
             }
         }
 
         // TIME REWIND /////////////////////////////////////////////////////////////////////////////
-        if ((ent.flags & (u32) EntityFlag::IS_REWINDABLE))
+        if ((ent.flags & ENT_FLAG_IS_REWINDABLE))
         {
             Rewind::update(dt, ent);
         }
 
         // NOTE animation should probably be last after input & collision etc.
         // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
-        if (ent.flags & (u32) EntityFlag::IS_ANIMATED)
+        if (ent.flags & ENT_FLAG_IS_ANIMATED)
         {
             //ent.sprite.box = Animator::animate(dt, ent.anim);
             ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
@@ -169,7 +168,7 @@ void layer_game_update(f32 dt)
     }
 
     // after loop update
-    CommandProcessor::onEndUpdate();
+    command_on_update_end();
 }
 
 void layer_game_render()
@@ -188,6 +187,7 @@ void layer_game_render()
             platform.render_sprite(state->window, tiles[i].sprite.tex, tiles[i].sprite.box,
                                    camera_world_to_screen(state->cam, tiles[i].position),
                                    state->cam.scale, tiles[i].sprite.flip);
+
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
             if (state->debugDraw)
@@ -199,7 +199,7 @@ void layer_game_render()
                               (i32) (tiles[i].collider.h)};
 
                 // TODO don't draw 'empty' colliders (otherwise it will draw points & lines)
-                if (!rect_empty(dst))
+                if (!utils_rect_empty(dst))
                    platform.debug_draw_rect(state->window, &dst);
             }
         }
@@ -217,8 +217,8 @@ void layer_game_render()
             {
                 // change color depending on entity flags
                 color_t c = {0,0,0,255}; // TODO get this out
-                if (ents[i].flags & (u32) EntityFlag::ATTACK_BOX) c = {255,100,100,255};
-                if (ents[i].flags & (u32) EntityFlag::PICKUP_BOX) c = {100,255,100,255};
+                if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
+                if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
 
                 platform.render_set_draw_color(state->window, c.r, c.g, c.b, c.a);
                 auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
@@ -262,15 +262,15 @@ void layer_game_imgui_render()
     {
         printf("TOGGLED\n");
         // TODO better way to toggle these bits...
-        if (ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED)
+        if (ent.flags & ENT_FLAG_PLAYER_CONTROLLED)
         {
-            ent.flags ^= (u32) EntityFlag::PLAYER_CONTROLLED;
-            ent.flags |= (u32) EntityFlag::CMD_CONTROLLED;
+            ent.flags ^= ENT_FLAG_PLAYER_CONTROLLED;
+            ent.flags |= ENT_FLAG_CMD_CONTROLLED;
         }
-        else if (ent.flags & (u32) EntityFlag::CMD_CONTROLLED)
+        else if (ent.flags & ENT_FLAG_CMD_CONTROLLED)
         {
-            ent.flags |= (u32) EntityFlag::PLAYER_CONTROLLED;
-            ent.flags ^= (u32) EntityFlag::CMD_CONTROLLED;
+            ent.flags |= ENT_FLAG_PLAYER_CONTROLLED;
+            ent.flags ^= ENT_FLAG_CMD_CONTROLLED;
         }
     }
 
@@ -338,7 +338,7 @@ void layer_menu_handle_event()
     for (int i = 0; i < MENU_BUTTON_COUNT; i++)
     {
         auto& b = state->btns[i];
-        if (point_in_rect(mouse, b.box)) b.state = Button::HOVER;
+        if (utils_point_in_rect(mouse, b.box)) b.state = Button::HOVER;
         else b.state = Button::NONE;
     }
 

@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include "debug.h"
+
 // UNITY BUILD
 #include "camera.cpp"
 #include "physics.cpp"

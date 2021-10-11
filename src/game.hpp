@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------------------------//
 
 #include <cstring> // for memset
+#include <cmath> // for std::round
 
 #include "json.h"
 

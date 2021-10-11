@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# NOTE as of right now the build relies on clang features (pch's & generation of
+# compile database json)
 
 start_timer=$(date +%s.%N)
 
@@ -31,7 +34,6 @@ SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 # pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
 clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
 
-# TODO compilation w/ gcc seems broken here (gets stuck)
 # build platform layer as executable
 clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} -ldl ${CmnLibs} \
            -include-pch platform_sdl.pch ./src/platform_sdl.cpp -o ./bin/megastruct &&
