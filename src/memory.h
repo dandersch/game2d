@@ -9,6 +9,8 @@ struct platform_window_t;
 #include "platform.h"     // for struct platform_api_t
 #include "camera.h"       // for struct camera
 
+
+typedef void (*button_callback_fn)(game_state_t*);
 struct Button
 {
     const char* label; // TODO font to render
@@ -18,7 +20,8 @@ struct Button
     texture_t* tex[COUNT];
     texture_t* text_texture;
     rect_t     text_box;
-    std::function<void(void)> callback;
+    //std::function<void(game_state_t*)> callback;
+    button_callback_fn callback;
 };
 
 struct game_state_t

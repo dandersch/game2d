@@ -1,10 +1,10 @@
 #include "player.h"
 
-#include "collision.h"
 #include "entity.h"
 #include "input.h"
 #include "platform.h"
 
+// NOTE not compatible with code hotloading
 static const f32 playerSpeed = 150.f;
 
 #include "memory.h"
@@ -24,7 +24,7 @@ v3f getDirectionFrom(u32 orient)
 }
 
 // TESTING SDL TIMER CALLBACKS /////////////////////////////
-bool isPickingUp = false;
+bool isPickingUp = false; // NOTE not compatible with code hotloading
 u32 callback(u32 interval, void* param )
 {
     printf( "PICKUP DONE AFTER: %s\n", (char*)param );
@@ -104,10 +104,10 @@ void player_try_pickup(v3f direction, Entity& ent)
     // put already held item down
     if (ent.item)
     {
-        //pickupPos = ent.position + direction;
-        ent.item->setPivPos(pickupPos); // TODO
+        ent.item->setPivPos(pickupPos); // TODO this isn't working as expected
         ent.item->flags |= (u32) EntityFlag::IS_COLLIDER;
         ent.item = nullptr;
+        isPickingUp = false;
         return;
     }
 
@@ -128,21 +128,21 @@ void player_try_pickup(v3f direction, Entity& ent)
     pickupBox.renderLayer = 1;
     pickupBox.movement = {0,0,0};
     EntityMgr::copyTempEntity(pickupBox);
+    isPickingUp = false;
 }
 
 void player_try_attack(v3f direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
-    v3f attack_pos = {ent.position.x + direction.x,
-                     ent.position.y + direction.y,
-                     ent.position.z + direction.z};
+    v3f attack_pos = {ent.position.x + direction.x, ent.position.y + direction.y, ent.position.z + direction.z};
     Entity attackBox = {0};
     attackBox.active = true;
     attackBox.freed  = false;
     attackBox.flags |= (u32) EntityFlag::IS_COLLIDER;
     attackBox.flags |= (u32) EntityFlag::ATTACK_BOX;
-    attackBox.collider = { .x = (int) attack_pos.x ,
-                           .y = (int) attack_pos.y,
-                           .w = 16, .h = 16};
+    attackBox.collider = { .x = (int) attack_pos.x , .y = (int) attack_pos.y, .w = 16, .h = 16};
+    attackBox.renderLayer = 1;
+    //attackBox.setPivPos({attack_pos});
+    attackBox.movement = {0,0,0};
     EntityMgr::copyTempEntity(attackBox);
 }

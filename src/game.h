@@ -10,6 +10,6 @@
 #include "player.h"
 #include "platform.h"
 #include "layer.h"
-#include "collision.h"
+#include "physics.h"
 #include "animation.h"
 #include "rewind.h"

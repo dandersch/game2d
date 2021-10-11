@@ -17,13 +17,13 @@ enum class EntityFlag : u32
     NONE               = 0,
     PLAYER_CONTROLLED  = (1 << 0),
     CMD_CONTROLLED     = (1 << 1),
-    IS_ANIMATED        = (1 << 2),
+    IS_ITEM            = (1 << 2),
     IS_TILE            = (1 << 3),
     IS_COLLIDER        = (1 << 4),
     PICKUP_BOX         = (1 << 5),
     ATTACK_BOX         = (1 << 6),
-    IS_ENEMY           = (1 << 7),
-    IS_ITEM            = (1 << 8),
+    IS_ENEMY           = (1 << 7), // max for collision callbacks array
+    IS_ANIMATED        = (1 << 8),
     IS_REWINDABLE      = (1 << 9),
 };
 
@@ -86,7 +86,7 @@ struct Entity
     //Animation anim; // TODO use an index that accesses into anims instead
     //Animation anims[STATE_COUNT * ORIENT_COUNT];
 
-    v3f movement; // desired movement for this frame, used by collision.h
+    v3f movement; // desired movement for this frame, used by physics
 
     // TODO fill up with nullcommands at start?
     //Command* cmds[MAX_CMD_COUNT]; // command array for replay

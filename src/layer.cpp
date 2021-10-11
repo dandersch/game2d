@@ -1,13 +1,12 @@
 #include "layer.h"
 
-#include "collision.h"
+#include "physics.h"
 #include "animation.h"
 #include "input.h"
 #include "resourcemgr.h"
 #include "rewind.h"
 #include "camera.h"
 #include "player.h"
-#include "collision.h"
 #include "globals.h"
 #include "utils.h"
 extern b32 levelgen_level_load(const char*, Entity*, u32, game_state_t*);
@@ -24,6 +23,8 @@ void layer_game_init()
 {
     if (!levelgen_level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state))
         exit(1);
+
+    physics_init();
 }
 
 void layer_game_handle_event()
@@ -121,12 +122,13 @@ void layer_game_update(f32 dt)
             if ((ent.flags & (u32) EntityFlag::IS_COLLIDER) &&
                 ((ent.flags & (u32) EntityFlag::PLAYER_CONTROLLED) ||
                  (ent.flags & (u32) EntityFlag::CMD_CONTROLLED) ||
+                 (ent.flags & (u32) EntityFlag::ATTACK_BOX) || // TODO improve this
                  (ent.flags & (u32) EntityFlag::PICKUP_BOX)))
             {
                 for (u32 k = 0; k < EntityMgr::getTileCount(); k++)
                 {
                     if (!tiles[k].collidable) continue;
-                    collided |= Collision::checkCollisionWithTiles(ent, tiles[k]);
+                    collided |= physics_check_collision_with_tile(ent, tiles[k]);
                     if (collided) break;
                 }
 
@@ -135,7 +137,7 @@ void layer_game_update(f32 dt)
                     Entity& e2 = state->ents[j];
                     if (!e2.active) continue;
                     if ((e2.flags & (u32) EntityFlag::IS_COLLIDER) && (&ent != &e2))
-                        collided |= Collision::checkCollision(ent, e2);
+                        collided |= physics_check_collision(ent, e2);
                 }
             }
             // TODO should we set movement to zero here if collided?
@@ -302,15 +304,9 @@ void layer_menu_init()
                   .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
 
     // ADD CALLBACKS
-    b1.callback = [&]() { state->g_layer_menu_is_active = false; };
-    b2.callback = []()
-    {
-        /*printf("Trying to set VSYNC. Set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC))*/;
-        /*SDL_SetHintWithPriority(SDL_HINT_RENDER_VSYNC, "0", SDL_HINT_OVERRIDE);*/
-        /*printf("Now set to: %s \n", SDL_GetHint(SDL_HINT_RENDER_VSYNC));*/
-        printf("Options button pressed!\n");
-    };
-    b3.callback = [&]()  { state->game_running = false; }; // TODO signal to platform layer
+    b1.callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
+    b2.callback = [](game_state_t* state) { printf("Options button pressed\n"); };
+    b3.callback = [](game_state_t* state)  { state->game_running = false; }; // TODO signal to platform layer
 
     state->btns.push_back(b1);
     state->btns.push_back(b2);
@@ -351,7 +347,7 @@ void layer_menu_handle_event()
             {
                 //evn->handled = true;
                 b.state = Button::PRESSED;
-                b.callback();
+                b.callback(state);
             }
         }
     }
