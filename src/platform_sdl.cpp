@@ -6,7 +6,7 @@
 #include "input.h"
 
 // UNITY BUILD
-// ...
+#include "platform_renderer_opengl.cpp" // NOTE not really opengl as of now
 
 struct platform_window_t
 {
@@ -181,6 +181,8 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
 
     SDL_RenderSetScale(window->renderer, 1.f, 1.f);
 
+    renderer_init();
+
     return window;
 }
 
@@ -316,8 +318,7 @@ void platform_event_loop(game_input_t* input)
 void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, rect_t sprite_box,
                             v3f position, f32 scale, u32 flip_type)
 {
-    SDL_Rect dst = {(int) position.x, (int) position.y,
-                    (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
+    SDL_Rect dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
 
     // NOTE: we could flip the texture w/ SDL_RenderCopyEx
     SDL_RenderCopy(window->renderer, (SDL_Texture*) sprite_tex, (SDL_Rect*) &sprite_box, &dst);
@@ -326,6 +327,13 @@ void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, re
 void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
 {
     SDL_RenderCopy(window->renderer, (SDL_Texture*) texture, (SDL_Rect*) src, (SDL_Rect*) dst);
+
+    rect_t copy_src = {0};
+    rect_t copy_dst = {0};
+    if (src) copy_src = *src; // TODO temp
+    if (dst) copy_dst = *dst; // TODO temp
+    render_entry_type_draw_texture_t draw_tex = {texture, copy_src, copy_dst};
+    renderer_push_texture(draw_tex);
 }
 
 void platform_render_clear(platform_window_t* window)
