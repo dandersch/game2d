@@ -108,6 +108,13 @@ int main(int argc, char* args[])
     //platform_init();
     game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
     memset(game_state, 0, GAME_MEMORY_SIZE);
+    {
+        // get the game.id (inode) so we don't perform a code reload when first
+        // entering the main loop
+        struct stat attr;
+        stat(GAME_DLL, &attr);
+        game.id = attr.st_ino;
+    }
     platform_load_code(); // initial loading of the game dll
     game.state_update(game_state, platform_api);
     game.init(game_state);
@@ -120,7 +127,8 @@ int main(int argc, char* args[])
     {
        game.main_loop();
 
-       // check if dll/so changed on disk NOTE: should only happen in debug builds
+       // check if dll/so changed on disk
+       // NOTE: should only happen in debug builds
        struct stat attr;
        if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
        {
