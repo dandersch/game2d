@@ -5,10 +5,10 @@ start_timer=$(date +%s.%N)
 mkdir -p bin
 rm -f compile_commands.json
 
-# TODO add back -fno-exceptions and -std=c++11 once we stop using tmxlite
+# NOTE -std=c++14 for "list-initializing"
 CmnFlags="-g -std=c++14 -DENABLE_ASSERTS -fPIC -fno-rtti
           -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
-          -Wno-unused-function -Wno-unused-variable "
+          -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "
 CmnFlags+="-DIMGUI "
 # other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings
 # -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing

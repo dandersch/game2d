@@ -24,6 +24,7 @@ struct Button
     button_callback_fn callback;
 };
 
+#define MENU_BUTTON_COUNT 3
 struct game_state_t
 {
     b32 initialized;
@@ -59,7 +60,7 @@ struct game_state_t
 
     // menulayer:
     // buttons, texture_t*
-    std::vector<Button> btns;
+    Button btns[MENU_BUTTON_COUNT];
     texture_t* btn_inactive_tex;
     texture_t* btn_hover_tex;
     texture_t* btn_pressed_tex;

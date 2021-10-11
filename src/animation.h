@@ -54,7 +54,9 @@ struct AnimationFrame
 
 struct AnimationClip
 {
-    std::vector<AnimationFrame> frames = {};
+    //std::vector<AnimationFrame> frames = {};
+    AnimationFrame* frames;
+    u32 frame_count = 0;
     bool loop = true;
 };
 
@@ -72,10 +74,11 @@ inline u32 get_index_into_clip(Animator anim, AnimationClip clip)
 {
     u32 idx = 0;
     f32 clip_sum = 0;
-    for (u32 i = 0; i < clip.frames.size(); i++)
+    //for (u32 i = 0; i < clip.frames.size(); i++)
+    for (u32 i = 0; i < clip.frame_count; i++)
     {
         if (anim.time > clip_sum)
-            clip_sum += clip.frames.at(i).duration;
+            clip_sum += clip.frames[i].duration;
         else
             break;
         idx = i;
@@ -93,9 +96,9 @@ inline rect_t animation_update(Animator* anim,
 
     u32 clip_idx = get_index_into_clip(*anim, *anim->current_clip);
     anim->time += dt;
-    if (clip_idx >= (anim->current_clip->frames.size()-1))
+    if (clip_idx >= (anim->current_clip->frame_count - 1))
     {
         anim->time = 0;
     }
-    return anim->current_clip->frames.at(clip_idx).frame;
+    return anim->current_clip->frames[clip_idx].frame;
 }

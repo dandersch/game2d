@@ -296,21 +296,21 @@ void layer_menu_init()
     state->btn_hover_tex    = resourcemgr_texture_load("button_hover.png", state);
     state->btn_pressed_tex  = resourcemgr_texture_load("button_pressed.png", state);
 
-    Button b1 = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100},
-                  .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
-    Button b2 = { .label = "OPTIONS",  .state = Button::NONE, .box = {800, 600,300,100},
-                  .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
-    Button b3 = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100},
-                  .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
+    state->btns[0] = { .label = "CONTINUE", .state = Button::NONE, .box = {800, 475,300,100},
+                       .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
+    state->btns[1] = { .label = "OPTIONS",  .state = Button::NONE, .box = {800, 600,300,100},
+                       .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
+    state->btns[2] = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100},
+                       .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
 
     // ADD CALLBACKS
-    b1.callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
-    b2.callback = [](game_state_t* state) { printf("Options button pressed\n"); };
-    b3.callback = [](game_state_t* state)  { state->game_running = false; }; // TODO signal to platform layer
+    state->btns[0].callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
+    state->btns[1].callback = [](game_state_t* state) { printf("Options button pressed\n"); };
+    state->btns[2].callback = [](game_state_t* state)  { state->game_running = false; }; // TODO signal to platform layer
 
-    state->btns.push_back(b1);
-    state->btns.push_back(b2);
-    state->btns.push_back(b3);
+    //state->btns.push_back(b1);
+    //state->btns.push_back(b2);
+    //state->btns.push_back(b3);
 
     // for greying out game in the background when paused
     state->greyout_tex = resourcemgr_texture_load("greyout.png", state);
@@ -319,8 +319,10 @@ void layer_menu_init()
     platform.font_init();
     font_t* btn_font   = resourcemgr_font_load("ubuntumono.ttf", state);
     color_t text_color = {200,200,200,230};
-    for (auto& b : state->btns)
+    // for (auto& b : state->btns)
+    for (int i = 0; i < MENU_BUTTON_COUNT; i++)
     {
+        auto& b = state->btns[i];
         surface_t* text_surf = platform.text_render(btn_font, b.label, text_color, 400);
         b.text_texture = platform.texture_create_from_surface(state->window, text_surf);
         platform.texture_query(b.text_texture, NULL, NULL, &b.text_box.w, &b.text_box.h);
@@ -333,16 +335,18 @@ void layer_menu_handle_event()
 {
     point_t mouse = {state->game_input.mouse.pos.x, state->game_input.mouse.pos.y};
 
-    for (auto& b : state->btns)
+    for (int i = 0; i < MENU_BUTTON_COUNT; i++)
     {
+        auto& b = state->btns[i];
         if (point_in_rect(mouse, b.box)) b.state = Button::HOVER;
         else b.state = Button::NONE;
     }
 
     if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
     {
-        for (auto& b : state->btns)
+        for (int i = 0; i < MENU_BUTTON_COUNT; i++)
         {
+            auto& b = state->btns[i];
             if (b.state == Button::HOVER)
             {
                 //evn->handled = true;
