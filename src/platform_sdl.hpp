@@ -30,6 +30,12 @@
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
+#ifdef USE_OPENGL
+  #include <SDL_opengl.h>
+  #include <GL/gl.h>
+  #include <GL/glu.h>
+#endif
+
 // IMGUI include TODO maybe move this somewhere else
 #ifdef IMGUI
   #include "imgui.h"

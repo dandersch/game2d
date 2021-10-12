@@ -1,41 +1,80 @@
 #include "platform_renderer.h"
 #include "utils.h"
 
-// TODO what happens if buffer is full?
-#define MAX_CMD_BUF_SIZE 500000 // TODO find better max
-//#define MAX_CMD_BUF_SIZE 16384 // TODO find better max
-//#define MAX_CMD_BUF_SIZE 350 // TODO find better max
-struct renderer_cmd_buf_t
+struct renderer_t
 {
-    u8  buf[MAX_CMD_BUF_SIZE];
-    //u64 base_addr;
-    u8* buf_offset;            // TODO better name
-    u32 entry_count;
+    SDL_GLContext gl_context;
 };
 
-static renderer_cmd_buf_t cmds = {0}; // TODO allocate differently
-
-void renderer_init()
+void renderer_init(platform_window_t* window)
 {
     cmds.buf_offset  = cmds.buf;
     cmds.entry_count = 0;
+
+    /* opengl code here */
+
+    // TODO probably needed somewhere else..
+    SDL_GLContext gl_context = SDL_GL_CreateContext(window->handle);
+    SDL_ERROR(gl_context); // Failed to create OpenGL context.
+    SDL_ERROR(!SDL_GL_SetSwapInterval(1)); // Couldn't set VSYNC
+
+    // init opengl
+    b32 success = true;
+    GLenum error = GL_NO_ERROR;
+
+#if 0
+    // Initialize Projection Matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    // Check for error
+    error = glGetError();
+    if(error != GL_NO_ERROR)
+    {
+        printf( "Error initializing OpenGL! %s\n", gluErrorString( error ) );
+        success = false;
+    }
+
+    // Initialize Modelview Matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Check for error
+    error = glGetError();
+    if(error != GL_NO_ERROR)
+    {
+        printf("Error initializing OpenGL! %s\n", gluErrorString(error));
+        success = false;
+    }
+#endif
+
+    u32 counter = 0;
+    while (counter < 200)
+    {
+        glClearColor(1.0f,0.1f,0.1f,1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Where you actually perform whatever opengl calls you need.
+        glBegin(GL_QUADS);
+        //glColor3fv(0.1f, 1.0f, 0.1f);
+        glVertex2f(0, 0);
+        glVertex2f(1, 0);
+        glVertex2f(1, 1);
+        glVertex2f(0, 1);
+        glEnd();
+        //glDrawQuads();
+
+        SDL_GL_SwapWindow(window->handle);
+
+        counter++;
+        printf("%u\n", counter);
+    }
+
+    exit(1);
 }
 
-// TODO this should be just in the renderer api and not in the opengl specific code
-void renderer_push_texture(render_entry_type_draw_texture_t draw_tex)
+void renderer_destroy(renderer_t* renderer)
 {
-    ASSERT(cmds.buf_offset < &cmds.buf[MAX_CMD_BUF_SIZE]);
-
-    render_entry_header header      = {RENDER_ENTRY_TYPE_DRAW_TEXTURE};
-    render_entry_header* header_loc = (render_entry_header*) cmds.buf_offset;
-    *header_loc                     = header;
-    cmds.buf_offset                += sizeof(render_entry_header);
-
-    render_entry_type_draw_texture_t* new_loc = (render_entry_type_draw_texture_t*) cmds.buf_offset;
-    *new_loc = draw_tex;
-    cmds.buf_offset += sizeof(render_entry_type_draw_texture_t);
-
-    cmds.entry_count++;
 }
 
 void renderer_cmd_buf_process(platform_window_t* window)
@@ -43,24 +82,28 @@ void renderer_cmd_buf_process(platform_window_t* window)
     u8* curr_entry = cmds.buf;
     for (s32 entry_nr = 0; entry_nr < cmds.entry_count; ++entry_nr)
     {
-        render_entry_header* entry_header = (render_entry_header*) curr_entry;
+        render_entry_header_t* entry_header = (render_entry_header_t*) curr_entry;
         switch (entry_header->type)
         {
-            case RENDER_ENTRY_TYPE_DRAW_TEXTURE:
+            case RENDER_ENTRY_TYPE_TEXTURE:
             {
-                curr_entry += sizeof(render_entry_header);
-                render_entry_type_draw_texture_t* draw_tex = (render_entry_type_draw_texture_t*) curr_entry;
+                curr_entry += sizeof(render_entry_header_t);
+                render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
-                // NOTE we need to do this here because SDL_RenderCopy expects
-                // pointers & NULL has special meaning (and a nullptr doesn't do
-                // the same things as an empty rectangle)
-                SDL_Rect* src = (SDL_Rect*) &draw_tex->src;
-                SDL_Rect* dst = (SDL_Rect*) &draw_tex->dst;
-                if (utils_rect_empty(draw_tex->src)) src = NULL;
-                if (utils_rect_empty(draw_tex->dst)) dst = NULL;
+                // opengl code here
+                // ...
 
-                SDL_RenderCopy(window->renderer, (SDL_Texture*) draw_tex->tex, src, dst);
-                curr_entry += sizeof(render_entry_type_draw_texture_t);
+                curr_entry += sizeof(render_entry_texture_t);
+            } break;
+            case RENDER_ENTRY_TYPE_RECT:
+            {
+                curr_entry += sizeof(render_entry_header_t);
+                render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
+
+                // opengl code here
+                // ...
+
+                curr_entry += sizeof(render_entry_rect_t);
             } break;
         }
     }

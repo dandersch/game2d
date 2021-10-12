@@ -3,18 +3,24 @@
 // NOTE SDL headers come from pch
 #include "base.h"
 #include "platform.h"
+#include "platform_renderer.h"
 #include "input.h"
 
 struct platform_window_t
 {
     SDL_Window*   handle;
-    SDL_Renderer* renderer;
+    renderer_t*   renderer; // TODO needs to opaque/not renderer specific
 };
 
-// UNITY BUILD
-#include "platform_renderer_opengl.cpp" // NOTE not really opengl as of now
-
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
+
+// UNITY BUILD
+#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
+#ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
+  #include "platform_renderer_opengl.cpp"
+#else
+  #include "platform_renderer_sdl.cpp"
+#endif
 
 // game functions
 typedef void (*game_main_loop_fn)();
@@ -125,18 +131,18 @@ int main(int argc, char* args[])
 #else
     while (game_running)
     {
-       game.main_loop();
+        game.main_loop();
 
-       // check if dll/so changed on disk
-       // NOTE: should only happen in debug builds
-       struct stat attr;
-       if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
-       {
-           printf("Attempting code reload\n");
-           platform_load_code();
-           game.id = attr.st_ino;
-           game.state_update(game_state, platform_api); // pass memory to game dll
-       }
+        // check if dll/so changed on disk
+        // NOTE: should only happen in debug builds
+        struct stat attr;
+        if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
+        {
+            printf("Attempting code reload\n");
+            platform_load_code();
+            game.id = attr.st_ino;
+            game.state_update(game_state, platform_api); // pass memory to game dll
+        }
     }
 #endif
 
@@ -161,34 +167,45 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
         printf("SDL init failed: %s\n", SDL_GetError());
     }
 
+    u32 window_flags = 0;
+
+#ifdef USE_OPENGL // TODO is there a way to do this w/o ifdefs and w/o bringing SDL code into the renderer
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+
+    // turn on double buffering set the depth buffer to 24 bits
+    // you may need to change this to 16 or 32 for your system
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    window_flags |= SDL_WINDOW_OPENGL;
+
+    /*
+     SDL can load OpenGL function pointers with
+          int SDL_GL_LoadLibrary(const char* path);
+          void* SDL_GL_GetProcAddress(const char* proc);
+     also see
+          https://wiki.libsdl.org/SDL_GL_GetProcAddress
+    */
+#else
+    // ...
+#endif
+
     // TODO don't call malloc
     platform_window_t* window = (platform_window_t*) malloc(sizeof(platform_window_t));
 
     window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                      screen_width, screen_height, 0);
+                                      screen_width, screen_height, window_flags);
     SDL_ERROR(window->handle);
 
-    window->renderer = SDL_CreateRenderer(window->handle, -1,
-                                          SDL_RENDERER_ACCELERATED
-                                          //| SDL_RENDERER_PRESENTVSYNC
-                                          );
-    SDL_ERROR(window->renderer);
-
-    //SDL_RenderSetLogicalSize(rw->renderer, 640, 480);
-    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
-    //printf("%s\n", SDL_GetHint("SDL_HINT_RENDER_SCALE_QUALITY"));
-
-    SDL_RenderSetScale(window->renderer, 1.f, 1.f);
-
-    renderer_init();
+    renderer_init(window);
 
     return window;
 }
 
 void platform_window_close(platform_window_t* window)
 {
-    SDL_DestroyRenderer(window->renderer);
+    renderer_destroy(window->renderer);
     SDL_DestroyWindow(window->handle);
 }
 
@@ -211,16 +228,16 @@ file_t platform_file_load(const char* file_name)
     return file;
 }
 
-b32 platform_file_close(file_t file)
+void platform_file_close(file_t file)
 {
-    SDL_RWclose((SDL_RWops*) file.handle);
+    i32 success = SDL_RWclose((SDL_RWops*) file.handle);
     free(file.buffer);
-    return true; // TODO return false if error
+    SDL_ERROR(!success);
 }
 
 b32 platform_file_save(u8* file_name, u8* buffer)
 {
-    // NOT IMPLEMENTED
+    UNREACHABLE("function not implementd");
     return false;
 }
 
@@ -228,7 +245,7 @@ b32 platform_file_save(u8* file_name, u8* buffer)
 
 // counts up button presses between last and next frame
 // TODO check if this actually works, i.e. if you can press a button more than once between frames
-static inline
+internal inline
 void input_event_process(game_input_state_t* new_state, b32 is_down)
 {
     if(new_state->is_down != is_down)
@@ -257,71 +274,71 @@ void platform_event_loop(game_input_t* input)
     {
         switch (sdl_event.type)
         {
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                {
-                    SDL_Keycode keycode = sdl_event.key.keysym.sym;
-                    b32 is_down         = (sdl_event.key.state == SDL_PRESSED);
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+            {
+                SDL_Keycode keycode = sdl_event.key.keysym.sym;
+                b32 is_down         = (sdl_event.key.state == SDL_PRESSED);
 
-                    if(sdl_event.key.repeat == 0)
+                if(sdl_event.key.repeat == 0)
+                {
+                    if (is_down)
                     {
-                        if (is_down)
+                        if((keycode >= SDLK_F1) && (keycode <= SDLK_F12))
                         {
-                            if((keycode >= SDLK_F1) && (keycode <= SDLK_F12))
-                            {
-                                input->keyboard.f_key_pressed[keycode - SDLK_F1 + 1] = true;
-                            }
+                            input->keyboard.f_key_pressed[keycode - SDLK_F1 + 1] = true;
                         }
-
-                        if (keycode == SDLK_UP)    input_event_process(&input->keyboard.key_up, is_down);
-                        if (keycode == SDLK_DOWN)  input_event_process(&input->keyboard.key_down, is_down);
-                        if (keycode == SDLK_LEFT)  input_event_process(&input->keyboard.key_left, is_down);
-                        if (keycode == SDLK_RIGHT) input_event_process(&input->keyboard.key_right, is_down);
-
-                        // NOTE SDL Keycodes (SDLK_*) seem to map to ascii for a-z
-                        // but other characters (e.g. winkey/f-keys) go over 128,
-                        // so we mask off bits here
-                        keycode &= 255;
-                        input_event_process(&input->keyboard.keys[keycode], is_down);
                     }
 
-                } break;
+                    if (keycode == SDLK_UP)    input_event_process(&input->keyboard.key_up, is_down);
+                    if (keycode == SDLK_DOWN)  input_event_process(&input->keyboard.key_down, is_down);
+                    if (keycode == SDLK_LEFT)  input_event_process(&input->keyboard.key_left, is_down);
+                    if (keycode == SDLK_RIGHT) input_event_process(&input->keyboard.key_right, is_down);
 
-                case SDL_MOUSEMOTION:
+                    // NOTE SDL Keycodes (SDLK_*) seem to map to ascii for a-z
+                    // but other characters (e.g. winkey/f-keys) go over 128,
+                    // so we mask off bits here
+                    keycode &= 255;
+                    input_event_process(&input->keyboard.keys[keycode], is_down);
+                }
+
+            } break;
+
+            case SDL_MOUSEMOTION:
+            {
+                input->mouse.pos = {sdl_event.motion.x, sdl_event.motion.y, 0};
+            } break;
+
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+            {
+                auto button = sdl_event.button.button;
+                b32 is_down = sdl_event.button.state;
+                if (button == SDL_BUTTON_LEFT)
+                    input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
+            } break;
+
+            case SDL_QUIT: { /*input->quit_requested = true;*/ game_running = false; } break;
+            case SDL_WINDOWEVENT:
+            {
+                if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
                 {
-                    input->mouse.pos = {sdl_event.motion.x, sdl_event.motion.y, 0};
-                } break;
-
-                case SDL_MOUSEBUTTONDOWN:
-                case SDL_MOUSEBUTTONUP:
-                {
-                    auto button = sdl_event.button.button;
-                    b32 is_down = sdl_event.button.state;
-                    if (button == SDL_BUTTON_LEFT)
-                        input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
-                } break;
-
-                case SDL_QUIT: { /*input->quit_requested = true;*/ game_running = false; } break;
-                case SDL_WINDOWEVENT: {
-                    if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
-                    {
                         //input->quit_requested = true;
-                        game_running = false;
-                    }
-                } break;
+                    game_running = false;
+                }
+            } break;
         }
     }
 }
 
 void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
 {
-    //SDL_RenderCopy(window->renderer, (SDL_Texture*) texture, (SDL_Rect*) src, (SDL_Rect*) dst);
-
     rect_t copy_src = {0};
     rect_t copy_dst = {0};
     if (src) copy_src = *src; // TODO temp
     if (dst) copy_dst = *dst; // TODO temp
-    render_entry_type_draw_texture_t draw_tex = {texture, copy_src, copy_dst};
+
+    render_entry_texture_t draw_tex = {texture, copy_src, copy_dst};
     renderer_push_texture(draw_tex);
 }
 
@@ -339,41 +356,31 @@ void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, re
     platform_render_texture(window, sprite_tex, &sprite_box, &dst);
 }
 
-void platform_render_clear(platform_window_t* window)
-{
-    SDL_RenderClear(window->renderer);
-}
+void platform_render_clear(platform_window_t* window) { renderer_push_clear({}); }
 
 void platform_render_present(platform_window_t* window)
 {
-    renderer_cmd_buf_process(window);
-    SDL_RenderPresent(window->renderer);
+    renderer_push_present({});
+    renderer_cmd_buf_process(window); // TODO this draws over imgui
 }
 
-void platform_render_set_draw_color(platform_window_t* window, u8 r, u8 g, u8 b, u8 a)
+// only draws colored rects (colliders) for now
+void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, color_t color, u32 scale)
 {
-    SDL_SetRenderDrawColor(window->renderer, r, g, b, a);
-}
-
-void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, u32 scale)
-{
-    SDL_Rect dst = {(int) pos.x + collider_box.x, (int) pos.y + collider_box.y,
-                    (i32) (scale * collider_box.w), (i32) (scale * collider_box.h)};
+    rect_t dst = {(int) pos.x + collider_box.x, (int) pos.y + collider_box.y,
+                  (i32) (scale * collider_box.w), (i32) (scale * collider_box.h)};
 
     // don't draw 'empty' colliders (otherwise it will draw points & lines)
-    if (!SDL_RectEmpty(&dst)) // if (!(dst.h <= 0.f && dst.w <= 0.f))
-        SDL_RenderDrawRect(window->renderer, &dst);
+    // TODO maybe put this into the renderer
+    if (!SDL_RectEmpty((SDL_Rect*) &dst)) // == if (!(dst.h <= 0.f && dst.w <= 0.f))
+    {
+        renderer_push_rect({dst, color});
+    }
 
     //SDL_RenderDrawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2)
-
     // TODO isn't where it's expected
     // Draw pivot point
-    SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
-}
-
-void platform_debug_draw_rect(platform_window_t* window, rect_t* dst)
-{
-    SDL_RenderDrawRect(window->renderer, (SDL_Rect*) dst);
+    // SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
 }
 
 u64 platform_debug_performance_counter()
@@ -381,30 +388,35 @@ u64 platform_debug_performance_counter()
     return SDL_GetPerformanceCounter();
 }
 
+// TODO move into platform_renderer_sdl.cpp
 texture_t* platform_texture_create_from_surface(platform_window_t* window, surface_t* surface)
 {
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(window->renderer, (SDL_Surface*) surface);
+    SDL_Texture* tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
     SDL_ERROR(tex);
     return tex;
 }
 
+// TODO move into platform_renderer_sdl.cpp
 texture_t* platform_texture_load(platform_window_t* window, const char* filename)
 {
-    SDL_Texture* tex = IMG_LoadTexture(window->renderer, filename);
+    SDL_Texture* tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
     SDL_ERROR(tex);
     return tex;
 }
 
+// TODO move into platform_renderer_sdl.cpp
 i32 platform_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
 {
     return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
 }
 
+// TODO move into platform_renderer_sdl.cpp
 i32 platform_texture_set_blend_mode(texture_t* tex, u32 mode)
 {
     return SDL_SetTextureBlendMode((SDL_Texture*) tex, (SDL_BlendMode) mode);
 }
 
+// TODO move into platform_renderer_sdl.cpp
 i32 platform_texture_set_alpha_mod(texture_t* tex, u8 alpha)
 {
     return SDL_SetTextureAlphaMod((SDL_Texture*) tex, alpha);
@@ -452,7 +464,7 @@ void platform_imgui_init(platform_window_t* window, u32 screen_width, u32 screen
 #ifdef IMGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiSDL::Initialize(window->renderer, screen_width, screen_height);
+    ImGuiSDL::Initialize((SDL_Renderer*) window->renderer, screen_width, screen_height);
     // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
     // don't call an init function, but all of them require a rendering api
     // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
@@ -505,7 +517,7 @@ void platform_imgui_end()
 {
 #ifdef IMGUI
     ImGui::Render();
-    ImGuiSDL::Render(ImGui::GetDrawData());
+    ImGuiSDL::Render(ImGui::GetDrawData()); // TODO make this renderer agnostic
 #endif
 }
 
@@ -523,7 +535,6 @@ platform_api_t platform_api =
   &platform_render_texture,
   &platform_render_clear,
   &platform_render_present,
-  &platform_render_set_draw_color,
   &platform_texture_create_from_surface,
   &platform_texture_load,
   &platform_texture_query,
@@ -534,7 +545,6 @@ platform_api_t platform_api =
   &platform_font_load,
   &platform_text_render,
   &platform_debug_draw,
-  &platform_debug_draw_rect,
   &platform_debug_performance_counter,
   &platform_imgui_init,
   &platform_imgui_destroy,

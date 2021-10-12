@@ -193,14 +193,7 @@ void layer_game_render()
             if (state->debugDraw)
             {
                 auto pos = camera_world_to_screen(state->cam, tiles[i].position);
-                rect_t dst = {(int) pos.x + tiles[i].collider.x,
-                              (int) pos.y + tiles[i].collider.y,
-                              (i32) (tiles[i].collider.w),
-                              (i32) (tiles[i].collider.h)};
-
-                // TODO don't draw 'empty' colliders (otherwise it will draw points & lines)
-                if (!utils_rect_empty(dst))
-                   platform.debug_draw_rect(state->window, &dst);
+                platform.debug_draw(state->window, tiles[i].collider, pos, {0,0,0,255}, 1.0f);
             }
         }
 
@@ -220,10 +213,8 @@ void layer_game_render()
                 if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
                 if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
 
-                platform.render_set_draw_color(state->window, c.r, c.g, c.b, c.a);
                 auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
-                platform.debug_draw(state->window, ents[i].collider, ent_pos, ents[i].scale);
-                platform.render_set_draw_color(state->window, 0, 0, 0, 255);
+                platform.debug_draw(state->window, ents[i].collider, ent_pos, c, ents[i].scale);
             }
 
             if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
@@ -243,7 +234,7 @@ void layer_game_render()
 
 }
 
-void layer_game_imgui_render()
+void layer_game_imgui_render() // TODO should this be called _render?
 {
 #ifdef IMGUI
     auto& ent = state->ents[0];
@@ -372,11 +363,17 @@ void layer_menu_render()
     if (alpha > 254) incr = -1;
     if (alpha < 150)  incr = 1;
 
-    // TODO dont call sdl render functions ourselves
     for (auto& b : state->btns)
     {
         if (b.state == Button::HOVER)
         {
+            // TODO needs to happen in renderer, e.g.:
+            // struct render_entry_texture_mode
+            // {
+            //     enum    blendmode; // SDL_SetTextureBlendMode
+            //     enum    scalemode; // SDL_SetTextureScaleMode
+            //     color_t rgba;      // SDL_SetTextureColorMod, SDL_SetTextureAlphaMod
+            // }
             platform.texture_set_blend_mode(b.tex[b.state], 1 /*SDL_BLENDMODE_BLEND*/);
             platform.texture_set_alpha_mod(b.tex[b.state], alpha);
             //SDL_SetTextureColorMod(b.tex[b.state],100,100,4);
