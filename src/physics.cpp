@@ -32,36 +32,15 @@ s32 check_flag_combination(Entity* e1, Entity* e2, u32 flag1, u32 flag2)
 
 struct flag_combination_t { u8 f1; u8 f2; };
 #define PAIRS_SIZE 256
-static flag_combination_t all_pairs[PAIRS_SIZE] = {0};
+static flag_combination_t collision_pairs[PAIRS_SIZE] = {0};
 static u32 pair_count = 0;
 #define AND_FLAGS(combination) combination.f1 | combination.f2
 
 void physics_init() // fills callbacks array
 {
-    all_pairs[pair_count] = {ENT_FLAG_PICKUP_BOX, ENT_FLAG_IS_ITEM};
-    callbacks[AND_FLAGS(all_pairs[pair_count])] = [](Entity* e1, Entity* e2, s32 dir)
-    {
-        if (dir == 1) return;
-        printf("Pick up item\n");
-
-        e1->owner->item  = e2;
-        e2->flags ^= ENT_FLAG_IS_COLLIDER;
-    };
-    pair_count++;
-
-    all_pairs[pair_count] = {ENT_FLAG_ATTACK_BOX, ENT_FLAG_IS_ITEM};
-    callbacks[AND_FLAGS(all_pairs[pair_count])] = [](Entity* e1, Entity* e2, s32 dir)
-    {
-        printf("Attack item\n");
-    };
-    pair_count++;
-
-    all_pairs[pair_count] = {ENT_FLAG_PLAYER_CONTROLLED, ENT_FLAG_IS_TILE};
-    callbacks[AND_FLAGS(all_pairs[pair_count])] = [](Entity* e1, Entity* e2, s32 dir)
-    {
-        printf("Wall\n");
-    };
-    pair_count++;
+    collision_pairs[pair_count++] = {ENT_FLAG_PICKUP_BOX, ENT_FLAG_IS_ITEM};
+    collision_pairs[pair_count++] = {ENT_FLAG_ATTACK_BOX, ENT_FLAG_IS_ITEM};
+    collision_pairs[pair_count++] = {ENT_FLAG_PLAYER_CONTROLLED, ENT_FLAG_IS_TILE};
 }
 
 b32 physics_check_collision_with_tile(Entity& e1, Tile& t1)
@@ -77,7 +56,6 @@ b32 physics_check_collision_with_tile(Entity& e1, Tile& t1)
                 (i32) t1.position.y + t1.collider.y,
                 t1.collider.w, t1.collider.h};
 
-
     b32 collided = aabb(a, b);
     if (collided)
     {
@@ -91,8 +69,7 @@ b32 physics_check_collision_with_tile(Entity& e1, Tile& t1)
 
 b32 physics_check_collision(Entity& e1, Entity& e2)
 {
-    // TODO only perform collision check if flag combination is present in all_pairs
-    // otherwise early out
+    // TODO only perform collision check if flag combination is used later on otherwise early out
 
     // TODO use unpivoted pos or calculate pos back to unpivoted here
     // collider of e1 after moving
@@ -107,27 +84,43 @@ b32 physics_check_collision(Entity& e1, Entity& e2)
                 e2.collider.w, e2.collider.h};
 
     b32 collided = aabb(a, b);
-    if (collided)
+    if (!collided) return false;
+
+    e1.movement = {0,0,0};
+    u8 flag_combination = 0;
+    s32 direction = 0; // 1 if e1 acts on e2, -1 if e2 acts on e1, 0 if neither
+
+    for (int i = 0; i < pair_count; i++)
     {
-        e1.movement = {0,0,0};
-        u8 flag_combination = 0;
-        s32 direction = 0; // 1 if e1 acts on e2, -1 if e2 acts on e1, 0 if neither
-
-        for (int i = 0; i < pair_count; i++)
-        {
-            auto& pair = all_pairs[i];
-            if ((direction = check_flag_combination(&e1, &e2, pair.f1, pair.f2)))
-                flag_combination = AND_FLAGS(pair);
-        }
-
-        if (callbacks[flag_combination] != nullptr)
-        {
-            callbacks[flag_combination](&e1,&e2, direction);
-        }
+        auto& pair = collision_pairs[i];
+        if ((direction = check_flag_combination(&e1, &e2, pair.f1, pair.f2)))
+            flag_combination = AND_FLAGS(pair);
     }
 
+    // TODO indicate direction by jumping to the negative ?
+    switch (flag_combination)
+    {
+        case (ENT_FLAG_PICKUP_BOX | ENT_FLAG_IS_ITEM):
+        {
+            //if (dir == 1) return;
+            printf("Pick up item\n");
+            //e1->owner->item  = e2;
+            //e2->flags ^= ENT_FLAG_IS_COLLIDER;
+        } break;
+
+        case (ENT_FLAG_ATTACK_BOX | ENT_FLAG_IS_ITEM):
+        {
+            printf("Attack item\n");
+        } break;
+
+        case (ENT_FLAG_PLAYER_CONTROLLED | ENT_FLAG_IS_TILE):
+        {
+            printf("Wall\n");
+        } break;
+    }
+
+    // if (callbacks[flag_combination] != nullptr) callbacks[flag_combination](&e1,&e2, direction);
 
     // TODO resolve collision here, i.e. push entities out of the intersection box
-
     return collided;
 }

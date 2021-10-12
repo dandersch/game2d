@@ -299,7 +299,7 @@ void layer_menu_init()
     // press will just cause a segfault on
     state->btns[0].callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
     state->btns[1].callback = [](game_state_t* state) { printf("Options button pressed\n"); };
-    state->btns[2].callback = [](game_state_t* state)  { state->game_running = false; }; // TODO signal to platform layer
+    state->btns[2].callback = [](game_state_t* state) { state->game_running = false; }; // TODO signal to platform layer
 
     //state->btns.push_back(b1);
     //state->btns.push_back(b2);

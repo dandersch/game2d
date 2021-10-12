@@ -32,8 +32,8 @@ CmnFlags+=$(sdl2-config --cflags)
 SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 
 # add opengl flags (comment out to use SDL renderer)
-CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
-GLLibs=" -lGL -lGLU "
+#CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
+#GLLibs=" -lGL -lGLU "
 
 # pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
 clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
@@ -49,4 +49,4 @@ rm json.* &&
 end_timer=$(date +%s.%N)
 compile_time=$(echo "$end_timer - $start_timer" | bc -l)
 echo "Compile time (real): ${compile_time}s" \
-#&& ./bin/megastruct
+&& ./bin/megastruct

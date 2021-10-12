@@ -26,9 +26,9 @@
 - [ ] add (debug) logging
 - [ ] improve inline profiling
 - [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
+- [ ] serializing (of cmds[])
 - [ ] set up a renderer api & start using openGL
 - [ ] timer utility
-- [ ] use stb-style header files for everything
 - [ ] animation system
 - [ ] use interpolation for movement
 - [ ] implement platform_win32.cpp
@@ -40,8 +40,7 @@
 - [ ] import animations in tmx
 - [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
-- [ ] threadpool
-- [ ] serializing (of cmds[])
+- [ ] threadpool ?
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
 - [ ] "AI"controller subsystem
 - [ ] implement composite colliders
