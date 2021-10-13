@@ -46,6 +46,20 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
     return tex;
 }
 
+internal
+SDL_BlendMode sdl_blendmode_lut(texture_blend_mode_e ours)
+{
+    switch(ours)
+    {
+        case TEXTURE_BLEND_MODE_NONE:  return SDL_BLENDMODE_NONE;
+        case TEXTURE_BLEND_MODE_BLEND: return SDL_BLENDMODE_BLEND;
+        case TEXTURE_BLEND_MODE_ADD:   return SDL_BLENDMODE_ADD;
+        case TEXTURE_BLEND_MODE_MOD:   return SDL_BLENDMODE_MOD;
+        case TEXTURE_BLEND_MODE_MUL:   return SDL_BLENDMODE_MUL;
+        default: return SDL_BLENDMODE_INVALID;
+    }
+}
+
 void renderer_cmd_buf_process(platform_window_t* window)
 {
     SDL_Renderer* renderer = (SDL_Renderer*) window->renderer;
@@ -91,7 +105,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
 
                 if (!(mod->blend == TEXTURE_BLEND_MODE_NO_CHANGE))
-                    SDL_SetTextureBlendMode((SDL_Texture*) mod->tex, (SDL_BlendMode) mod->blend);
+                    SDL_SetTextureBlendMode((SDL_Texture*) mod->tex, sdl_blendmode_lut(mod->blend));
                 if (!(mod->scale == TEXTURE_SCALE_MODE_NO_CHANGE))
                     SDL_SetTextureScaleMode((SDL_Texture*) mod->tex, (SDL_ScaleMode) mod->scale);
 

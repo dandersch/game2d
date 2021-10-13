@@ -272,7 +272,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                                 else if (strcmp(name, "type") == 0)
                                     copy_json_string(tile->type, sizeof(tile->type),
                                                      json_value_as_string(obj->value)->string);
-                                else UNREACHABLE("unknown attribut '%s' for tile\n", name)
+                                else UNREACHABLE("unknown attribut '%s' for tile\n", name);
                             }
                         }
                     }

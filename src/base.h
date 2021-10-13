@@ -198,6 +198,6 @@ struct color_t // NOTE maybe add a 24bit version
     #define UNREACHABLE(msg, ...) { printf(msg,##__VA_ARGS__); ASSERT(false) }
 #else
     #define ASSERT(expr)
-    #define UNREACHABLE
+    #define UNREACHABLE(msg, ...)
 #endif
 

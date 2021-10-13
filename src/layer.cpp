@@ -234,7 +234,7 @@ void layer_game_render()
 
 }
 
-void layer_game_imgui_render() // TODO should this be called _render?
+void layer_game_imgui_render(f32 dt) // TODO should this be called _render?
 {
 #ifdef IMGUI
     auto& ent = state->ents[0];
@@ -242,7 +242,7 @@ void layer_game_imgui_render() // TODO should this be called _render?
     //ImGui::ShowDemoWindow();
     ImGui::Begin("Hello World");
     ImGui::Text("TICKS: %d", platform.ticks());
-    ImGui::Text("DT: %f", state->dt);
+    ImGui::Text("DT: %f", dt);
     ImGui::Text("CMD IDX: %u", state->cmdIdx);
     ImGui::Text("LOOP TIME: %f", state->loopTime);
     ImGui::Text("IS REWINDING: %u", state->isRewinding);

@@ -27,10 +27,12 @@ platform_api_t platform = {0};
 
 void game_state_init(game_state_t* game_state)
 {
+    // TODO try out C++ placement new so that we can use default values in the
+    // struct definitions & not have to write init code.
     game_state->initialized   = true;
     for (int i = 0; i < MAX_ENTITIES; i++) game_state->ents[i]  = {};
     for (int i = 0; i < MAX_TILES; i++)    game_state->tiles[i] = {};
-    game_state->focusArrow    = {64,32,16,32};
+    game_state->focusArrow    = {64,32,16,32}; // TODO hardcoded
     game_state->cam           = {};
     game_state->game_running  = true;
 }
@@ -68,7 +70,7 @@ extern "C" void game_main_loop()
     // TIMESTEP ////////////////////////////////////////////////////////////
     f32 curr_time = platform.ticks() / 1000.f;
     f32 update_iterations = ((curr_time - state->last_frame_time) + state->cycles_left_over);
-    state->dt = UPDATE_INTERVAL;
+    f32 dt = UPDATE_INTERVAL;
 
     if (update_iterations > (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL)) {
         update_iterations = (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL);
@@ -123,7 +125,7 @@ extern "C" void game_main_loop()
             {
                 case LAYER_GAME:
                 {
-                    layer_game_update(state->dt);
+                    layer_game_update(dt);
                 } break;
             }
         }
@@ -161,7 +163,7 @@ extern "C" void game_main_loop()
             {
                 case LAYER_GAME:
                 {
-                    layer_game_imgui_render();
+                    layer_game_imgui_render(dt);
                 } break;
             }
         }

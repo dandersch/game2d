@@ -27,47 +27,45 @@ struct Button
 #define MENU_BUTTON_COUNT 3
 struct game_state_t
 {
-    b32 initialized;
+    b32 initialized;           // used by game
 
-    Entity ents[MAX_ENTITIES];
-    u32    temp_count = 0;
-    Tile   tiles[MAX_TILES];
-    u32    tile_count = 0;
+    Entity ents[MAX_ENTITIES]; // used by entity, game, layer
+    u32    temp_count = 0;     // used by entity
+    Tile   tiles[MAX_TILES];   // used by entity, game
+    u32    tile_count = 0;     // used by entity
 
-    // globals
-    platform_window_t* window;
-    b32 game_running = true;
-    f32 dt;
-    game_input_t game_input;
-    f32 last_frame_time;      // global because we need it in the
-    f32 cycles_left_over;     // "main_loop" used for emscripten
+    platform_window_t* window; // used by game, layer, resourcemgr
+    b32 game_running = true;   // used by game
 
-    platform_api_t platform;
+    game_input_t game_input;   // used by input, layer
+    u32 actionState;           // used by input, rewind, player
 
-    Camera cam;
-    bool debugDraw         = false;
-    Entity* focusedEntity = nullptr;
-    rect_t focusArrow = {64,32,16,32}; // TODO hardcoded
+    f32 last_frame_time;       // global because we need it in the
+    f32 cycles_left_over;      // "main_loop" used for emscripten
 
-    u32 actionState;
+    //platform_api_t platform; // unused
+
+    Camera cam;                // used by game, layer
+    bool debugDraw;            // used by layer
+    Entity* focusedEntity;     // used by layer
+    rect_t focusArrow;         // used by game, layer
 
     // commandprocessor
-    u32 cmdIdx = 0;
+    u32 cmdIdx = 0;            // used by rewind, layer
 
     // reset
-    bool isRewinding = false;
-    f32 loopTime     = 0.f;
+    bool isRewinding;          // used by rewind, layer
+    f32 loopTime;              // used by rewind, layer (debug)
 
-    // menulayer:
-    // buttons, texture_t*
-    Button btns[MENU_BUTTON_COUNT];
-    texture_t* btn_inactive_tex;
-    texture_t* btn_hover_tex;
-    texture_t* btn_pressed_tex;
-    texture_t* greyout_tex;
-    b32 g_layer_menu_is_active;
+    // menulayer
+    Button btns[MENU_BUTTON_COUNT]; // used by layer
+    texture_t* btn_inactive_tex;    // used by layer
+    texture_t* btn_hover_tex;       // used by layer
+    texture_t* btn_pressed_tex;     // used by layer
+    texture_t* greyout_tex;         // used by layer
+    b32 g_layer_menu_is_active;     // used by layer, game
 
-    b32 render_imgui = false;
+    b32 render_imgui;               // used by game
 };
 
 /*
