@@ -332,40 +332,14 @@ void platform_event_loop(game_input_t* input)
     }
 }
 
-void platform_render_texture(platform_window_t* window, texture_t* texture, rect_t* src, rect_t* dst)
-{
-    rect_t copy_src = {0};
-    rect_t copy_dst = {0};
-    if (src) copy_src = *src; // TODO temp
-    if (dst) copy_dst = *dst; // TODO temp
-
-    render_entry_texture_t draw_tex = {texture, copy_src, copy_dst};
-    renderer_push_texture(draw_tex);
-}
-
-// TODO replace all calls to this with calls to platform_render_texture
-// NOTE we are not actually doing anything w/ flip_type
-void platform_render_sprite(platform_window_t* window, texture_t* sprite_tex, rect_t sprite_box,
-                            v3f position, f32 scale, u32 flip_type)
-{
-    //SDL_Rect dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
-    rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
-
-    // NOTE: we could flip the texture w/ SDL_RenderCopyEx
-    //SDL_RenderCopy(window->renderer, (SDL_Texture*) sprite_tex, (SDL_Rect*) &sprite_box, &dst);
-
-    platform_render_texture(window, sprite_tex, &sprite_box, &dst);
-}
-
-void platform_render_clear(platform_window_t* window) { renderer_push_clear({}); }
-
-void platform_render_present(platform_window_t* window)
+void platform_render(platform_window_t* window)
 {
     renderer_push_present({});
     renderer_cmd_buf_process(window); // TODO this draws over imgui
 }
 
 // only draws colored rects (colliders) for now
+// TODO move into renderer
 void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, color_t color, u32 scale)
 {
     rect_t dst = {(int) pos.x + collider_box.x, (int) pos.y + collider_box.y,
@@ -384,48 +358,14 @@ void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos
     // SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
 }
 
-u64 platform_debug_performance_counter()
-{
-    return SDL_GetPerformanceCounter();
-}
-
-// TODO move into platform_renderer_sdl.cpp
-texture_t* platform_texture_create_from_surface(platform_window_t* window, surface_t* surface)
-{
-    SDL_Texture* tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
-    SDL_ERROR(tex);
-    return tex;
-}
-
-// TODO move into platform_renderer_sdl.cpp
-texture_t* platform_texture_load(platform_window_t* window, const char* filename)
-{
-    SDL_Texture* tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
-    SDL_ERROR(tex);
-    return tex;
-}
-
-// TODO move into platform_renderer_sdl.cpp
-i32 platform_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
-{
-    return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
-}
-
-// TODO move into platform_renderer_sdl.cpp
-i32 platform_texture_set_blend_mode(texture_t* tex, u32 mode)
-{
-    return SDL_SetTextureBlendMode((SDL_Texture*) tex, (SDL_BlendMode) mode);
-}
-
-// TODO move into platform_renderer_sdl.cpp
-i32 platform_texture_set_alpha_mod(texture_t* tex, u8 alpha)
-{
-    return SDL_SetTextureAlphaMod((SDL_Texture*) tex, alpha);
-}
-
 void platform_surface_destroy(surface_t* surface)
 {
     SDL_FreeSurface((SDL_Surface*) surface);
+}
+
+u64 platform_debug_performance_counter()
+{
+    return SDL_GetPerformanceCounter();
 }
 
 // SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
@@ -442,6 +382,7 @@ void platform_font_init()
 }
 
 // TODO pass options to render blended/wrapped
+// NOTE this is not an SDL Renderer specific function
 surface_t* platform_text_render(font_t* font, const char* text, color_t color, u32 wrap_len)
 {
     SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,
@@ -532,15 +473,7 @@ platform_api_t platform_api =
   &platform_event_loop,
   &platform_ticks,
   &platform_quit,
-  &platform_render_sprite,
-  &platform_render_texture,
-  &platform_render_clear,
-  &platform_render_present,
-  &platform_texture_create_from_surface,
-  &platform_texture_load,
-  &platform_texture_query,
-  &platform_texture_set_blend_mode,
-  &platform_texture_set_alpha_mod,
+  &platform_render,
   &platform_surface_destroy,
   &platform_font_init,
   &platform_font_load,
@@ -551,7 +484,19 @@ platform_api_t platform_api =
   &platform_imgui_destroy,
   &platform_imgui_event_handle,
   &platform_imgui_begin,
-  &platform_imgui_end
+  &platform_imgui_end,
+  { // renderer api
+    &renderer_push_sprite,
+    &renderer_push_texture,
+    &renderer_push_texture_mod,
+    &renderer_push_rect,
+    &renderer_push_clear,
+    &renderer_push_present,
+
+    &renderer_load_texture,
+    &renderer_create_texture_from_surface,
+    &renderer_texture_query
+  },
 };
 
 #endif // PLATFORM_SDL

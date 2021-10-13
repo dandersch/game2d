@@ -44,16 +44,11 @@ typedef void (*platform_event_loop_fn)(game_input_t*);
 typedef u32  (*platform_ticks_fn)();
 typedef void (*platform_quit_fn)();
 
-typedef void (*platform_render_sprite_fn)(platform_window_t*, texture_t*, rect_t, v3f, f32, u32);
-typedef void (*platform_render_texture_fn)(platform_window_t*, texture_t*, rect_t*, rect_t*);
-typedef void (*platform_render_clear_fn)(platform_window_t*);
-typedef void (*platform_render_present_fn)(platform_window_t*);
+typedef void (*platform_render_fn)(platform_window_t*);
 
 typedef texture_t* (*platform_texture_create_from_surface_fn)(platform_window_t*, surface_t*);
 typedef texture_t* (*platform_texture_load_fn)(platform_window_t*, const char*);
 typedef i32        (*platform_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
-typedef i32        (*platform_texture_set_blend_mode_fn)(texture_t*, u32);
-typedef i32        (*platform_texture_set_alpha_mod_fn)(texture_t*, u8);
 typedef void       (*platform_surface_destroy_fn)(surface_t*);
 typedef void       (*platform_font_init_fn)();
 typedef font_t*    (*platform_font_load_fn)(const char*, i32);
@@ -69,6 +64,31 @@ typedef void (*platform_imgui_event_handle_fn)(game_input_t*);
 typedef void (*platform_imgui_begin_fn)(platform_window_t*);
 typedef void (*platform_imgui_end_fn)();
 
+// RENDERER API ////////////////////////////////////////////////////////////////////////////////
+#include "platform_renderer.h" // TODO temp
+typedef void (*renderer_push_sprite_fn)(texture_t*, rect_t, v3f, f32);
+typedef void (*renderer_push_texture_fn)(render_entry_texture_t);
+typedef void (*renderer_push_texture_mod_fn)(render_entry_texture_mod_t);
+typedef void (*renderer_push_rect_fn)(render_entry_rect_t);
+typedef void (*renderer_push_clear_fn)(render_entry_clear_t);
+typedef void (*renderer_push_present_fn)(render_entry_present_t);
+typedef texture_t* (*renderer_load_texture_fn)(platform_window_t*, const char*);
+typedef texture_t* (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
+typedef i32        (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
+struct renderer_api_t
+{
+    renderer_push_sprite_fn      push_sprite;
+    renderer_push_texture_fn     push_texture;
+    renderer_push_texture_mod_fn push_texture_mod;
+    renderer_push_rect_fn        push_rect;
+    renderer_push_clear_fn       push_clear;
+    renderer_push_present_fn     push_present; // TODO should the game layer have access to this?
+
+    renderer_load_texture_fn                load_texture;
+    renderer_create_texture_from_surface_fn create_texture_from_surface;
+    renderer_texture_query_fn               texture_query;
+};
+
 struct platform_api_t
 {
     platform_file_load_fn                   file_load;
@@ -79,15 +99,7 @@ struct platform_api_t
     platform_event_loop_fn                  event_loop;
     platform_ticks_fn                       ticks;
     platform_quit_fn                        quit;
-    platform_render_sprite_fn               render_sprite;
-    platform_render_texture_fn              render_texture;
-    platform_render_clear_fn                render_clear;
-    platform_render_present_fn              render_present;
-    platform_texture_create_from_surface_fn texture_create_from_surface;
-    platform_texture_load_fn                texture_load;
-    platform_texture_query_fn               texture_query;
-    platform_texture_set_blend_mode_fn      texture_set_blend_mode;
-    platform_texture_set_alpha_mod_fn       texture_set_alpha_mod;
+    platform_render_fn                      render;
     platform_surface_destroy_fn             surface_destroy;
     platform_font_init_fn                   font_init;
     platform_font_load_fn                   font_load;
@@ -99,4 +111,6 @@ struct platform_api_t
     platform_imgui_event_handle_fn          imgui_event_handle;
     platform_imgui_begin_fn                 imgui_begin;
     platform_imgui_end_fn                   imgui_end;
+
+    renderer_api_t                          renderer;
 };

@@ -133,7 +133,7 @@ extern "C" void game_main_loop()
     state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////////////////////////////
-    platform.render_clear(state->window);
+    platform.renderer.push_clear({});
     for (int layer = 0; layer < LAYER_COUNT; layer++)
     {
         switch (layer)
@@ -168,5 +168,5 @@ extern "C" void game_main_loop()
         layer_imgui_end();
     }
 #endif
-    platform.render_present(state->window);
+    platform.render(state->window);
 }

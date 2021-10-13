@@ -7,7 +7,7 @@ struct sprite_t
     rect_t box;
     texture_t*  tex;
     v2f    pivot = {0.5f, 0.5f};
-    u32    flip  = 0;            // == SDL_RendererFlip flip = SDL_FLIP_NONE; NOTE unused
+    //u32    flip  = 0;            // == SDL_RendererFlip flip = SDL_FLIP_NONE; NOTE unused
 };
 
 enum entity_flag_e
@@ -105,7 +105,7 @@ struct Tile
     //TileType type;
     u32      tileID      = 0;
     v3f      position    = {0,0,0};
-    sprite_t sprite      = {{0,0,0,0}, nullptr, {0,0}, 0 /*SDL_FLIP_NONE*/};
+    sprite_t sprite;                  //= {{0,0,0,0}, nullptr, {0,0}, 0 /*SDL_FLIP_NONE*/};
     u32      renderLayer = 0;
     rect_t   collider    = {0,0,0,0};
 

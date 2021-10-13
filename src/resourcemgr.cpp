@@ -109,7 +109,7 @@ texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
     if (tex) return tex;
     else // not found
     {
-        tex = platform.texture_load(state->window, filepath);
+        tex = platform.renderer.load_texture(state->window, filepath);
         hash_table_add_entry(filename, tex);
         if (!tex) return hash_table_get_value("missing"); // TODO handle if this fails
     }

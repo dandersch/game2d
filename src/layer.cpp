@@ -184,9 +184,9 @@ void layer_game_render()
         for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
             if (tiles[i].renderLayer != l) continue;
-            platform.render_sprite(state->window, tiles[i].sprite.tex, tiles[i].sprite.box,
-                                   camera_world_to_screen(state->cam, tiles[i].position),
-                                   state->cam.scale, tiles[i].sprite.flip);
+            platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
+                                          camera_world_to_screen(state->cam, tiles[i].position),
+                                          state->cam.scale);
 
             if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
@@ -202,9 +202,9 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            platform.render_sprite(state->window, ents[i].sprite.tex, ents[i].sprite.box,
-                                   camera_world_to_screen(state->cam, ents[i].position),
-                                   state->cam.scale, ents[i].sprite.flip);
+            platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
+                                          camera_world_to_screen(state->cam, ents[i].position),
+                                          state->cam.scale);
 
             if (state->debugDraw)
             {
@@ -228,8 +228,8 @@ void layer_game_render()
     {
         sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
         auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
-        platform.render_sprite(state->window, arrow_sprite.tex, arrow_sprite.box,
-                               pos, state->cam.scale, 0);
+        platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box,
+                                      pos, state->cam.scale);
     }
 
 }
@@ -317,8 +317,8 @@ void layer_menu_init()
     {
         auto& b = state->btns[i];
         surface_t* text_surf = platform.text_render(btn_font, b.label, text_color, 400);
-        b.text_texture = platform.texture_create_from_surface(state->window, text_surf);
-        platform.texture_query(b.text_texture, NULL, NULL, &b.text_box.w, &b.text_box.h);
+        b.text_texture = platform.renderer.create_texture_from_surface(state->window, text_surf);
+        platform.renderer.texture_query(b.text_texture, NULL, NULL, &b.text_box.w, &b.text_box.h);
         platform.surface_destroy(text_surf);
     }
     // ResourceManager<TTF_Font*>::free("res/ubuntumono.ttf");
@@ -353,7 +353,7 @@ void layer_menu_handle_event()
 void layer_menu_render()
 {
     // grey out background
-    platform.render_texture(state->window, state->greyout_tex, NULL, NULL);
+    platform.renderer.push_texture({state->greyout_tex, {0}, {0}});
 
     // NOTE framerate-dependant
     // make buttons alpha 'pulsate'
@@ -367,24 +367,15 @@ void layer_menu_render()
     {
         if (b.state == Button::HOVER)
         {
-            // TODO needs to happen in renderer, e.g.:
-            // struct render_entry_texture_mode
-            // {
-            //     enum    blendmode; // SDL_SetTextureBlendMode
-            //     enum    scalemode; // SDL_SetTextureScaleMode
-            //     color_t rgba;      // SDL_SetTextureColorMod, SDL_SetTextureAlphaMod
-            // }
-            platform.texture_set_blend_mode(b.tex[b.state], 1 /*SDL_BLENDMODE_BLEND*/);
-            platform.texture_set_alpha_mod(b.tex[b.state], alpha);
-            //SDL_SetTextureColorMod(b.tex[b.state],100,100,4);
+            platform.renderer.push_texture_mod({b.tex[b.state], TEXTURE_BLEND_MODE_BLEND,
+                                                TEXTURE_SCALE_MODE_NO_CHANGE, {255,255,255,alpha}});
         }
 
-        platform.render_texture(state->window, b.tex[b.state], NULL, &b.box);
+        platform.renderer.push_texture({b.tex[b.state], {0}, b.box});
         rect_t text_dst = { b.box.x + b.box.w/2 - b.text_box.w/2,
-                           b.box.y + b.box.h/2 - b.text_box.h/2,
-                           b.text_box.w, b.text_box.h};
-        platform.render_texture(state->window, b.text_texture, NULL, &text_dst);
-
+                            b.box.y + b.box.h/2 - b.text_box.h/2,
+                            b.text_box.w, b.text_box.h};
+        platform.renderer.push_texture({b.text_texture, {0}, text_dst});
     }
 }
 

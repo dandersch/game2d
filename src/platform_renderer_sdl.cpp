@@ -18,13 +18,32 @@ void renderer_init(platform_window_t* window)
     //SDL_RenderSetLogicalSize(rw->renderer, 640, 480);
     //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
-    //printf("%s\n", SDL_GetHint("SDL_HINT_RENDER_SCALE_QUALITY"));
-    SDL_RenderSetScale((SDL_Renderer*) window->renderer, 1.f, 1.f);
+    //printf("%s\n", SDL_GetHint("SDL_HINT_RENDER_SCALE_QUALITY")); SDL_RenderSetScale((SDL_Renderer*) window->renderer, 1.f, 1.f);
 }
 
 void renderer_destroy(renderer_t* renderer)
 {
     SDL_DestroyRenderer((SDL_Renderer*) renderer);
+}
+
+// 0 on success, -1 if texture is not valid
+i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
+{
+    return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
+}
+
+texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
+{
+    SDL_Texture* tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
+    SDL_ERROR(tex);
+    return tex;
+}
+
+texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
+{
+    SDL_Texture* tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
+    SDL_ERROR(tex);
+    return tex;
 }
 
 void renderer_cmd_buf_process(platform_window_t* window)
@@ -53,6 +72,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 SDL_RenderCopy(renderer, (SDL_Texture*) draw_tex->tex, src, dst);
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
+
             case RENDER_ENTRY_TYPE_RECT:
             {
                 curr_entry += sizeof(render_entry_header_t);
@@ -65,6 +85,23 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_rect_t);
             } break;
 
+            case RENDER_ENTRY_TYPE_TEXTURE_MOD:
+            {
+                curr_entry += sizeof(render_entry_header_t);
+                render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
+
+                if (!(mod->blend == TEXTURE_BLEND_MODE_NO_CHANGE))
+                    SDL_SetTextureBlendMode((SDL_Texture*) mod->tex, (SDL_BlendMode) mod->blend);
+                if (!(mod->scale == TEXTURE_SCALE_MODE_NO_CHANGE))
+                    SDL_SetTextureScaleMode((SDL_Texture*) mod->tex, (SDL_ScaleMode) mod->scale);
+
+                // NOTE we lose the ability to change the alpha w/o touching the color & vice versa
+                SDL_SetTextureColorMod((SDL_Texture*) mod->tex, mod->rgba.r, mod->rgba.g, mod->rgba.b);
+                SDL_SetTextureAlphaMod((SDL_Texture*) mod->tex, mod->rgba.a);
+
+                curr_entry += sizeof(render_entry_texture_mod_t);
+            } break;
+
             case RENDER_ENTRY_TYPE_CLEAR:
             {
                 curr_entry += sizeof(render_entry_header_t);
@@ -72,6 +109,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 SDL_RenderClear(renderer);
                 curr_entry += sizeof(render_entry_clear_t);
             } break;
+
             case RENDER_ENTRY_TYPE_PRESENT:
             {
                 curr_entry += sizeof(render_entry_header_t);
@@ -79,6 +117,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 SDL_RenderPresent(renderer);
                 curr_entry += sizeof(render_entry_present_t);
             } break;
+
             default:
             {
                 UNREACHABLE("Render command for entry '%u' not implemented", entry_header->type);
