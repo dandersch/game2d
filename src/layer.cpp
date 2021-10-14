@@ -7,7 +7,6 @@
 #include "rewind.h"
 #include "camera.h"
 #include "player.h"
-#include "globals.h"
 #include "utils.h"
 extern b32 levelgen_level_load(const char*, Entity*, u32, game_state_t*);
 
@@ -15,6 +14,7 @@ extern b32 levelgen_level_load(const char*, Entity*, u32, game_state_t*);
 
 #include "memory.h"
 extern game_state_t* state;
+extern platform_api_t platform;
 
 // GAMELAYER ///////////////////////////////////////////////////////////////////////////////////////
 static const int MAX_RENDER_LAYERS = 100;

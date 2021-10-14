@@ -1,10 +1,8 @@
 #pragma once
 
 #include "platform.h"
-//#include "platform_renderer.h"
 
 #include "base.h"
-#include "globals.h"
 #include "utils.h"
 #include "memory.h"
 #include "entity.h"

@@ -24,6 +24,8 @@ enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
 
 game_state_t* state = nullptr;
 platform_api_t platform = {0};
+const u32 SCREEN_WIDTH  = 1280;
+const u32 SCREEN_HEIGHT =  960;
 
 void game_state_init(game_state_t* game_state)
 {

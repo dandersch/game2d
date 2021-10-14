@@ -1,5 +1,4 @@
 #include "resourcemgr.h"
-#include "globals.h"
 #include "platform.h"
 #include "memory.h"
 
