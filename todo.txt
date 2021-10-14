@@ -1,3 +1,4 @@
+TODO -*- mode: org -*-
 - [X] resourcemanager (just for textures for now)
 - [X] camera with scrolling
 - [X] worldToScreen() and screenToWorld() functions

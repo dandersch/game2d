@@ -9,7 +9,7 @@ mkdir -p bin
 rm -f compile_commands.json
 
 # NOTE -std=c++14 for "list-initializing"
-CmnFlags="-g -std=c++14 -DENABLE_ASSERTS -fPIC -fno-rtti
+CmnFlags="-g -std=c++11 -DENABLE_ASSERTS -fPIC -fno-rtti
           -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
           -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "
 CmnFlags+="-DIMGUI "

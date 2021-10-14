@@ -98,9 +98,7 @@ void player_try_pickup(v3f direction, Entity& ent)
     isPickingUp = true;
     // SDL_TimerID timerID = SDL_AddTimer(1 * 1000, callback, (void*) "1 second!");
 
-    v3f pickup_pos = {ent.position.x + direction.x,
-                      ent.position.y + direction.y,
-                      ent.position.z + direction.z};
+    v3f pickup_pos = ent.position + direction;
 
     // put already held item down
     if (ent.item)
@@ -135,7 +133,7 @@ void player_try_pickup(v3f direction, Entity& ent)
 void player_try_attack(v3f direction, Entity& ent)
 {
     // create a collision box at playerpos + direction
-    v3f attack_pos = {ent.position.x + direction.x, ent.position.y + direction.y, ent.position.z + direction.z};
+    v3f attack_pos = ent.position + direction;
     Entity attack_box = {0};
     attack_box.active = true;
     attack_box.freed  = false;

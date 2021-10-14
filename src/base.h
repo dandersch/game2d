@@ -1,8 +1,5 @@
 #pragma once
 
-// STL includes TODO get rid of these
-#include <string>
-
 // PLATFORM DETECTION /////////////////////////////////////////////////////////////////////////////
 // see https://sourceforge.net/p/predef/wiki/Home/ for more pre-defined macros
 // that can help detect os/compiler/arch/etc.
@@ -25,7 +22,6 @@
 #endif
 
 // NOTE we use SDL on linux & web builds
-// TODO PLATFORM_WEB does not seem to get defined or not early enough
 #if defined(PLATFORM_LINUX) || defined(PLATFORM_WEB)
     #define PLATFORM_SDL
 #endif
@@ -59,6 +55,7 @@
 #endif
 
 // export declarations for .dll/.so
+// TODO define EXPORT for COMPILER_CLANG
 #ifdef COMPILER_GCC
     // NOTE GCC exports every symbol to the ELF by default (so no keyword would be needed), unless
     // -fvisibility=hidden is specified, then below keyword is needed for exporting
@@ -67,7 +64,7 @@
 #ifdef COMPILER_MSVC
     #define EXPORT __declspec(dllexport)
 #endif
-// NOTE apparently you can use both __attribute__() & __declspec() on mingw
+// NOTE apparently you can use both __attribute__() & __declspec() with mingw
 #ifdef COMPILER_MINGW
     #define EXPORT __declspec(dllexport)
 #endif
@@ -111,10 +108,11 @@ typedef int64_t  b64;
 typedef float    f32;
 typedef double   f64;
 
-// TODO "override" some keywords
-#define internal static
-#define local    static
-// #define global   static // NOTE only true with 1 translation unit
+// the 'static' keyword in C has different meanings depending on the context:
+#define internal static // for 'static' functions
+#define local    static // for 'static' variables inside a function
+#define global   static // 'static' variables in global scope can be considered global variables when
+                        // compiling only one translation unit (unity build)
 
 // TODO numeric limits, i.e. U32_MAX, I32_MIN, F32_MAX etc.
 
@@ -123,35 +121,94 @@ typedef double   f64;
 union v2u
 {
     struct { u32 x; u32 y; };
-    u32 v[2];
+    struct { u32 u; i32 v; };
+    u32 vec[2];
+    inline v2u operator+(const v2u& rhs) { return {this->x + rhs.x, this->y + rhs.y}; }
+    inline v2u operator-(const v2u& rhs) { return {this->x - rhs.x, this->y - rhs.y}; }
+    inline v2u operator*(const v2u& rhs) { return {this->x * rhs.x, this->y * rhs.y}; }
+    inline v2u operator/(const v2u& rhs) { return {this->x / rhs.x, this->y / rhs.y}; }
+
+    inline v2u operator+(const i32& rhs) { return {this->x + rhs, this->y + rhs}; }
+    inline v2u operator-(const i32& rhs) { return {this->x - rhs, this->y - rhs}; }
+    inline v2u operator*(const i32& rhs) { return {this->x * rhs, this->y * rhs}; }
+    inline v2u operator/(const i32& rhs) { return {this->x / rhs, this->y / rhs}; }
 };
 union v3u
 {
     struct { u32 x; u32 y; u32 z; };
-    u32 v[3];
+    u32 vec[3];
+    inline v3u operator+(const v3u& rhs) { return {this->x + rhs.x, this->y + rhs.y, this->z + rhs.z}; }
+    inline v3u operator-(const v3u& rhs) { return {this->x - rhs.x, this->y - rhs.y, this->z - rhs.z}; }
+    inline v3u operator*(const v3u& rhs) { return {this->x * rhs.x, this->y * rhs.y, this->z * rhs.z}; }
+    inline v3u operator/(const v3u& rhs) { return {this->x / rhs.x, this->y / rhs.y, this->z / rhs.z}; }
+
+    inline v3u operator+(const i32& rhs) { return {this->x + rhs, this->y + rhs, this->z + rhs}; }
+    inline v3u operator-(const i32& rhs) { return {this->x - rhs, this->y - rhs, this->z - rhs}; }
+    inline v3u operator*(const i32& rhs) { return {this->x * rhs, this->y * rhs, this->z * rhs}; }
+    inline v3u operator/(const i32& rhs) { return {this->x / rhs, this->y / rhs, this->z / rhs}; }
 };
 union v2i
 {
     struct { i32 x; i32 y; };
-    i32 v[2];
+    struct { i32 u; i32 v; };
+    i32 vec[2];
+    inline v2i operator+(const v2i& rhs) { return {this->x + rhs.x, this->y + rhs.y}; }
+    inline v2i operator-(const v2i& rhs) { return {this->x - rhs.x, this->y - rhs.y}; }
+    inline v2i operator*(const v2i& rhs) { return {this->x * rhs.x, this->y * rhs.y}; }
+    inline v2i operator/(const v2i& rhs) { return {this->x / rhs.x, this->y / rhs.y}; }
+
+    inline v2i operator+(const i32& rhs) { return {this->x + rhs, this->y + rhs}; }
+    inline v2i operator-(const i32& rhs) { return {this->x - rhs, this->y - rhs}; }
+    inline v2i operator*(const i32& rhs) { return {this->x * rhs, this->y * rhs}; }
+    inline v2i operator/(const i32& rhs) { return {this->x / rhs, this->y / rhs}; }
 };
 union v3i
 {
     struct { i32 x; i32 y; i32 z; };
-    i32 v[3];
+    i32 vec[3];
+    inline v3i operator+(const v3i& rhs) { return {this->x + rhs.x, this->y + rhs.y, this->z + rhs.z}; }
+    inline v3i operator-(const v3i& rhs) { return {this->x - rhs.x, this->y - rhs.y, this->z - rhs.z}; }
+    inline v3i operator*(const v3i& rhs) { return {this->x * rhs.x, this->y * rhs.y, this->z * rhs.z}; }
+    inline v3i operator/(const v3i& rhs) { return {this->x / rhs.x, this->y / rhs.y, this->z / rhs.z}; }
+
+    inline v3i operator+(const i32& rhs) { return {this->x + rhs, this->y + rhs, this->z + rhs}; }
+    inline v3i operator-(const i32& rhs) { return {this->x - rhs, this->y - rhs, this->z - rhs}; }
+    inline v3i operator*(const i32& rhs) { return {this->x * rhs, this->y * rhs, this->z * rhs}; }
+    inline v3i operator/(const i32& rhs) { return {this->x / rhs, this->y / rhs, this->z / rhs}; }
 };
 union v2f
 {
     struct { f32 x; f32 y; };
-    f32 v[2];
+    struct { f32 u; f32 v; };
+    f32 vec[2];
+    inline v2f operator+(const v2f& rhs) { return {this->x + rhs.x, this->y + rhs.y}; }
+    inline v2f operator-(const v2f& rhs) { return {this->x - rhs.x, this->y - rhs.y}; }
+    inline v2f operator*(const v2f& rhs) { return {this->x * rhs.x, this->y * rhs.y}; }
+    inline v2f operator/(const v2f& rhs) { return {this->x / rhs.x, this->y / rhs.y}; }
+
+    inline v2f operator+(const f32& rhs) { return {this->x + rhs, this->y + rhs}; }
+    inline v2f operator-(const f32& rhs) { return {this->x - rhs, this->y - rhs}; }
+    inline v2f operator*(const f32& rhs) { return {this->x * rhs, this->y * rhs}; }
+    inline v2f operator/(const f32& rhs) { return {this->x / rhs, this->y / rhs}; }
 };
 union v3f
 {
     struct { f32 x; f32 y; f32 z; };
-    f32 v[3];
+    f32 vec[3];
+    inline v3f operator+(const v3f& rhs) { return {this->x + rhs.x, this->y + rhs.y, this->z + rhs.z}; }
+    inline v3f operator-(const v3f& rhs) { return {this->x - rhs.x, this->y - rhs.y, this->z - rhs.z}; }
+    inline v3f operator*(const v3f& rhs) { return {this->x * rhs.x, this->y * rhs.y, this->z * rhs.z}; }
+    inline v3f operator/(const v3f& rhs) { return {this->x / rhs.x, this->y / rhs.y, this->z / rhs.z}; }
+
+    inline v3f operator+(const f32& rhs) { return {this->x + rhs, this->y + rhs, this->z + rhs}; }
+    inline v3f operator-(const f32& rhs) { return {this->x - rhs, this->y - rhs, this->z - rhs}; }
+    inline v3f operator*(const f32& rhs) { return {this->x * rhs, this->y * rhs, this->z * rhs}; }
+    inline v3f operator/(const f32& rhs) { return {this->x / rhs, this->y / rhs, this->z / rhs}; }
 };
 
 // TODO common operations on vectors
+// dot product
+// cross product
 
 // some other useful types
 struct rect_t
@@ -173,10 +230,11 @@ struct color_t // NOTE maybe add a 24bit version
 // ASSERTIONS //////////////////////////////////////////////////////////////////////////////////////
 #ifdef ENABLE_ASSERTS
 #include <signal.h> // for debug breaking
+#include <stdio.h>  // for fprintf
     #define REPORT_ASSERT_(expr, file, line)                                        \
-        printf("Assert failed for '%s' in file '%s' at line '%d'\n", expr, file, line)
+        fprintf(stderr, "Assert failed for '%s' in file '%s' at line '%d'\n", expr, file, line)
 
-    // TODO make platform indepent
+    // TODO make platform independent
     #ifdef COMPILER_MSVC
         #define DEBUG_BREAK() DebugBreak()
     #else
@@ -195,7 +253,7 @@ struct color_t // NOTE maybe add a 24bit version
             DEBUG_BREAK();                                      \
         }
 
-    #define UNREACHABLE(msg, ...) { printf(msg,##__VA_ARGS__); ASSERT(false) }
+    #define UNREACHABLE(msg, ...) { fprintf(stderr,msg,##__VA_ARGS__); ASSERT(false) }
 #else
     #define ASSERT(expr)
     #define UNREACHABLE(msg, ...)
