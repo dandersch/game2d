@@ -27,19 +27,19 @@ void renderer_destroy(renderer_t* renderer)
 }
 
 // 0 on success, -1 if texture is not valid
-i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
+i32 renderer_texture_query(texture_t tex, u32* format, i32* access, i32* w, i32* h)
 {
     return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
 }
 
-texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
+texture_t renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
 {
     SDL_Texture* tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
     SDL_ERROR(tex);
     return tex;
 }
 
-texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
+texture_t renderer_load_texture(platform_window_t* window, const char* filename)
 {
     SDL_Texture* tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
     SDL_ERROR(tex);
@@ -119,7 +119,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
             case RENDER_ENTRY_TYPE_CLEAR:
             {
                 curr_entry += sizeof(render_entry_header_t);
-                render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
                 SDL_RenderClear(renderer);
                 curr_entry += sizeof(render_entry_clear_t);
             } break;
@@ -127,14 +126,13 @@ void renderer_cmd_buf_process(platform_window_t* window)
             case RENDER_ENTRY_TYPE_PRESENT:
             {
                 curr_entry += sizeof(render_entry_header_t);
-                render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
                 SDL_RenderPresent(renderer);
                 curr_entry += sizeof(render_entry_present_t);
             } break;
 
             default:
             {
-                UNREACHABLE("Render command for entry '%u' not implemented", entry_header->type);
+                UNREACHABLE("SDL render command for entry '%u' not implemented", entry_header->type);
             }
         }
     }

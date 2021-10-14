@@ -28,7 +28,7 @@ struct render_entry_present_t { /* placeholder */ };
 
 struct render_entry_texture_t // all data needed for this render command
 {
-    texture_t* tex;
+    texture_t  tex;
     rect_t     src;
     rect_t     dst;
 };
@@ -57,22 +57,22 @@ enum texture_scale_mode_e // mirrors SDL_ScaleMode for now TODO use lookup table
 };
 struct render_entry_texture_mod_t
 {
-    texture_t*           tex;
+    texture_t            tex;
     texture_blend_mode_e blend;  // SDL_SetTextureBlendMode
     texture_scale_mode_e scale;  // SDL_SetTextureScaleMode
     color_t              rgba;   // SDL_SetTextureColorMod, SDL_SetTextureAlphaMod
 };
 
 /* called by game layer */
-void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale);
+void renderer_push_sprite(texture_t  sprite_tex, rect_t sprite_box, v3f position, f32 scale);
 void renderer_push_texture(render_entry_texture_t draw_tex);
 void renderer_push_texture_mod(render_entry_texture_mod_t mod);
 void renderer_push_rect(render_entry_rect_t rect);
 void renderer_push_clear(render_entry_clear_t clear);
 void renderer_push_present(render_entry_present_t present);
-texture_t* renderer_load_texture(platform_window_t* window, const char* filename);
-texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface);
-i32        renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h);
+texture_t renderer_load_texture(platform_window_t* window, const char* filename);
+texture_t renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface);
+i32        renderer_texture_query(texture_t tex, u32* format, i32* access, i32* w, i32* h);
 
 /* called by platform layer */
 void renderer_init(platform_window_t* window);

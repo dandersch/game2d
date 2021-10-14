@@ -99,13 +99,13 @@ internal void* hash_table_get_value(const char* key)
 // this means filepaths can't be longer than 256 characters
 #define MAX_CHARS_FOR_FILEPATH 256
 #define RESOURCE_FOLDER "res/"
-texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
+texture_t resourcemgr_texture_load(const char* filename, game_state_t* state)
 {
     char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
     ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
     strcat(filepath, filename);
 
-    texture_t* tex = hash_table_get_value(filename);
+    texture_t tex = hash_table_get_value(filename);
     if (tex) return tex;
     else // not found
     {

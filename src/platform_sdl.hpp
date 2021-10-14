@@ -31,9 +31,10 @@
 #include <SDL_loadso.h>
 
 #ifdef USE_OPENGL
+  #include "glew.h"
   #include <SDL_opengl.h>
-  #include <GL/gl.h>
   #include <GL/glu.h>
+  //#include <GL/gl.h>
 #endif
 
 // IMGUI include TODO maybe move this somewhere else

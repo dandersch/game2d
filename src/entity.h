@@ -5,7 +5,7 @@
 struct sprite_t
 {
     rect_t box;
-    texture_t*  tex;
+    texture_t  tex;
     v2f    pivot = {0.5f, 0.5f};
     //u32    flip  = 0;            // == SDL_RendererFlip flip = SDL_FLIP_NONE; NOTE unused
 };
