@@ -1,8 +1,6 @@
 #include "game.h"
 
-#include "debug.h"
-
-// UNITY BUILD
+// we use a unity build, see en.wikipedia.org/wiki/Unity_build
 #include "camera.cpp"
 #include "physics.cpp"
 #include "entity.cpp"
@@ -27,22 +25,10 @@ platform_api_t platform = {0};
 const u32 SCREEN_WIDTH  = 1280;
 const u32 SCREEN_HEIGHT =  960;
 
-void game_state_init(game_state_t* game_state)
-{
-    // TODO try out C++ placement new so that we can use default values in the
-    // struct definitions & not have to write init code.
-    game_state->initialized   = true;
-    for (int i = 0; i < MAX_ENTITIES; i++) game_state->ents[i]  = {};
-    for (int i = 0; i < MAX_TILES; i++)    game_state->tiles[i] = {};
-    game_state->focusArrow    = {64,32,16,32}; // TODO hardcoded
-    game_state->cam           = {};
-    game_state->game_running  = true;
-}
-
 extern "C" void game_state_update(game_state_t* game_state, platform_api_t platform_api)
 {
     state    = game_state;
-    if (!game_state->initialized) game_state_init(game_state);
+    if (!game_state->initialized) game_state = new (game_state) game_state_t();
     platform = platform_api;
 }
 

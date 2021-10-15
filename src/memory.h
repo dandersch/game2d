@@ -27,28 +27,28 @@ struct Button
 #define MENU_BUTTON_COUNT 3
 struct game_state_t
 {
-    b32 initialized;           // used by game
+    b32 initialized = true;            // used by game
 
-    Entity ents[MAX_ENTITIES]; // used by entity, game, layer
-    u32    temp_count = 0;     // used by entity
-    Tile   tiles[MAX_TILES];   // used by entity, game
-    u32    tile_count = 0;     // used by entity
+    Entity ents[MAX_ENTITIES] = {};    // used by entity, game, layer
+    u32    temp_count         = 0;     // used by entity
+    Tile   tiles[MAX_TILES]   = {};    // used by entity, game
+    u32    tile_count         = 0;     // used by entity
 
-    platform_window_t* window; // used by game, layer, resourcemgr
-    b32 game_running = true;   // used by game
+    platform_window_t* window;         // used by game, layer, resourcemgr
+    b32 game_running = true;           // used by game
 
-    game_input_t game_input;   // used by input, layer
-    u32 actionState;           // used by input, rewind, player
+    game_input_t game_input;           // used by input, layer
+    u32 actionState;                   // used by input, rewind, player
 
-    f32 last_frame_time;       // global because we need it in the
-    f32 cycles_left_over;      // "main_loop" used for emscripten
+    f32 last_frame_time;               // global because we need it in the
+    f32 cycles_left_over;              // "main_loop" used for emscripten
 
-    //platform_api_t platform; // unused
+    //platform_api_t platform;         // unused
 
-    Camera cam;                // used by game, layer
-    bool debugDraw;            // used by layer
-    Entity* focusedEntity;     // used by layer
-    rect_t focusArrow;         // used by game, layer
+    Camera cam = {};                   // used by game, layer
+    bool debugDraw;                    // used by layer
+    Entity* focusedEntity;             // used by layer
+    rect_t focusArrow = {64,32,16,32}; // used by game, layer TODO hardcoded
 
     // commandprocessor
     u32 cmdIdx = 0;            // used by rewind, layer
