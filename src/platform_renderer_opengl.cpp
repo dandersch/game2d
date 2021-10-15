@@ -9,19 +9,41 @@ struct renderer_t
     SDL_GLContext gl_context;
 };
 
+// TODO temp globals
+global GLuint prog_id;
+global GLuint tex_id;
+global GLuint vao, vbo, ibo;
+
 // TODO test
-// TODO there seems to be a built-in SDL function for what we do here:
-//    SDL_GL_BindTexture(SDL_Texture *texture, float *texw, float *texh)
 texture_t renderer_load_texture(platform_window_t* window, const char* filename)
 {
+    // TODO there seems to be a built-in SDL function for what we do here:
+    //    SDL_GL_BindTexture(SDL_Texture *texture, float *texw, float *texh)
+    // "You need a renderer to create an SDL_Texture, therefore you can only use
+    //  this function with an implicit OpenGL context from SDL_CreateRenderer(),
+    //  not with your own OpenGL context. If you need control over your OpenGL
+    //  context, you need to write your own texture-loading methods."
+    //window->renderer = (void*) SDL_CreateRenderer(window->handle, -1, SDL_RENDERER_ACCELERATED);
+    //SDL_GL_BindTexture(SDL_Texture*, w, h);
+
     GLuint TextureID = 0;
 
-    // You should probably use CSurface::OnLoad ... ;)
-    //-- and make sure the Surface pointer is good!
     SDL_Surface* Surface = IMG_Load(filename);
+
+    // TODO make surface upside down (origin in SDL_image is upper left, origin in opengl is bottom left...)
+    // OR use stb_image.h
 
     glGenTextures(1, &TextureID);
     glBindTexture(GL_TEXTURE_2D, TextureID);
+
+
+    // set some parameters TODO needed ?
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int Mode = GL_RGB;
     if (Surface->format->BytesPerPixel == 4) Mode = GL_RGBA;
@@ -32,9 +54,11 @@ texture_t renderer_load_texture(platform_window_t* window, const char* filename)
 
     //Any other glTex* stuff here
 
+    // cleanup
     // TODO do we have to unbind the texture here ?
+    // DestroySurface(Surface);
 
-    return TextureID; // TODO can we cast the uint here to a pointer w/o problems (32bit vs 64bit)?
+    return TextureID;
 }
 
 // stubs
@@ -63,21 +87,29 @@ void renderer_init(platform_window_t* window)
 
     SDL_ERROR(!SDL_GL_SetSwapInterval(1)); // Couldn't set VSYNC
 
-    // Generate program
-    GLuint prog_id       = glCreateProgram();
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    printf("%s\n", glGetString(GL_VERSION));
 
+    // CREATE PROGRAM /////////////////////////////////////////////////////////////////////////////
+    prog_id       = glCreateProgram(); // Generate program
     // set vertex shader source code
     const GLchar* vertex_shader_src[] = {
-                                         "#version 140\n"
-                                         "in vec2 pos;\n"
-                                         "void main() {\n"
-                                         "    gl_Position = vec4(pos.x, pos.y, 0, 1);\n"
-                                         "}"
+                                          "#version 330 core\n"
+                                          "layout (location = 0) in vec3 aPos;\n"
+                                          "layout (location = 1) in vec3 aColor;\n"
+                                          "layout (location = 2) in vec2 aTexCoord;\n"
+                                          "out vec3 ourColor;\n"
+                                          "out vec2 TexCoord;\n"
+                                          "uniform vec2 transl;\n"
+                                          "uniform vec2 tex_coords;\n"
+                                          "void main() {\n"
+                                          "    gl_Position = vec4(aPos.x + transl.x, aPos.y + transl.y, aPos.z, 1);\n"
+                                          "    ourColor = aColor;\n"
+                                          "    TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+                                          "}"
                                         };
+    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);   // generate vertex shader
     glShaderSource(vertex_shader, 1, vertex_shader_src, NULL); // Set vertex source
     glCompileShader(vertex_shader);                            // compile vertex source
-
     // check vertex shader for errors
     GLint compile_error = GL_FALSE;
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compile_error);
@@ -86,27 +118,20 @@ void renderer_init(platform_window_t* window)
         printf("Unable to compile vertex shader %d!\n", vertex_shader);
         //printShaderLog(vertex_shader);
     }
-
-    // attach vertex shader to program
-    glAttachShader(prog_id, vertex_shader);
-
-    // create fragment shader
-    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    // get fragment source
-    const GLchar* frag_shader_src[] = { "#version 140\n"
-                                        "out vec4 LFragment;\n"
-                                        "in vec2 pos;\n"
-                                        "void main() {\n"
-                                        "    LFragment = vec4(pos.x, pos.y, 1.0, 1.0 );\n"
-                                        "}" };
-
-    // set fragment source
-    glShaderSource(frag_shader, 1, frag_shader_src, NULL );
-
-    // compile fragment source
-    glCompileShader(frag_shader);
-
+    glAttachShader(prog_id, vertex_shader); // attach vertex shader to program
+    // set fragment shader source code
+    const GLchar* frag_shader_src[] = { "#version 330 core\n"
+                                        "out vec4 FragColor;\n"
+                                        "in vec3 ourColor;\n"
+                                        "in vec2 TexCoord;\n"
+                                        "uniform sampler2D ourTexture;\n"
+                                        "void main()\n"
+                                        "{\n"
+                                        "    FragColor = texture(ourTexture, TexCoord);\n"
+                                        "}"};
+    GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER); // create fragment shader
+    glShaderSource(frag_shader, 1, frag_shader_src, NULL );  // set fragment source
+    glCompileShader(frag_shader);                            // compile fragment source
     // check fragment shader for errors
     compile_error = GL_FALSE;
     glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &compile_error);
@@ -115,13 +140,8 @@ void renderer_init(platform_window_t* window)
         printf( "Unable to compile fragment shader %d!\n", frag_shader);
         //printShaderLog( fragmentShader );
     }
-
-    // attach fragment shader to program
-    glAttachShader(prog_id, frag_shader);
-
-    // link program
-    glLinkProgram(prog_id);
-
+    glAttachShader(prog_id, frag_shader); // attach fragment shader to program
+    glLinkProgram(prog_id);               // link program
     // check for errors
     GLint prog_success = GL_TRUE;
     glGetProgramiv(prog_id, GL_LINK_STATUS, &prog_success);
@@ -130,87 +150,76 @@ void renderer_init(platform_window_t* window)
         printf("Error linking program %d!\n", prog_id);
         // printProgramLog( gProgramID );
     }
+    //////////////////////////////////////////////////////////////////////////////////////////////////
 
-    //Get vertex attribute location
-    GLint gVertexPos2DLocation = -1;
-    gVertexPos2DLocation = glGetAttribLocation(prog_id, "pos");
-    if(gVertexPos2DLocation == -1)
-    {
-        printf("pos is not a valid glsl program variable!\n");
-    }
-
-    GLuint gVBO = 0;
-    GLuint gIBO = 0;
-
-    // Initialize clear color
-    glClearColor( 0.f, 0.f, 0.f, 1.f );
-
-    // VBO data
-    GLfloat vertexData[] = { -0.5f, -0.5f,
-                              0.5f, -0.5f,
-                              0.5f,  0.5f, };
-
-    // IBO data
-    GLuint indexData[] = { 0, 1, 2 };
-
-    // generate vao
-    GLuint vao;
+    // GENERATE OBJECTS //////////////////////////////////////////////////////////////////////////////
+    float vertices[] = {
+        // positions          // colors           // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
+    };
+    unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
+    // generate objects
     glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ibo);
+
     glBindVertexArray(vao);
 
-    // create VBO
-    glGenBuffers(1, &gVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-    glBufferData(GL_ARRAY_BUFFER, 2 * (sizeof(vertexData)/sizeof(*vertexData)) * sizeof(GLfloat),
-                 vertexData, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // create IBO
-    glGenBuffers(1, &gIBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (sizeof(indexData)/sizeof(*indexData)) * sizeof(GLuint),
-                 indexData, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    // test loading in a texture (seems to work)
-    GLuint tex_id = renderer_load_texture(window, "res/character.png");
-    float texCoords[] = { 0.0f, 0.0f,  // bottom left
-                          1.0f, 0.0f,  // bottom right
-                          1.0f, 1.0f,  // top right
-                          0.0f, 1.0f   // top left
-                         };
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    // texture coord attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    //////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // LOAD IN TEXTURE ///////////////////////////////////////////////////////////////////////////////
+    tex_id = renderer_load_texture(window, "res/gravetiles.png");
+    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+    glUseProgram(prog_id); // Bind program before settings uniforms!
 
+    glUniform1i(glGetUniformLocation(prog_id, "ourTexture"), 0); // TODO why 0
+    glUniform2f(glGetUniformLocation(prog_id, "transl"), 0.5f, 0.5f);
+
+#if 1
     u32 counter = 0;
     while (counter < 100)
     {
         glClearColor(1.0f,0.1f,0.1f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT);      // clear color buffer
 
+        // draw the texture
+        glBindTexture(GL_TEXTURE_2D, tex_id);
+
         glUseProgram(prog_id); // Bind program
-        glEnableVertexAttribArray(gVertexPos2DLocation); // Enable vertex position
+        glUniform2f(glGetUniformLocation(prog_id, "transl"), counter/100.f, counter/100.f);
 
-        // set vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-        glVertexAttribPointer(gVertexPos2DLocation, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), NULL);
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        // set index data and render
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
-        glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, NULL);
-
-        // Disable vertex position
-        glDisableVertexAttribArray(gVertexPos2DLocation);
-
-        // Unbind program
-        glUseProgram(NULL);
-
-        // TODO try drawing the texture
 
         SDL_GL_SwapWindow(window->handle);
 
         counter++;
         printf("%u\n", counter);
     }
-
-    exit(1);
+    exit(0);
+#endif
 }
 
 void renderer_cmd_buf_process(platform_window_t* window)
@@ -226,9 +235,62 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
+                const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
+                const u32 SCREEN_HEIGHT = 960; // TODO hardcoded
+
+                // TODO this is hardcoded for testing, we should make texture_t
+                // an opaque ptr instead that is defined by the renderer and in
+                // the case of opengl should at least contain the GLuint tex_id
+                // & width & height
+                const u32 TEXTURE_WIDTH  = 352;
+                const u32 TEXTURE_HEIGHT = 224;
+
+                // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280,
+                // y,h:0-960), but opengl needs screen coordinates from -1 to 1
+                // (origin is in the center of the screen)
+                f32 screen_x = (draw_tex->dst.x / (SCREEN_WIDTH/2))  - 1;
+                f32 screen_y = (draw_tex->dst.y / (SCREEN_HEIGHT/2)) - 1;
+                f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2));
+                f32 screen_h = (draw_tex->dst.w / (SCREEN_HEIGHT/2));
+
+                // NOTE draw_tex->src is in pixel coordinates
+                // (x,w:0-texture_width y,h:0-texture_height), but opengl needs
+                // texture coordinates from 0 to 1 (origin is bottom left corner)
+                f32 tex_x = (draw_tex->src.x / (TEXTURE_WIDTH/2));
+                f32 tex_y = (draw_tex->src.y / (TEXTURE_HEIGHT/2));
+                f32 tex_w = (draw_tex->src.w / (TEXTURE_WIDTH/2));
+                f32 tex_h = (draw_tex->src.w / (TEXTURE_HEIGHT/2));
+
                 // TODO opengl code here
+                const float verts[] = {
+                    screen_x,            screen_y,
+                    screen_y + screen_w, screen_y,
+                    screen_x + screen_w, screen_y + screen_h,
+                    screen_x,            screen_y + screen_h
+                };
+                //const float tw = float(spriteWidth) / texWidth;
+                //const float th = float(spriteHeight) / texHeight;
+                //const int numPerRow = texWidth / spriteWidth;
+                //const float tx = (frameIndex % numPerRow) * tw;
+                //const float ty = (frameIndex / numPerRow + 1) * th;
+                const float texVerts[] = {
+                    tex_x,         tex_y,
+                    tex_x + tex_w, tex_y,
+                    tex_x + tex_w, tex_y + tex_h,
+                    tex_x,         tex_y + tex_h
+                };
+
+                // ... Bind the texture, enable the proper arrays
                 glBindTexture(GL_TEXTURE_2D, (GLuint) draw_tex->tex);
-                // ...
+                glUseProgram(prog_id);
+                glUniform1i(glGetUniformLocation(prog_id, "ourTexture"), 0); // TODO why 0
+
+                glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+                glVertexPointer(2, GL_FLOAT, 0, verts);
+                glTexCoordPointer(2, GL_FLOAT, 0, texVerts);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
@@ -260,7 +322,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_header_t);
 
                 // TODO opengl code her
-                // ...
+                glClearColor(1.0f,0.1f,0.1f,1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);      // clear color buffer
 
                 curr_entry += sizeof(render_entry_clear_t);
             } break;

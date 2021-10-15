@@ -50,9 +50,9 @@ enum texture_blend_mode_e // mirrors SDL_BlendMode for now
 };
 enum texture_scale_mode_e // mirrors SDL_ScaleMode for now TODO use lookup table
 {
-    TEXTURE_SCALE_MODE_NEAREST,
-    TEXTURE_SCALE_MODE_LINEAR,
-    TEXTURE_SCALE_MODE_BEST,             // anisotropic filtering
+    TEXTURE_SCALE_MODE_NEAREST,          // == SDL_ScaleModeNearest & GL_NEAREST
+    TEXTURE_SCALE_MODE_LINEAR,           // == SDL_ScaleModeLinear & GL_LINEAR.
+    TEXTURE_SCALE_MODE_BEST,             // == SDL_ScaleModeBest (anisotropic filtering)
     TEXTURE_SCALE_MODE_NO_CHANGE = 1000, // ours
 };
 struct render_entry_texture_mod_t
