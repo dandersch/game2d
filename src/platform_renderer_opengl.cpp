@@ -169,6 +169,7 @@ void renderer_init(platform_window_t* window)
     glGenBuffers(1, &vbo);
     glGenBuffers(1, &ibo);
 
+#if 0
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -186,6 +187,7 @@ void renderer_init(platform_window_t* window)
     // texture coord attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+#endif
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
     // LOAD IN TEXTURE ///////////////////////////////////////////////////////////////////////////////
@@ -194,9 +196,9 @@ void renderer_init(platform_window_t* window)
     glUseProgram(prog_id); // Bind program before settings uniforms!
 
     glUniform1i(glGetUniformLocation(prog_id, "ourTexture"), 0); // TODO why 0
-    glUniform2f(glGetUniformLocation(prog_id, "transl"), 0.5f, 0.5f);
+    //glUniform2f(glGetUniformLocation(prog_id, "transl"), 0.5f, 0.5f);
 
-#if 1
+#if 0
     u32 counter = 0;
     while (counter < 100)
     {
@@ -248,18 +250,32 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280,
                 // y,h:0-960), but opengl needs screen coordinates from -1 to 1
                 // (origin is in the center of the screen)
-                f32 screen_x = (draw_tex->dst.x / (SCREEN_WIDTH/2))  - 1;
-                f32 screen_y = (draw_tex->dst.y / (SCREEN_HEIGHT/2)) - 1;
-                f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2));
-                f32 screen_h = (draw_tex->dst.w / (SCREEN_HEIGHT/2));
+                f32 screen_x = (draw_tex->dst.x / (SCREEN_WIDTH/2.f))  - 1.f;
+                f32 screen_y = (draw_tex->dst.y / (SCREEN_HEIGHT/2.f)) - 1.f;
+                f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
+                f32 screen_h = (draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
+
+                //printf("tex id %u \n", draw_tex->tex);
+
+                // printf("screen pos: %f ", screen_x);
+                // printf("%f ",             screen_y);
+                // printf("%f ",             screen_w);
+                // printf("%f\n",            screen_h);
 
                 // NOTE draw_tex->src is in pixel coordinates
-                // (x,w:0-texture_width y,h:0-texture_height), but opengl needs
-                // texture coordinates from 0 to 1 (origin is bottom left corner)
-                f32 tex_x = (draw_tex->src.x / (TEXTURE_WIDTH/2));
-                f32 tex_y = (draw_tex->src.y / (TEXTURE_HEIGHT/2));
-                f32 tex_w = (draw_tex->src.w / (TEXTURE_WIDTH/2));
-                f32 tex_h = (draw_tex->src.w / (TEXTURE_HEIGHT/2));
+                // (x,w:0-texture_width y,h:0-texture_height with origin in top
+                // left corner), but opengl needs texture coordinates from 0 to
+                // 1 (origin is bottom left corner)
+                // TODO change origin
+                f32 tex_x = abs((draw_tex->src.x / (TEXTURE_WIDTH/2.f)) - 1);
+                f32 tex_y = (draw_tex->src.y / (TEXTURE_HEIGHT/2.f));
+                f32 tex_w = abs((draw_tex->src.w / (TEXTURE_WIDTH/2.f)) -1);
+                f32 tex_h = (draw_tex->src.h / (TEXTURE_HEIGHT/2.f));
+
+                // printf("tex: %f ",  tex_x);
+                // printf("%f ",       tex_y);
+                // printf("%f ",       tex_w);
+                // printf("%f\n",      tex_h);
 
                 // TODO opengl code here
                 const float verts[] = {
@@ -270,7 +286,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 };
                 //const float tw = float(spriteWidth) / texWidth;
                 //const float th = float(spriteHeight) / texHeight;
-                //const int numPerRow = texWidth / spriteWidth;
+                //const int numPerRow = texWidth / spriteWidth// ;
                 //const float tx = (frameIndex % numPerRow) * tw;
                 //const float ty = (frameIndex / numPerRow + 1) * th;
                 const float texVerts[] = {
@@ -282,6 +298,9 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 // ... Bind the texture, enable the proper arrays
                 glBindTexture(GL_TEXTURE_2D, (GLuint) draw_tex->tex);
+                glEnableClientState(GL_VERTEX_ARRAY);
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
                 glUseProgram(prog_id);
                 glUniform1i(glGetUniformLocation(prog_id, "ourTexture"), 0); // TODO why 0
 
@@ -290,6 +309,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 glVertexPointer(2, GL_FLOAT, 0, verts);
                 glTexCoordPointer(2, GL_FLOAT, 0, texVerts);
+
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
                 curr_entry += sizeof(render_entry_texture_t);
