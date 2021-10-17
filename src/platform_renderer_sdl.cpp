@@ -6,6 +6,11 @@
  * APIs as its backend. It doesn't have as many features as e.g. raw OpenGL, so
  * it could/should be used as a fallback. */
 
+struct texture_t
+{
+    SDL_Texture* id;
+};
+
 void renderer_init(platform_window_t* window)
 {
     cmds.buf_offset  = cmds.buf;
@@ -27,22 +32,30 @@ void renderer_destroy(renderer_t* renderer)
 }
 
 // 0 on success, -1 if texture is not valid
-i32 renderer_texture_query(texture_t tex, u32* format, i32* access, i32* w, i32* h)
+i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
 {
-    return SDL_QueryTexture((SDL_Texture*) tex, format, access, w, h);
+    return SDL_QueryTexture(tex->id, format, access, w, h);
 }
 
-texture_t renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
+texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
 {
-    SDL_Texture* tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
-    SDL_ERROR(tex);
+    SDL_Texture* sdl_tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
+    SDL_ERROR(sdl_tex);
+
+    texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
+    tex->id = sdl_tex;
+
     return tex;
 }
 
-texture_t renderer_load_texture(platform_window_t* window, const char* filename)
+texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
-    SDL_Texture* tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
-    SDL_ERROR(tex);
+    SDL_Texture* sdl_tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
+    SDL_ERROR(sdl_tex);
+
+    texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
+    tex->id = sdl_tex;
+
     return tex;
 }
 
@@ -83,7 +96,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 if (utils_rect_empty(draw_tex->src)) src = NULL;
                 if (utils_rect_empty(draw_tex->dst)) dst = NULL;
 
-                SDL_RenderCopy(renderer, (SDL_Texture*) draw_tex->tex, src, dst);
+                SDL_RenderCopy(renderer, draw_tex->tex->id, src, dst);
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
 
@@ -105,13 +118,13 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
 
                 if (!(mod->blend == TEXTURE_BLEND_MODE_NO_CHANGE))
-                    SDL_SetTextureBlendMode((SDL_Texture*) mod->tex, sdl_blendmode_lut(mod->blend));
+                    SDL_SetTextureBlendMode(mod->tex->id, sdl_blendmode_lut(mod->blend));
                 if (!(mod->scale == TEXTURE_SCALE_MODE_NO_CHANGE))
-                    SDL_SetTextureScaleMode((SDL_Texture*) mod->tex, (SDL_ScaleMode) mod->scale);
+                    SDL_SetTextureScaleMode(mod->tex->id, (SDL_ScaleMode) mod->scale);
 
                 // NOTE we lose the ability to change the alpha w/o touching the color & vice versa
-                SDL_SetTextureColorMod((SDL_Texture*) mod->tex, mod->rgba.r, mod->rgba.g, mod->rgba.b);
-                SDL_SetTextureAlphaMod((SDL_Texture*) mod->tex, mod->rgba.a);
+                SDL_SetTextureColorMod(mod->tex->id, mod->rgba.r, mod->rgba.g, mod->rgba.b);
+                SDL_SetTextureAlphaMod(mod->tex->id, mod->rgba.a);
 
                 curr_entry += sizeof(render_entry_texture_mod_t);
             } break;

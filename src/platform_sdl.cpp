@@ -358,14 +358,14 @@ void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos
     // SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
 }
 
-void platform_surface_destroy(surface_t* surface)
-{
-    SDL_FreeSurface((SDL_Surface*) surface);
-}
-
 u64 platform_debug_performance_counter()
 {
     return SDL_GetPerformanceCounter();
+}
+
+void platform_surface_destroy(surface_t* surface)
+{
+    SDL_FreeSurface((SDL_Surface*) surface);
 }
 
 // SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
@@ -382,7 +382,7 @@ void platform_font_init()
 }
 
 // TODO pass options to render blended/wrapped
-// NOTE this is not an SDL Renderer specific function
+// NOTE this is not (as of now) an SDL Renderer specific function
 surface_t* platform_text_render(font_t* font, const char* text, color_t color, u32 wrap_len)
 {
     SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,

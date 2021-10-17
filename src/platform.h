@@ -5,12 +5,8 @@ struct platform_window_t;
 struct platform_sound_device_t;
 struct game_input_t;
 
-// TODO avoid the ifdef
-#ifdef USE_OPENGL
-  typedef u32   texture_t; // GLuint
-#else
-  typedef void* texture_t; // SDL_Texture*
-#endif
+// opaque renderer structs
+struct texture_t;
 
 typedef void surface_t; // SDL_Surface, ...
 typedef void font_t;    // ttf, ...
@@ -51,14 +47,11 @@ typedef u32  (*platform_ticks_fn)();
 typedef void (*platform_quit_fn)();
 
 typedef void (*platform_render_fn)(platform_window_t*);
+typedef void (*platform_surface_destroy_fn)(surface_t*);
 
-typedef texture_t  (*platform_texture_create_from_surface_fn)(platform_window_t*, surface_t*);
-typedef texture_t  (*platform_texture_load_fn)(platform_window_t*, const char*);
-typedef i32        (*platform_texture_query_fn)(texture_t , u32*, i32*, i32*, i32*);
-typedef void       (*platform_surface_destroy_fn)(surface_t*);
+// SDL_TTF
 typedef void       (*platform_font_init_fn)();
 typedef font_t*    (*platform_font_load_fn)(const char*, i32);
-
 typedef surface_t* (*platform_text_render_fn)(font_t*, const char*, color_t, u32);
 
 typedef void (*platform_debug_draw_fn)(platform_window_t*, rect_t, v3f, color_t, u32);
@@ -72,15 +65,15 @@ typedef void (*platform_imgui_end_fn)();
 
 // RENDERER API ////////////////////////////////////////////////////////////////////////////////
 #include "platform_renderer.h" // TODO temp
-typedef void (*renderer_push_sprite_fn)(texture_t, rect_t, v3f, f32);
+typedef void (*renderer_push_sprite_fn)(texture_t*, rect_t, v3f, f32);
 typedef void (*renderer_push_texture_fn)(render_entry_texture_t);
 typedef void (*renderer_push_texture_mod_fn)(render_entry_texture_mod_t);
 typedef void (*renderer_push_rect_fn)(render_entry_rect_t);
 typedef void (*renderer_push_clear_fn)(render_entry_clear_t);
 typedef void (*renderer_push_present_fn)(render_entry_present_t);
-typedef texture_t  (*renderer_load_texture_fn)(platform_window_t*, const char*);
-typedef texture_t  (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
-typedef i32        (*renderer_texture_query_fn)(texture_t, u32*, i32*, i32*, i32*);
+typedef texture_t*  (*renderer_load_texture_fn)(platform_window_t*, const char*);
+typedef texture_t*  (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
+typedef i32        (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
 struct renderer_api_t
 {
     renderer_push_sprite_fn      push_sprite;

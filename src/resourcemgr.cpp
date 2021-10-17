@@ -98,19 +98,19 @@ internal void* hash_table_get_value(const char* key)
 // this means filepaths can't be longer than 256 characters
 #define MAX_CHARS_FOR_FILEPATH 256
 #define RESOURCE_FOLDER "res/"
-texture_t resourcemgr_texture_load(const char* filename, game_state_t* state)
+texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
 {
     char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
     ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
     strcat(filepath, filename);
 
-    texture_t tex = hash_table_get_value(filename);
+    texture_t* tex = (texture_t*) hash_table_get_value(filename);
     if (tex) return tex;
     else // not found
     {
         tex = platform.renderer.load_texture(state->window, filepath);
         hash_table_add_entry(filename, tex);
-        if (!tex) return hash_table_get_value("missing"); // TODO handle if this fails
+        if (!tex) return (texture_t*) hash_table_get_value("missing"); // TODO handle if this fails
     }
 
     return tex;
@@ -122,16 +122,16 @@ font_t* resourcemgr_font_load(const char* filename, game_state_t* state, i32 pts
     ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
     strcat(filepath, filename);
 
-    font_t* tex = hash_table_get_value(filename);
-    if (tex) return tex;
+    font_t* font = hash_table_get_value(filename);
+    if (font) return font;
     else // not found
     {
-        tex = platform.font_load(filepath, ptsize);
-        hash_table_add_entry(filename, tex);
-        if (!tex) return hash_table_get_value("missing"); // TODO handle if this fails
+        font = platform.font_load(filepath, ptsize);
+        hash_table_add_entry(filename, font);
+        if (!font) return hash_table_get_value("missing"); // TODO handle if this fails
     }
 
-    return tex;
+    return font;
 }
 
 // TODO

@@ -8,7 +8,7 @@ start_timer=$(date +%s.%N)
 mkdir -p bin
 rm -f compile_commands.json
 
-# NOTE -std=c++14 for "list-initializing"
+# TODO compiler warning for integer division that's assigned to a float
 CmnFlags="-g -std=c++11 -DENABLE_ASSERTS -fPIC -fno-rtti
           -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
           -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "

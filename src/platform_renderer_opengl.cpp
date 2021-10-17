@@ -1,44 +1,53 @@
 #include "platform_renderer.h"
 #include "utils.h"
 
-// #define STB_IMAGE_IMPLEMENTATION
-// #include "stb_image.h"
 
 // unity build
 //#include "glew.c"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 struct renderer_t
 {
     SDL_GLContext gl_context;
 };
 
-texture_t renderer_load_texture(platform_window_t* window, const char* filename)
+struct texture_t
+{
+    u32 id;
+    u32 width;
+    u32 height;
+    // ...
+};
+
+texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
     GLuint TextureID = 0;
 
-    // TODO make surface upside down (origin in SDL_image is upper left, origin in opengl is bottom left...)
-    // TODO OR use stb_image.h
-    SDL_Surface* Surface = IMG_Load(filename);
+    //stbi_set_flip_vertically_on_load(true); TODO doesn't work as expected
+
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
+    if (!data) UNREACHABLE("image couldn't be loaded\n");
+
     int Mode = GL_RGB;
-    if (Surface->format->BytesPerPixel == 4) Mode = GL_RGBA;
+    switch (nrChannels)
+    {
+        case 2: { } break; // see down below
+        case 3: { Mode = GL_RGB; } break;
+        case 4: { Mode = GL_RGBA; } break;
+        default: { UNREACHABLE("Unknown nr of channels '%i' for image '%s'\n", nrChannels, filename); break; }
+    }
 
-    // By defining STB_IMAGE_IMPLEMENTATION the preprocessor modifies the header file
-    // such that it only contains the relevant definition source code, effectively
-    // turning the header file into a .cpp file, and that's about it. Now simply
-    // include stb_image.h somewhere in your program and compile.
-
-    // For the following texture sections we're going to use an image of a wooden
-    // container. To load an image using stb_image.h we use its stbi_load function:
-
-    //int width, height, nrChannels;
-    //unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
-    //if (!data) error();
-
-    // The function first takes as input the location of an image file. It then
-    // expects you to give three ints as its second, third and fourth argument
-    // that stb_image.h will fill with the resulting image's width, height and
-    // number of color channels. We need the image's width and height for
-    // generating textures later on.
+    // NOTE the greyscale texture (greyout.png) uses 2 channels (gray+alpha), which isn't supported by
+    // (immediate-mode?) opengl, so as a workaround we load it in again & force it to 4 channels.
+    // IMG_Load seemed to do that by default
+    if (nrChannels == 2)
+    {
+        stbi_image_free(data);
+        data = stbi_load(filename, &width, &height, &nrChannels, 4);
+        Mode = GL_RGBA;
+    }
 
     glGenTextures(1, &TextureID);
     glBindTexture(GL_TEXTURE_2D, TextureID);
@@ -51,22 +60,65 @@ texture_t renderer_load_texture(platform_window_t* window, const char* filename)
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, Mode, Surface->w, Surface->h, 0, Mode, GL_UNSIGNED_BYTE, Surface->pixels);
-
-    //Any other glTex* stuff here
+    glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, data);
 
     // cleanup
-    // TODO do we have to unbind the texture here ?
-    //DestroySurface(Surface);
-    //stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
+    stbi_image_free(data);
 
-    return TextureID;
+    texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
+    tex->id     = TextureID;
+    tex->width  = width;
+    tex->height = height;
+
+    return tex;
 }
 
-// stubs
-texture_t renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface) { return 0; }
-i32       renderer_texture_query(texture_t tex, u32* format, i32* access, i32* w, i32* h) { return -1; }
-void renderer_destroy(renderer_t* renderer) {}
+// TODO SDL specific
+texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
+{
+    SDL_Surface* surf = (SDL_Surface*) surface;
+
+    u32 tex_id = 0;
+
+    int Mode = -1;
+    switch (surf->format->BytesPerPixel)
+    {
+        case 3: { Mode = GL_RGB; } break;
+        case 4: { Mode = GL_RGBA; } break;
+        default: { UNREACHABLE("Unknown nr of bytes per pixel '%i'\n", surf->format->BytesPerPixel); break; }
+    }
+
+    glGenTextures(1, &tex_id);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+
+    // set some parameters TODO needed ?
+    // set the texture wrapping parameters
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, Mode, surf->w, surf->h, 0, Mode, GL_UNSIGNED_BYTE, surf->pixels);
+
+    // cleanup
+    glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
+
+    texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
+    tex->id     = tex_id;
+    tex->width  = surf->w;
+    tex->height = surf->h;
+    return tex;
+}
+
+i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
+{
+    // TODO handle nullpointers being passed
+    *w = tex->width;
+    *h = tex->height;
+    return 0;
+}
 
 // GLEW_OK = 0
 #define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
@@ -84,8 +136,7 @@ void renderer_init(platform_window_t* window)
     SDL_ERROR(gl_context); // Failed to create OpenGL context.
 
     // init GLEW
-    // NOTE we don't need glew for the time being (we're only using
-    // immediate-mode, i.e. legacy opengl right now)
+    // NOTE we don't need glew for the time being (we're only using immediate-mode, i.e. legacy opengl right now)
     //glewExperimental = GL_TRUE;
     //i32 error        = glewInit();
     //GLEW_ERROR(error);
@@ -108,8 +159,40 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
+                if (draw_tex->tex == nullptr) // TODO font textures arent supported by this renderer
+                {
+                    curr_entry += sizeof(render_entry_texture_t);
+                    break;
+                }
+
                 const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
                 const u32 SCREEN_HEIGHT = 960; // TODO hardcoded
+
+                f32 TEXTURE_WIDTH  = draw_tex->tex->width;
+                f32 TEXTURE_HEIGHT = draw_tex->tex->height;
+                GLuint tex_id      = draw_tex->tex->id;
+
+                // TODO we need to do this here because right now the game layer
+                // can push empty src/dst rectangles, which is supposed to mean
+                // to use the entire texture/entire screen.  Maybe we should
+                // just disallow this, but then the game layer has to query for
+                // texture attributes
+                SDL_Rect* src = (SDL_Rect*) &draw_tex->src;
+                SDL_Rect* dst = (SDL_Rect*) &draw_tex->dst;
+                if (utils_rect_empty(draw_tex->src))
+                {
+                    src->x = 0;
+                    src->y = 0;
+                    src->w = TEXTURE_WIDTH;
+                    src->h = TEXTURE_HEIGHT;
+                }
+                if (utils_rect_empty(draw_tex->dst))
+                {
+                    dst->x = 0;
+                    dst->y = 0;
+                    dst->w = SCREEN_WIDTH;
+                    dst->h = SCREEN_HEIGHT;
+                }
 
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280,
                 // y,h:0-960), but opengl needs screen coordinates from -1 to 1
@@ -118,20 +201,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 f32 screen_y = (draw_tex->dst.y / (SCREEN_HEIGHT/2.f)) - 1.f;
                 f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
                 f32 screen_h = (draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
-
-                // TODO this is hardcoded for testing, we should make texture_t
-                // an opaque ptr instead that is defined by the renderer and in
-                // the case of opengl should at least contain the GLuint tex_id
-                // & width & height
-                f32 TEXTURE_WIDTH  = -1.f;
-                f32 TEXTURE_HEIGHT = -1.f;
-                if (draw_tex->tex == 1) {
-                    TEXTURE_WIDTH  = 352.0f;
-                    TEXTURE_HEIGHT = 224.0f;
-                } else if (draw_tex->tex == 2) {
-                    TEXTURE_WIDTH  = 272.0f;
-                    TEXTURE_HEIGHT = 256.0f;
-                }
 
                 // NOTE draw_tex->src is in pixel coordinates
                 // (x,w:0-texture_width y,h:0-texture_height with origin in top
@@ -159,10 +228,10 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 glViewport(0,0,1280,960);
 
+                glBindTexture(GL_TEXTURE_2D, tex_id);
                 glEnable(GL_TEXTURE_2D);
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glBindTexture(GL_TEXTURE_2D, (GLuint) draw_tex->tex);
 
                 // how to sample the texture when its larger or smaller
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -437,3 +506,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
     }
 #endif
 }
+
+
+// stubs
+void renderer_destroy(renderer_t* renderer) {}

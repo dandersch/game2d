@@ -24,7 +24,7 @@ static renderer_cmd_buf_t cmds = {0}; // TODO allocate differently
     cmds.buf_offset                             += sizeof(entry);                 \
     cmds.entry_count++;
 
-void renderer_push_sprite(texture_t sprite_tex, rect_t sprite_box, v3f position, f32 scale)
+void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
 {
     rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
     renderer_push_texture({sprite_tex, sprite_box, dst});

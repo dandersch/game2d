@@ -293,9 +293,9 @@ void layer_menu_init()
     state->btns[2] = { .label = "EXIT",     .state = Button::NONE, .box = {800, 725,300,100},
                        .tex = { state->btn_inactive_tex, state->btn_hover_tex, state->btn_pressed_tex } };
 
-    // ADD CALLBACKS TODO this does not work with code hotloading: sometimes the
-    // function pointers get mixed up with other lambdas & sometimes a button
-    // press will just cause a segfault on
+    // ADD CALLBACKS TODO this does not work with code hotloading: we either
+    // have to pass the new function pointers in the game state or rerun the
+    // code that sets them in the game layer
     state->btns[0].callback = [](game_state_t* state) { state->g_layer_menu_is_active = false; };
     state->btns[1].callback = [](game_state_t* state) { printf("Options button pressed\n"); };
     state->btns[2].callback = [](game_state_t* state) { state->game_running = false; }; // TODO signal to platform layer
@@ -370,11 +370,11 @@ void layer_menu_render()
                                                 TEXTURE_SCALE_MODE_NO_CHANGE, {255,255,255,alpha}});
         }
 
-        platform.renderer.push_texture({b.tex[b.state], {0}, b.box});
+        platform.renderer.push_texture({b.tex[b.state], {0}, b.box}); // TODO not displaying correctly w/ ogl renderer
         rect_t text_dst = { b.box.x + b.box.w/2 - b.text_box.w/2,
                             b.box.y + b.box.h/2 - b.text_box.h/2,
                             b.text_box.w, b.text_box.h};
-        platform.renderer.push_texture({b.text_texture, {0}, text_dst});
+        platform.renderer.push_texture({b.text_texture, {0}, text_dst}); // TODO not supported by ogl renderer
     }
 }
 

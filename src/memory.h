@@ -17,8 +17,8 @@ struct Button
     enum State {NONE, HOVER, PRESSED, COUNT} state;
     rect_t     box;
     // TODO maybe use 1 tex w/ an array of rects
-    texture_t  tex[COUNT];
-    texture_t  text_texture;
+    texture_t*  tex[COUNT];
+    texture_t*  text_texture;
     rect_t     text_box;
     //std::function<void(game_state_t*)> callback;
     button_callback_fn callback;
@@ -59,10 +59,10 @@ struct game_state_t
 
     // menulayer
     Button btns[MENU_BUTTON_COUNT]; // used by layer
-    texture_t  btn_inactive_tex;    // used by layer
-    texture_t  btn_hover_tex;       // used by layer
-    texture_t  btn_pressed_tex;     // used by layer
-    texture_t  greyout_tex;         // used by layer
+    texture_t*  btn_inactive_tex;    // used by layer
+    texture_t*  btn_hover_tex;       // used by layer
+    texture_t*  btn_pressed_tex;     // used by layer
+    texture_t*  greyout_tex;         // used by layer
     b32 g_layer_menu_is_active;     // used by layer, game
 
     b32 render_imgui;               // used by game
