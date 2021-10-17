@@ -228,8 +228,7 @@ void layer_game_render()
     {
         sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
         auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
-        platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box,
-                                      pos, state->cam.scale);
+        platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
     }
 
 }

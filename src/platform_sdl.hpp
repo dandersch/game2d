@@ -17,24 +17,23 @@
 #include <SDL_ttf.h>
 #include <SDL_surface.h>
 #include <SDL_pixels.h>
-#include <SDL_render.h>
 #include <SDL_keyboard.h>
 #include <SDL_image.h>
 #include <SDL_video.h>
 #include <SDL_thread.h>
 #include <SDL_blendmode.h>
-#include <SDL_render.h>
 #include <SDL_events.h>
 #include <SDL_keycode.h>
-#include <SDL_video.h>
 #include <SDL_timer.h>
 #include <SDL_loadso.h>
 
 #ifdef USE_OPENGL
-  #include "glew.h"
+  //#include "glew.h"
   #include <SDL_opengl.h>
   #include <GL/glu.h>
-  //#include <GL/gl.h>
+  #include <GL/gl.h>
+#else
+  #include <SDL_render.h>
 #endif
 
 // IMGUI include TODO maybe move this somewhere else

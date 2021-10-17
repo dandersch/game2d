@@ -170,9 +170,9 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     u32 window_flags = 0;
 
 #ifdef USE_OPENGL // TODO is there a way to do this w/o ifdefs and w/o bringing SDL code into the renderer
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); // NOTE doesn't seem to force 3.3
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3); // NOTE doesn't seem to force 3.3
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1); // NOTE doesn't seem to force 3.3
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0); // NOTE doesn't seem to force 3.3
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     // turn on double buffering set the depth buffer to 24 bits
     // you may need to change this to 16 or 32 for your system
