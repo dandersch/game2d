@@ -1,11 +1,8 @@
 #include "platform_renderer.h"
 #include "utils.h"
 
-
 // unity build
-//#include "glew.c"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+//#include "glew.c" // put in pch?
 
 struct renderer_t
 {
@@ -306,7 +303,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 curr_entry += sizeof(render_entry_header_t);
 
-                /* TODO opengl code her */
+                /* TODO opengl code here */
                 // NOTE maybe this shouldn't be a renderer command after all and
                 // instead the platform layer just calls this after processing
                 // cmds is done

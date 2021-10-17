@@ -4,6 +4,7 @@
 // where the specific renderer api (e.g. opengl) processes and 'implements' them
 
 struct renderer_t; // SDL_Renderer, ...
+struct texture_t;
 
 enum render_entry_type_e
 {

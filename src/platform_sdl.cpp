@@ -334,7 +334,6 @@ void platform_event_loop(game_input_t* input)
 
 void platform_render(platform_window_t* window)
 {
-    renderer_push_present({});
     renderer_cmd_buf_process(window); // TODO this draws over imgui
 }
 
