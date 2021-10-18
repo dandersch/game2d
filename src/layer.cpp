@@ -202,9 +202,12 @@ void layer_game_render()
         {
             if (!ents[i].active) continue;
             if (ents[i].renderLayer != l) continue;
-            platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
-                                          camera_world_to_screen(state->cam, ents[i].position),
-                                          state->cam.scale);
+            if (ents[i].sprite.tex != nullptr) // workaround for temporary invisible entities,
+                                               // TODO instead we should maybe just have an ENT_FLAG_RENDERED
+                                               // that we check here
+                platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
+                                              camera_world_to_screen(state->cam, ents[i].position),
+                                              state->cam.scale);
 
             if (state->debugDraw)
             {

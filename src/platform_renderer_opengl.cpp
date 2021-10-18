@@ -4,6 +4,13 @@
 // unity build
 // ...
 
+/*  possible optimizations for this renderer
+ *  - better batch rendering
+ *  - use binding of more textures/texture units
+ *  - use of index buffer objects (ibo's)
+ *  - tilemap culling (should probably happen in the game layer)
+ */
+
 struct renderer_t
 {
     SDL_GLContext gl_context;
@@ -37,6 +44,22 @@ const char* fragment_shader_src =
         "FragColor = texture(u_texture, o_tex_coords);\n"
     "}\0";
 global u32 prog_id;
+global i32 uniform_loc;
+
+struct vertex_attr_t
+{
+    f32 vert_x, vert_y;
+    f32 tex_x,  tex_y;
+};
+
+#define BATCHED_VERTICES_MAX 80000 // NOTE needs to be >50k TODO add asserts for this
+global vertex_attr_t* batched_vbo; // TODO find out good max size
+global u32 vertex_count = 0;
+
+// not used:
+struct texture_change_t { u32 vertex_nr; u32 tex_id; };
+//global texture_change_t texture_change_lut[10000] = {}; // look up when to bind a different texture in batched rendering
+global u32 texture_change_count = 0;
 
 // GLEW_OK = 0
 #define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
@@ -81,6 +104,11 @@ void renderer_init(platform_window_t* window)
     glLinkProgram(prog_id);
     glGetProgramiv(prog_id, GL_LINK_STATUS, &success);
     if (!success) { UNREACHABLE("couldn't link program\n"); }
+
+    uniform_loc = glGetUniformLocation(prog_id, "u_texture"); // cache uniform location
+    if (uniform_loc == -1) { UNREACHABLE("uniform '%s' not found\n", "u_texture"); }
+
+    batched_vbo = (vertex_attr_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_attr_t));
 }
 
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
@@ -115,13 +143,22 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
     glGenTextures(1, &TextureID);
     glBindTexture(GL_TEXTURE_2D, TextureID);
 
-    // set some parameters TODO needed ?
-    // set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // how to sample the texture when its larger or smaller
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // mipmapping stuff, all turned off
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
+
+    // wrap/clamp uv coords
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP);
 
     glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, data);
 
@@ -155,13 +192,23 @@ texture_t* renderer_create_texture_from_surface(platform_window_t* window, surfa
     glGenTextures(1, &tex_id);
     glBindTexture(GL_TEXTURE_2D, tex_id);
 
-    // set some parameters TODO needed ?
-    // set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // TODO duplicated:
+    // how to sample the texture when its larger or smaller
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // mipmapping stuff, all turned off
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
+
+    // wrap/clamp uv coords
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP);
 
     glTexImage2D(GL_TEXTURE_2D, 0, Mode, surf->w, surf->h, 0, Mode, GL_UNSIGNED_BYTE, surf->pixels);
 
@@ -183,6 +230,56 @@ i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32
     return 0;
 }
 
+// NOTE right now the batched render only is called for tiles w/ the tiles texture.
+// We can either...
+// - merge all textures into one (i.e. only one .png), so that we never have to bind another texture
+// - have a 'texture change lookup table' that tells us at which vertex we have to bind another texture
+// - implement a texture atlas
+void batched_render()
+{
+    // BATCHED RENDER FOR TILES HERE
+    glBindTexture(GL_TEXTURE_2D, 1); // TODO hardcoded, use lut
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUseProgram(prog_id);
+    // pass texture as uniform to shader
+    glUniform1i(uniform_loc, 0); // TODO why 0
+
+    // create empty vao & bind (required by core opengl)
+    u32 vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // create a vbo & bind & upload
+    u32 vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_attr_t) * vertex_count, batched_vbo, GL_STATIC_DRAW);
+    // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
+    // GL_STATIC_DRAW: the data is set only once and used many times.
+    // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
+
+    // specify how vertices are laid out (TODO we don't need to do this every frame if we just save this inside the vao & bound
+    // the same vao every frame NOTE that doesn't seem to work...)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
+    glEnableVertexAttribArray(1);
+
+    glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+
+    // unbind & delete buffers afterwards NOTE doesn't seem to make a difference
+    glUseProgram(NULL);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+
+    vertex_count = 0;
+    texture_change_count = 0;
+}
+
 void renderer_cmd_buf_process(platform_window_t* window)
 {
     u8* curr_entry = cmds.buf;
@@ -195,12 +292,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
-
-                if (draw_tex->tex == nullptr) // TODO font textures arent supported by this renderer
-                {
-                    curr_entry += sizeof(render_entry_texture_t);
-                    break;
-                }
 
                 const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
                 const u32 SCREEN_HEIGHT = 960; // TODO hardcoded
@@ -254,12 +345,43 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // printf("%f ",       tex_w);
                 // printf("%f\n",      tex_h);
 
-                f32 vert_attribs[] =
+                // if we are looking at the texture for tiles, batch the vertex
+                // attributes into a buffer for later batched rendering TODO hardcoded
+                if (tex_id == 1)
                 {
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y,            tex_x,         tex_y,         // vertex 1
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,         // vertex 2
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 3
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y,            tex_x,         tex_y,         // vertex 4
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 5
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h  // vertex 6
+                    };
+
+                    //if (texture_change_count == 0) texture_change_lut[texture_change_count++] = {0, tex_id}; // 'init' the lut
+                    //else if (texture_change_lut[texture_change_count-1].tex_id != tex_id)
+                    //    texture_change_lut[texture_change_count++] = { vertex_count, tex_id };
+                    curr_entry += sizeof(render_entry_texture_t);
+                    continue;
+                }
+                batched_render(); // if the texture changed, do the batched render right away so that ordering is
+                                  // preserved. This means that the batched render is not as 'batched' as it could be &
+                                  // it often gets called with nothing batched at all
+
+                f32 vert_attribs[] = {
                     screen_x,            screen_y,            tex_x,         tex_y,         // vertex 1
                     screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,         // vertex 2
                     screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 3
-
                     screen_x,            screen_y,            tex_x,         tex_y,         // vertex 4
                     screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 5
                     screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h  // vertex 6
@@ -273,26 +395,9 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                // how to sample the texture when its larger or smaller
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-                // mipmapping stuff, all turned off
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
-
-                // wrap/clamp uv coords
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-
                 glUseProgram(prog_id);
                 // pass texture as uniform to shader
-                glUniform1i(glGetUniformLocation(prog_id, "u_texture"), 0); // TODO why 0
+                glUniform1i(uniform_loc, 0); // TODO why 0
 
                 // create empty vao & bind (required by core opengl)
                 u32 vao;
@@ -315,7 +420,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 // specify how vertices are laid out (TODO we don't need to do
                 // this every frame if we just save this inside the vao & bound
-                // the same vao every frame)
+                // the same vao every frame NOTE that doesn't seem to work...)
                 glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
                 glEnableVertexAttribArray(0);
                 glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
@@ -381,7 +486,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             default:
             {
-                UNREACHABLE("OpenGL render command for entry '%u' not implemented", entry_header->type);
+                UNREACHABLE("OpenGL render command for entry '%u' not implemented\n", entry_header->type);
             }
         }
     }

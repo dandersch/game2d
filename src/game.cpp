@@ -142,7 +142,7 @@ extern "C" void game_main_loop()
     }
 
 #ifdef IMGUI
-    platform.render(state->window); // NOTE workaround to get imgui to render
+    //platform.render(state->window); // NOTE workaround to get imgui to render
     if (state->render_imgui)
     {
         layer_imgui_begin();
