@@ -28,10 +28,11 @@
 #include <SDL_loadso.h>
 
 #ifdef USE_OPENGL
-  //#include "glew.h"
+  #include "glew.h"
   #include <SDL_opengl.h>
   #include <GL/glu.h>
   #include <GL/gl.h>
+  #include "glew.c"
 
   #define STB_IMAGE_IMPLEMENTATION
   #include "stb_image.h"

@@ -32,11 +32,11 @@ CmnFlags+=$(sdl2-config --cflags)
 SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
 
 # add opengl flags (comment out to use SDL renderer)
-#CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
-#GLLibs=" -lGL -lGLU "
+CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
+GLLibs=" -lGL -lGLU "
 
 # pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
-clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
+#clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
 
 # build platform layer as executable
 clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} ${GLLibs} -ldl ${CmnLibs} \

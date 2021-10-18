@@ -2,7 +2,7 @@
 #include "utils.h"
 
 // unity build
-//#include "glew.c" // put in pch?
+// ...
 
 struct renderer_t
 {
@@ -19,25 +19,23 @@ struct texture_t
 
 const char* vertex_shader_src =
     "#version 330 core\n"
-    "layout (location = 0) in vec2 in_pos;\n"
-    "layout (location = 1) in vec2 in_tex_coords;\n"
-    "out vec2 out_tex_coords;\n" // TODO
+    "layout (location = 0) in vec2 pos;\n"
+    "layout (location = 1) in vec2 tex_coords;\n"
+    "out vec2 o_tex_coords;\n"
     "void main()\n"
     "{\n"
-        "gl_Position = vec4(in_pos.x, in_pos.y, 1.0, 1.0);\n"
-        "out_tex_coords = in_tex_coords;\n" // TODO
+        "gl_Position = vec4(pos.x, -pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
+        "o_tex_coords = tex_coords;\n"
     "}\0";
-
 const char* fragment_shader_src =
     "#version 330 core\n"
-    "in vec2 in_tex_coords;\n"
     "out vec4 FragColor;\n"
+    "in vec2 o_tex_coords;\n"
     "uniform sampler2D u_texture;\n" // TODO
     "void main()\n"
     "{\n"
-        "FragColor = texture(u_texture, in_tex_coords);\n"
+        "FragColor = texture(u_texture, o_tex_coords);\n"
     "}\0";
-
 global u32 prog_id;
 
 // GLEW_OK = 0
@@ -56,34 +54,33 @@ void renderer_init(platform_window_t* window)
     SDL_ERROR(gl_context); // Failed to create OpenGL context.
 
     // init GLEW
-    // NOTE we don't need glew for the time being (we're only using immediate-mode, i.e. legacy opengl right now)
-    //glewExperimental = GL_TRUE;
-    //i32 error        = glewInit();
-    //GLEW_ERROR(error);
+    glewExperimental = GL_TRUE;
+    i32 error        = glewInit();
+    GLEW_ERROR(error);
 
     SDL_ERROR(!SDL_GL_SetSwapInterval(1)); // Couldn't set VSYNC
 
     printf("%s\n", glGetString(GL_VERSION));
 
-    //i32 success;
-    //u32 vert_shader = glCreateShader(GL_VERTEX_SHADER);
-    //glShaderSource(vert_shader, 1, &vertex_shader_src, NULL);
-    //glCompileShader(vert_shader);
-    //glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
-    //if (!success) ASSERT(false);
+    i32 success;
+    u32 vert_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vert_shader, 1, &vertex_shader_src, NULL);
+    glCompileShader(vert_shader);
+    glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
+    if (!success) { UNREACHABLE("couldn't compile vertex shader\n"); }
 
-    //u32 frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    //glShaderSource(frag_shader, 1, fragment_shader_src, NULL);
-    //glCompileShader(frag_shader);
-    //glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
-    //if (!success) ASSERT(false);
+    u32 frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(frag_shader, 1, &fragment_shader_src, NULL);
+    glCompileShader(frag_shader);
+    glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
+    if (!success) { UNREACHABLE("couldn't compile fragment shader\n"); }
 
-    //prog_id = glCreateProgram();
-    //glAttachShader(prog_id, vert_shader);
-    //glAttachShader(prog_id, frag_shader);
-    //glLinkProgram(prog_id);
-    //glGetProgramiv(prog_id, GL_LINK_STATUS, &success);
-    //if (!success) ASSERT(false);
+    prog_id = glCreateProgram();
+    glAttachShader(prog_id, vert_shader);
+    glAttachShader(prog_id, frag_shader);
+    glLinkProgram(prog_id);
+    glGetProgramiv(prog_id, GL_LINK_STATUS, &success);
+    if (!success) { UNREACHABLE("couldn't link program\n"); }
 }
 
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
@@ -268,16 +265,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
                     screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h  // vertex 6
                 };
 
-                // TODO opengl code here
-                glMatrixMode(GL_TEXTURE);
-                glLoadIdentity();
-                glMatrixMode(GL_MODELVIEW);
-                glLoadIdentity();
-                glMatrixMode(GL_PROJECTION);
-                glLoadIdentity();
-                glScalef(1.0, -1.0, 1.0); // NOTE manually flip the image
-
-                glViewport(0,0,1280,960); // TODO hardcoded
+                /* opengl code here */
+                //glViewport(0,0,1280,960); // TODO hardcoded, doesn't seem to do anything in core profile
 
                 glBindTexture(GL_TEXTURE_2D, tex_id);
                 glEnable(GL_TEXTURE_2D);
@@ -289,34 +278,37 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
                 // mipmapping stuff, all turned off
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
 
                 // wrap/clamp uv coords
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP);
 
-                //glUseProgram(prog_id);
+                glUseProgram(prog_id);
                 // pass texture as uniform to shader
-                //glUniform1i(glGetUniformLocation(prog_id, "u_texture"), 0); // TODO why 0
+                glUniform1i(glGetUniformLocation(prog_id, "u_texture"), 0); // TODO why 0
 
                 // create empty vao & bind (required by core opengl)
-                //u32 vao;
-                //glGenVertexArrays(1, &vao);
-                //glBindVertexArray(vao);
+                u32 vao;
+                glGenVertexArrays(1, &vao);
+                glBindVertexArray(vao);
 
-                // create empty ibo & bind // TODO not needed?
+                // create empty ibo & bind NOTE not needed right now
+                //u32 ibo;
+                //glGenVertexArrays(1, &ibo);
+                //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
                 // create a vbo & bind & upload
-                //u32 vbo;
-                //glGenBuffers(1, &vbo);
-                //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                //glBufferData(GL_ARRAY_BUFFER, sizeof(vert_attribs), vert_attribs, GL_STATIC_DRAW);
+                u32 vbo;
+                glGenBuffers(1, &vbo);
+                glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(vert_attribs), vert_attribs, GL_STATIC_DRAW);
                 // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
                 // GL_STATIC_DRAW: the data is set only once and used many times.
                 // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
@@ -324,34 +316,19 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // specify how vertices are laid out (TODO we don't need to do
                 // this every frame if we just save this inside the vao & bound
                 // the same vao every frame)
-                //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
-                //glEnableVertexAttribArray(0);
-                //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
-                //glEnableVertexAttribArray(1);
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
+                glEnableVertexAttribArray(1);
 
                 // draw with ...
-                //glDrawArrays(GL_TRIANGLES, 0, 6);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
 
-                glBegin(GL_TRIANGLES); // TODO don't use immediate mode
-                    glTexCoord2f(tex_x, tex_y);
-                    glVertex2f(screen_x, screen_y);
-                    glTexCoord2f(tex_x + tex_w, tex_y);
-                    glVertex2f(screen_x + screen_w, screen_y);
-                    glTexCoord2f(tex_x + tex_w, tex_y + tex_h);
-                    glVertex2f(screen_x + screen_w, screen_y + screen_h);
-
-                    glTexCoord2f(tex_x, tex_y);
-                    glVertex2f(screen_x, screen_y);
-                    glTexCoord2f(tex_x + tex_w, tex_y + tex_h);
-                    glVertex2f(screen_x + screen_w, screen_y + screen_h);
-                    glTexCoord2f(tex_x, tex_y + tex_h);
-                    glVertex2f(screen_x,  screen_y + screen_h);
-                glEnd();
-
-                // TODO unbind & delete buffers afterwards
-                // glUseProgram(NULL);
-                // glDeleteBuffers(1, &vbo);
-                // glDeleteVertexArrays(1, &vao);
+                // unbind & delete buffers afterwards NOTE doesn't seem to make a difference
+                glUseProgram(NULL);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                glDeleteBuffers(1, &vbo);
+                glDeleteVertexArrays(1, &vao);
 
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
@@ -361,7 +338,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_header_t);
                 render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
 
-                // TODO opengl code her
+                // TODO opengl code here
                 // ...
 
                 curr_entry += sizeof(render_entry_rect_t);
@@ -372,7 +349,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
 
-                // TODO opengl code her
+                // TODO opengl code here
                 // ...
 
                 curr_entry += sizeof(render_entry_texture_mod_t);

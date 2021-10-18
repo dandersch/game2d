@@ -213,7 +213,7 @@ union v3f
 // some other useful types
 struct rect_t
 {
-    i32 x, y;
+    i32 x, y; // TODO rename to left, top...
     i32 w, h;
 };
 struct point_t
