@@ -17,6 +17,75 @@ struct texture_t
     // ...
 };
 
+const char* vertex_shader_src =
+    "#version 330 core\n"
+    "layout (location = 0) in vec2 in_pos;\n"
+    "layout (location = 1) in vec2 in_tex_coords;\n"
+    "out vec2 out_tex_coords;\n" // TODO
+    "void main()\n"
+    "{\n"
+        "gl_Position = vec4(in_pos.x, in_pos.y, 1.0, 1.0);\n"
+        "out_tex_coords = in_tex_coords;\n" // TODO
+    "}\0";
+
+const char* fragment_shader_src =
+    "#version 330 core\n"
+    "in vec2 in_tex_coords;\n"
+    "out vec4 FragColor;\n"
+    "uniform sampler2D u_texture;\n" // TODO
+    "void main()\n"
+    "{\n"
+        "FragColor = texture(u_texture, in_tex_coords);\n"
+    "}\0";
+
+global u32 prog_id;
+
+// GLEW_OK = 0
+#define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
+
+void renderer_init(platform_window_t* window)
+{
+    cmds.buf_offset  = cmds.buf;
+    cmds.entry_count = 0;
+
+    /* opengl code here */
+
+    // TODO probably needed somewhere else..
+    // NOTE SDL specific stuff should move into platform layer
+    SDL_GLContext gl_context = SDL_GL_CreateContext(window->handle);
+    SDL_ERROR(gl_context); // Failed to create OpenGL context.
+
+    // init GLEW
+    // NOTE we don't need glew for the time being (we're only using immediate-mode, i.e. legacy opengl right now)
+    //glewExperimental = GL_TRUE;
+    //i32 error        = glewInit();
+    //GLEW_ERROR(error);
+
+    SDL_ERROR(!SDL_GL_SetSwapInterval(1)); // Couldn't set VSYNC
+
+    printf("%s\n", glGetString(GL_VERSION));
+
+    //i32 success;
+    //u32 vert_shader = glCreateShader(GL_VERTEX_SHADER);
+    //glShaderSource(vert_shader, 1, &vertex_shader_src, NULL);
+    //glCompileShader(vert_shader);
+    //glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
+    //if (!success) ASSERT(false);
+
+    //u32 frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    //glShaderSource(frag_shader, 1, fragment_shader_src, NULL);
+    //glCompileShader(frag_shader);
+    //glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
+    //if (!success) ASSERT(false);
+
+    //prog_id = glCreateProgram();
+    //glAttachShader(prog_id, vert_shader);
+    //glAttachShader(prog_id, frag_shader);
+    //glLinkProgram(prog_id);
+    //glGetProgramiv(prog_id, GL_LINK_STATUS, &success);
+    //if (!success) ASSERT(false);
+}
+
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
     GLuint TextureID = 0;
@@ -117,32 +186,6 @@ i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32
     return 0;
 }
 
-// GLEW_OK = 0
-#define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
-
-void renderer_init(platform_window_t* window)
-{
-    cmds.buf_offset  = cmds.buf;
-    cmds.entry_count = 0;
-
-    /* opengl code here */
-
-    // TODO probably needed somewhere else..
-    // NOTE SDL specific stuff should move into platform layer
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window->handle);
-    SDL_ERROR(gl_context); // Failed to create OpenGL context.
-
-    // init GLEW
-    // NOTE we don't need glew for the time being (we're only using immediate-mode, i.e. legacy opengl right now)
-    //glewExperimental = GL_TRUE;
-    //i32 error        = glewInit();
-    //GLEW_ERROR(error);
-
-    SDL_ERROR(!SDL_GL_SetSwapInterval(1)); // Couldn't set VSYNC
-
-    printf("%s\n", glGetString(GL_VERSION));
-}
-
 void renderer_cmd_buf_process(platform_window_t* window)
 {
     u8* curr_entry = cmds.buf;
@@ -214,6 +257,17 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // printf("%f ",       tex_w);
                 // printf("%f\n",      tex_h);
 
+                f32 vert_attribs[] =
+                {
+                    screen_x,            screen_y,            tex_x,         tex_y,         // vertex 1
+                    screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,         // vertex 2
+                    screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 3
+
+                    screen_x,            screen_y,            tex_x,         tex_y,         // vertex 4
+                    screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 5
+                    screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h  // vertex 6
+                };
+
                 // TODO opengl code here
                 glMatrixMode(GL_TEXTURE);
                 glLoadIdentity();
@@ -223,7 +277,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 glLoadIdentity();
                 glScalef(1.0, -1.0, 1.0); // NOTE manually flip the image
 
-                glViewport(0,0,1280,960);
+                glViewport(0,0,1280,960); // TODO hardcoded
 
                 glBindTexture(GL_TEXTURE_2D, tex_id);
                 glEnable(GL_TEXTURE_2D);
@@ -247,6 +301,37 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP);
 
+                //glUseProgram(prog_id);
+                // pass texture as uniform to shader
+                //glUniform1i(glGetUniformLocation(prog_id, "u_texture"), 0); // TODO why 0
+
+                // create empty vao & bind (required by core opengl)
+                //u32 vao;
+                //glGenVertexArrays(1, &vao);
+                //glBindVertexArray(vao);
+
+                // create empty ibo & bind // TODO not needed?
+
+                // create a vbo & bind & upload
+                //u32 vbo;
+                //glGenBuffers(1, &vbo);
+                //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                //glBufferData(GL_ARRAY_BUFFER, sizeof(vert_attribs), vert_attribs, GL_STATIC_DRAW);
+                // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
+                // GL_STATIC_DRAW: the data is set only once and used many times.
+                // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
+
+                // specify how vertices are laid out (TODO we don't need to do
+                // this every frame if we just save this inside the vao & bound
+                // the same vao every frame)
+                //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
+                //glEnableVertexAttribArray(0);
+                //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
+                //glEnableVertexAttribArray(1);
+
+                // draw with ...
+                //glDrawArrays(GL_TRIANGLES, 0, 6);
+
                 glBegin(GL_TRIANGLES); // TODO don't use immediate mode
                     glTexCoord2f(tex_x, tex_y);
                     glVertex2f(screen_x, screen_y);
@@ -262,6 +347,11 @@ void renderer_cmd_buf_process(platform_window_t* window)
                     glTexCoord2f(tex_x, tex_y + tex_h);
                     glVertex2f(screen_x,  screen_y + screen_h);
                 glEnd();
+
+                // TODO unbind & delete buffers afterwards
+                // glUseProgram(NULL);
+                // glDeleteBuffers(1, &vbo);
+                // glDeleteVertexArrays(1, &vao);
 
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
