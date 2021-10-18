@@ -23,12 +23,16 @@ TODO -*- mode: org -*-
 - [X] improve code hotloading
 - [X] inline profiling
 - [X] replace tmxlite library
+- [X] set up a renderer api & start using openGL
+- [X] import character/items sprite with tmx
+- [X] batch rendering in ogl renderer
+- [ ] improve batch rendering
+- [ ] fix imgui rendering
 - [ ] fix exit button
 - [ ] add (debug) logging
 - [ ] improve inline profiling
 - [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
 - [ ] serializing (of cmds[])
-- [ ] set up a renderer api & start using openGL
 - [ ] timer utility
 - [ ] animation system
 - [ ] use interpolation for movement
@@ -36,7 +40,6 @@ TODO -*- mode: org -*-
 - [ ] sound/audiosystem
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] tilemap culling
-- [ ] import character/items sprite with tmx
 - [ ] support layers when reading in a tmx
 - [ ] import animations in tmx
 - [ ] camera with zooming

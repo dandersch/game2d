@@ -21,9 +21,11 @@ struct texture_t
     u32 id;
     u32 width;
     u32 height;
+    // u32 unit_idx;
     // ...
 };
 
+#define MAX_TEX_UNITS 16
 const char* vertex_shader_src =
     "#version 330 core\n"
     "layout (location = 0) in vec2 pos;\n"
@@ -38,13 +40,16 @@ const char* fragment_shader_src =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec2 o_tex_coords;\n"
-    "uniform sampler2D u_texture;\n" // TODO
+    //"in float tex_index;\n"
+    "uniform sampler2D u_texture;\n"
+    //"uniform sampler2D u_tex_units[16];\n" // TODO
     "void main()\n"
     "{\n"
         "FragColor = texture(u_texture, o_tex_coords);\n"
     "}\0";
 global u32 prog_id;
 global i32 uniform_loc;
+global i32 uni_loc_tex_units;
 
 struct vertex_attr_t
 {
@@ -105,8 +110,13 @@ void renderer_init(platform_window_t* window)
     glGetProgramiv(prog_id, GL_LINK_STATUS, &success);
     if (!success) { UNREACHABLE("couldn't link program\n"); }
 
-    uniform_loc = glGetUniformLocation(prog_id, "u_texture"); // cache uniform location
+    // cache uniform location
+    uniform_loc = glGetUniformLocation(prog_id, "u_texture");
     if (uniform_loc == -1) { UNREACHABLE("uniform '%s' not found\n", "u_texture"); }
+    //uni_loc_tex_units = glGetUniformLocation(prog_id, "u_tex_units");
+    //if (uni_loc_tex_units == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
+    //i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    //glUniform1iv(uni_loc_tex_units, 16, samplers);
 
     batched_vbo = (vertex_attr_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_attr_t));
 }
@@ -233,6 +243,7 @@ i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32
 // NOTE right now the batched render only is called for tiles w/ the tiles texture.
 // We can either...
 // - merge all textures into one (i.e. only one .png), so that we never have to bind another texture
+// - keep a texture id inside the vbo for every quad bind several textures (glBindTextureUnit(0, tex_id)) & keep t
 // - have a 'texture change lookup table' that tells us at which vertex we have to bind another texture
 // - implement a texture atlas
 void batched_render()
