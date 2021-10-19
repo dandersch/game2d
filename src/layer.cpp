@@ -19,9 +19,11 @@ extern platform_api_t platform;
 // GAMELAYER ///////////////////////////////////////////////////////////////////////////////////////
 static const int MAX_RENDER_LAYERS = 100;
 
+const char* GAME_LEVEL = "res/map_level01.json";
+
 void layer_game_init()
 {
-    if (!levelgen_level_load("res/tiletest.tmx", nullptr, MAX_ENTITIES, state))
+    if (!levelgen_level_load(GAME_LEVEL, nullptr, MAX_ENTITIES, state))
         exit(1);
 
     physics_init();

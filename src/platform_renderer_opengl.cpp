@@ -6,9 +6,13 @@
 
 /*  possible optimizations for this renderer
  *  - better batch rendering
- *  - use binding of more textures/texture units
+ *  - use binding of more textures/texture units & pass a tex_idx to the fragment shader so
+ *    that it can dynamically sample from the right texture
+ *  - texture arrays
  *  - use of index buffer objects (ibo's)
  *  - tilemap culling (should probably happen in the game layer)
+ *  - use glBufferData(GL_ARRAY_BUFFER, sizeof(batch), NULL, GL_STATIC_DRAW)
+ *    to allocate memory on the gpu beforehand
  */
 
 struct renderer_t
@@ -43,6 +47,7 @@ const char* fragment_shader_src =
     //"in float tex_index;\n"
     "uniform sampler2D u_texture;\n"
     //"uniform sampler2D u_tex_units[16];\n" // TODO
+    //"uniform sampler2DArray u_tex_array;\n" // TODO
     "void main()\n"
     "{\n"
         "FragColor = texture(u_texture, o_tex_coords);\n"
@@ -65,6 +70,8 @@ global_var u32 vertex_count = 0;
 struct texture_change_t { u32 vertex_nr; u32 tex_id; };
 //global texture_change_t texture_change_lut[10000] = {}; // look up when to bind a different texture in batched rendering
 global_var u32 texture_change_count = 0;
+
+global_var u32 tex_array_id;
 
 // GLEW_OK = 0
 #define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
@@ -114,6 +121,13 @@ void renderer_init(platform_window_t* window)
     //glUniform1iv(uni_loc_tex_units, 16, samplers);
 
     batched_vbo = (vertex_attr_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_attr_t));
+
+    // we use a texture array & fill it later with loaded textures
+    //glGenTextures(1, &tex_array_id);
+    //glBindTexture(GL_TEXTURE_2D_ARRAY, tex_array_id);
+
+    // allocate storage for the array
+    //glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevelCount, GL_RGBA8, width, height, layerCount);
 }
 
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
@@ -124,7 +138,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
 
     int width, height, nrChannels;
     unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
-    if (!data) UNREACHABLE("image couldn't be loaded\n");
+    if (!data) UNREACHABLE("image '%s' couldn't be loaded\n", filename);
 
     int Mode = GL_RGB;
     switch (nrChannels)
@@ -147,6 +161,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
 
     glGenTextures(1, &TextureID);
     glBindTexture(GL_TEXTURE_2D, TextureID);
+    // glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
 
     // how to sample the texture when its larger or smaller
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -269,6 +284,7 @@ void batched_render()
 
     // specify how vertices are laid out (TODO we don't need to do this every frame if we just save this inside the vao & bound
     // the same vao every frame NOTE that doesn't seem to work...)
+    // TODO stride = sizeof(vertex_attribute_t), offset = use offsetof
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
@@ -480,6 +496,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
             case RENDER_ENTRY_TYPE_PRESENT:
             {
                 curr_entry += sizeof(render_entry_header_t);
+
+                batched_render(); // TODO find a better place to call this
 
                 /* TODO opengl code here */
                 // NOTE maybe this shouldn't be a renderer command after all and

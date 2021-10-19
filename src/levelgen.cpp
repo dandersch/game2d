@@ -39,7 +39,9 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
                 // TODO
             }
             else if (strcmp(name, "type") == 0)
+            {
                 copy_json_string(o->type, sizeof(o->type), json_value_as_string(obj->value)->string);
+            }
             else if (strcmp(name, "visible") == 0) o->visible = !json_value_is_false(obj->value);
             else if (strcmp(name, "width") == 0) o->width = atof(json_value_as_number(obj->value)->number);
             else if (strcmp(name, "x") == 0) o->x = atof(json_value_as_number(obj->value)->number);
@@ -56,7 +58,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
 
     struct json_value_s* json_dom;
     { // JSON PARSING
-        file_t json_file = platform.file_load("res/tiletest.json");
+        file_t json_file = platform.file_load(file);
 
         // get the root of the json DOM
         // NOTE library uses malloc, but canb e given an alloc_fun_ptr w/ user_data
@@ -270,8 +272,10 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                                     }
                                 }
                                 else if (strcmp(name, "type") == 0)
+                                {
                                     copy_json_string(tile->type, sizeof(tile->type),
                                                      json_value_as_string(obj->value)->string);
+                                }
                                 else UNREACHABLE("unknown attribut '%s' for tile\n", name);
                             }
                         }
@@ -310,6 +314,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
             {
                 const tiled_object_t* o = &layers[i].objects[j];
                 const char* type = o->type;
+                //printf("type: %s\n", type);
                 // const char* name = o.name;
                 Entity newEnt = {0};
                 newEnt.active       = true;
@@ -333,6 +338,9 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 }
                 ASSERT(ts != nullptr);
 
+                //const char* type = ts->tiles;
+                //printf("type: %s\n", type);
+
                 u32 tile_id = o->gid - ts->firstgid; // local tile ID
                 i32 row_idx = tile_id % ts->columns;
                 i32 col_idx = tile_id / ts->columns;
@@ -348,8 +356,8 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     if (ts->tiles[k].id == tile_id)
                     {
                         special_tile = &ts->tiles[k];
-                        // special tile has collision data
-                        if (special_tile->objectgroup.obj_count != 0)
+                        type = special_tile->type;
+                        if (special_tile->objectgroup.obj_count != 0) // special tile has collision data
                         {
                             collider = {(i32) special_tile->objectgroup.objects[0].x,
                                         (i32) special_tile->objectgroup.objects[0].y,
