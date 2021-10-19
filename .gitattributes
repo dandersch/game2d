@@ -1,1 +1,2 @@
-res/*.png filter=lfs diff=lfs merge=lfs -text
+# Set the default behavior to always use LF file endings
+* text=auto eol=lf
