@@ -45,6 +45,28 @@
   #include "imgui.h"
   #include "imgui_sdl.h"
   #include "imgui_impl_sdl.h"
+
+  //#include "imconfig.h"
+  //#include "imgui.h"
+  //#include "imgui_internal.h"
+  //#include "imstb_rectpack.h"
+  //#include "imstb_textedit.h"
+  //#include "imstb_truetype.h"
+
+  //#include "imgui_demo.cpp"
+  //#include "imgui.cpp"
+  //#include "imgui_widgets.cpp"
+  //#include "imgui_tables.cpp"
+  //#include "imgui_draw.cpp"
+
+  #ifdef USE_OPENGL
+    #include "imgui_impl_opengl3.h"
+    //#include "imgui_impl_opengl3.cpp"
+  #else
+    #include "imgui_impl_sdl.h"
+    //#include "imgui_sdl.cpp"
+    //#include "imgui_impl_sdl.cpp"
+  #endif
 #endif
 
 #if defined(PLATFORM_WEB)

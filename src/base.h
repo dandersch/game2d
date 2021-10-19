@@ -109,9 +109,9 @@ typedef float    f32;
 typedef double   f64;
 
 // the 'static' keyword in C has different meanings depending on the context:
-#define internal static // for 'static' functions
-#define local    static // for 'static' variables inside a function
-#define global   static // 'static' variables in global scope can be considered global variables when
+#define internal_fn static // for 'static' functions
+#define local       static // for 'static' variables inside a function
+#define global_var  static // 'static' variables in global scope can be considered global variables when
                         // compiling only one translation unit (unity build)
 
 // TODO numeric limits, i.e. U32_MAX, I32_MIN, F32_MAX etc.

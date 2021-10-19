@@ -9,8 +9,12 @@
 struct platform_window_t
 {
     SDL_Window*   handle;
-    renderer_t*   renderer; // TODO needs to opaque/not renderer specific
+    renderer_t*   renderer;   // TODO needs to opaque/not renderer specific
 };
+
+#ifdef USE_OPENGL
+global_var SDL_GLContext gl_context;
+#endif
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
@@ -199,7 +203,17 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
                                       screen_width, screen_height, window_flags);
     SDL_ERROR(window->handle);
 
+#ifdef USE_OPENGL
+    gl_context = SDL_GL_CreateContext(window->handle);
+    SDL_ERROR(gl_context); // Failed to create OpenGL context.
+    SDL_GL_MakeCurrent(window->handle, gl_context);
+#endif
+
     renderer_init(window);
+
+    SDL_version version;
+    SDL_GetVersion(&version);
+    printf("SDL VERSION: %u, %u, %u\n", version.major, version.minor, version.patch);
 
     return window;
 }
@@ -246,7 +260,7 @@ b32 platform_file_save(u8* file_name, u8* buffer)
 
 // counts up button presses between last and next frame
 // TODO check if this actually works, i.e. if you can press a button more than once between frames
-internal inline
+internal_fn inline
 void input_event_process(game_input_state_t* new_state, b32 is_down)
 {
     if(new_state->is_down != is_down)
@@ -405,21 +419,29 @@ void platform_imgui_init(platform_window_t* window, u32 screen_width, u32 screen
 #ifdef IMGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+  #ifndef USE_OPENGL
     ImGuiSDL::Initialize((SDL_Renderer*) window->renderer, screen_width, screen_height);
     // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
     // don't call an init function, but all of them require a rendering api
     // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
     // eventhandling. We expose the internal function below to circumvent that.
     ImGui_ImplSDL2_Init(window->handle);
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImGui::StyleColorsDark();
+  #else
+    const char* glsl_version = "#version 130";
+    ImGui_ImplSDL2_InitForOpenGL(window->handle, gl_context);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+  #endif
 #endif
 }
 
 void platform_imgui_destroy()
 {
 #ifdef IMGUI
+    #ifndef USE_OPENGL
     ImGuiSDL::Deinitialize();
+    #endif
     ImGui::DestroyContext();
 #endif
 }
@@ -449,6 +471,9 @@ void platform_imgui_event_handle(game_input_t* input)
 void platform_imgui_begin(platform_window_t* window)
 {
 #ifdef IMGUI
+    #ifdef USE_OPENGL
+    ImGui_ImplOpenGL3_NewFrame();
+    #endif
     ImGui_ImplSDL2_NewFrame(window->handle);
     ImGui::NewFrame();
 #endif
@@ -458,7 +483,11 @@ void platform_imgui_end()
 {
 #ifdef IMGUI
     ImGui::Render();
+  #ifndef USE_OPENGL
     ImGuiSDL::Render(ImGui::GetDrawData()); // TODO make this renderer agnostic
+  #else
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+  #endif
 #endif
 }
 

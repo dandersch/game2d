@@ -12,14 +12,14 @@ typedef void (*collision_callback_fn)(Entity*, Entity*, s32);
 // NOTE not compatible with code hotloading
 static collision_callback_fn callbacks[256] = {0}; // 2048 bytes
 
-internal
+internal_fn
 b32 aabb(const rect_t& recA, const rect_t& recB)
 {
     if (utils_rect_intersects(recA, recB)) return true;
     return false;
 }
 
-internal // check if two entities share a flag combination
+internal_fn // check if two entities share a flag combination
 s32 check_flag_combination(Entity* e1, Entity* e2, u32 flag1, u32 flag2)
 {
     if ((e1->flags & flag1) && (e2->flags & flag2))

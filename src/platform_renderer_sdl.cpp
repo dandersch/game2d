@@ -59,7 +59,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
     return tex;
 }
 
-internal
+internal_fn
 SDL_BlendMode sdl_blendmode_lut(texture_blend_mode_e ours)
 {
     switch(ours)

@@ -47,9 +47,9 @@ const char* fragment_shader_src =
     "{\n"
         "FragColor = texture(u_texture, o_tex_coords);\n"
     "}\0";
-global u32 prog_id;
-global i32 uniform_loc;
-global i32 uni_loc_tex_units;
+global_var u32 prog_id;
+global_var i32 uniform_loc;
+global_var i32 uni_loc_tex_units;
 
 struct vertex_attr_t
 {
@@ -58,13 +58,13 @@ struct vertex_attr_t
 };
 
 #define BATCHED_VERTICES_MAX 80000 // NOTE needs to be >50k TODO add asserts for this
-global vertex_attr_t* batched_vbo; // TODO find out good max size
-global u32 vertex_count = 0;
+global_var vertex_attr_t* batched_vbo; // TODO find out good max size
+global_var u32 vertex_count = 0;
 
 // not used:
 struct texture_change_t { u32 vertex_nr; u32 tex_id; };
 //global texture_change_t texture_change_lut[10000] = {}; // look up when to bind a different texture in batched rendering
-global u32 texture_change_count = 0;
+global_var u32 texture_change_count = 0;
 
 // GLEW_OK = 0
 #define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
@@ -75,11 +75,6 @@ void renderer_init(platform_window_t* window)
     cmds.entry_count = 0;
 
     /* opengl code here */
-
-    // TODO probably needed somewhere else..
-    // NOTE SDL specific stuff should move into platform layer
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window->handle);
-    SDL_ERROR(gl_context); // Failed to create OpenGL context.
 
     // init GLEW
     glewExperimental = GL_TRUE;

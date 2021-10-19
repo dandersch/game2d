@@ -13,7 +13,7 @@ struct ht_entry_t
 ht_entry_t hash_table_backend[HASH_TABLE_SIZE] = {0}; // NOTE should be in game_state?
 
 // TODO better hash function. see e.g. https://cp-algorithms.com/string/string-hashing.html
-internal u32 hash_function(const char* key)
+internal_fn u32 hash_function(const char* key)
 {
     u32 ht_idx = 0;
     for (int i = 0; i < strlen(key); i++)
@@ -29,7 +29,7 @@ internal u32 hash_function(const char* key)
     return ht_idx;
 }
 
-internal b32 hash_table_add_entry(const char* key, void* value)
+internal_fn b32 hash_table_add_entry(const char* key, void* value)
 {
     u32 hash = hash_function(key);
     b32 wrapped_around = false;
@@ -57,7 +57,7 @@ internal b32 hash_table_add_entry(const char* key, void* value)
     return false;
 }
 
-internal void* hash_table_get_value(const char* key)
+internal_fn void* hash_table_get_value(const char* key)
 {
     u32 hash = hash_function(key);
     b32 wrapped_around = false;

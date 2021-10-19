@@ -18,7 +18,9 @@ CmnFlags+="-DIMGUI "
 # -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses
 # -Wno-return-type -Wno-array-bounds -maes msse4.1
 CmnIncludes="-I./src/ -I./dep/imgui-1.82"
-CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ -limgui_sdl"
+CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ "
+#CmnLibs+=" -limgui_sdl "
+CmnLibs+=" -limgui_ogl3 "
 
 # precompiled header for game layer
 clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch &&
@@ -36,7 +38,7 @@ CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
 GLLibs=" -lGL -lGLU "
 
 # pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
-#clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
+clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
 
 # build platform layer as executable
 clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} ${GLLibs} -ldl ${CmnLibs} \
