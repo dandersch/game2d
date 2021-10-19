@@ -30,40 +30,22 @@ const char* vertex_shader_src =
     "#version 330 core\n"
     "layout (location = 0) in vec2 pos;\n"
     "layout (location = 1) in vec2 tex_coords;\n"
-    "layout (location = 2) in int tex_idx;\n"
     "out vec2 o_tex_coords;\n"
-    "flat out int o_tex_idx;\n"
     "void main()\n"
     "{\n"
-        "gl_Position  = vec4(pos.x, -pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
+        "gl_Position = vec4(pos.x, -pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
         "o_tex_coords = tex_coords;\n"
-        "o_tex_idx    = tex_idx;\n"
     "}\0";
 const char* fragment_shader_src =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec2 o_tex_coords;\n"
-    //"uniform sampler2D u_texture;\n"
-    "uniform sampler2D u_tex_units[16];\n" // TODO
-    "flat in int o_tex_index;\n"
+    //"in float tex_index;\n"
+    "uniform sampler2D u_texture;\n"
+    //"uniform sampler2D u_tex_units[16];\n" // TODO
     "void main()\n"
     "{\n"
-        //"FragColor = texture(u_tex_units[o_tex_index], o_tex_coords);\n"
-        "switch (o_tex_index) {\n"
-            "case  0: FragColor = texture(u_tex_units[ 0], o_tex_coords); break;\n"
-            "case  1: FragColor = texture(u_tex_units[ 1], o_tex_coords); break;\n"
-            "case  2: FragColor = texture(u_tex_units[ 2], o_tex_coords); break;\n"
-            "case  3: FragColor = texture(u_tex_units[ 3], o_tex_coords); break;\n"
-            "case  4: FragColor = texture(u_tex_units[ 4], o_tex_coords); break;\n"
-            "case  5: FragColor = texture(u_tex_units[ 5], o_tex_coords); break;\n"
-            "case  6: FragColor = texture(u_tex_units[ 6], o_tex_coords); break;\n"
-            "case  7: FragColor = texture(u_tex_units[ 7], o_tex_coords); break;\n"
-            "case  8: FragColor = texture(u_tex_units[ 8], o_tex_coords); break;\n"
-            "case  9: FragColor = texture(u_tex_units[ 9], o_tex_coords); break;\n"
-            "case 10: FragColor = texture(u_tex_units[10], o_tex_coords); break;\n"
-            "case 11: FragColor = texture(u_tex_units[11], o_tex_coords); break;\n"
-            "case 12: FragColor = texture(u_tex_units[12], o_tex_coords); break;\n"
-        "}\n"
+        "FragColor = texture(u_texture, o_tex_coords);\n"
     "}\0";
 global_var u32 prog_id;
 global_var i32 uniform_loc;
@@ -73,10 +55,9 @@ struct vertex_attr_t
 {
     f32 vert_x, vert_y;
     f32 tex_x,  tex_y;
-    int tex_unit_id;
 };
 
-#define BATCHED_VERTICES_MAX 120000 // NOTE needs to be >50k TODO add asserts for this
+#define BATCHED_VERTICES_MAX 80000 // NOTE needs to be >50k TODO add asserts for this
 global_var vertex_attr_t* batched_vbo; // TODO find out good max size
 global_var u32 vertex_count = 0;
 
@@ -105,26 +86,17 @@ void renderer_init(platform_window_t* window)
     printf("%s\n", glGetString(GL_VERSION));
 
     i32 success;
-    char infoLog[512];
     u32 vert_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vert_shader, 1, &vertex_shader_src, NULL);
     glCompileShader(vert_shader);
     glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vert_shader, 512, NULL, infoLog);
-        UNREACHABLE("couldn't compile vertex shader: %s\n", infoLog);
-    }
+    if (!success) { UNREACHABLE("couldn't compile vertex shader\n"); }
 
     u32 frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(frag_shader, 1, &fragment_shader_src, NULL);
     glCompileShader(frag_shader);
     glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(frag_shader, 512, NULL, infoLog);
-        UNREACHABLE("couldn't compile fragment shader: %s\n", infoLog);
-    }
+    if (!success) { UNREACHABLE("couldn't compile fragment shader\n"); }
 
     prog_id = glCreateProgram();
     glAttachShader(prog_id, vert_shader);
@@ -134,10 +106,12 @@ void renderer_init(platform_window_t* window)
     if (!success) { UNREACHABLE("couldn't link program\n"); }
 
     // cache uniform location
-    uniform_loc = glGetUniformLocation(prog_id, "u_tex_units");
-    if (uniform_loc == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
-    i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-    glUniform1iv(uni_loc_tex_units, 16, samplers);
+    uniform_loc = glGetUniformLocation(prog_id, "u_texture");
+    if (uniform_loc == -1) { UNREACHABLE("uniform '%s' not found\n", "u_texture"); }
+    //uni_loc_tex_units = glGetUniformLocation(prog_id, "u_tex_units");
+    //if (uni_loc_tex_units == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
+    //i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    //glUniform1iv(uni_loc_tex_units, 16, samplers);
 
     batched_vbo = (vertex_attr_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_attr_t));
 }
@@ -172,11 +146,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
     }
 
     glGenTextures(1, &TextureID);
-    //glCreateTextures(GL_TEXTURE_2D, 1, )
     glBindTexture(GL_TEXTURE_2D, TextureID);
-    glBindTextureUnit(TextureID, TextureID); // NOTE every tex_id maps to the tex_unit_idx for now
-                                             // and 0 is an invalid tex_unit_idx
-    printf("%u\n", TextureID);
 
     // how to sample the texture when its larger or smaller
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -274,15 +244,14 @@ i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32
 void batched_render()
 {
     // BATCHED RENDER FOR TILES HERE
-    //glBindTexture(GL_TEXTURE_2D, 0); // TODO hardcoded, use lut
+    glBindTexture(GL_TEXTURE_2D, 1); // TODO hardcoded, use lut
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(prog_id);
     // pass texture as uniform to shader
-    //glUniform1i(uniform_loc, 0); // TODO why 0
-    //glUniform1i(uniform_loc, ); // TODO why 0
+    glUniform1i(uniform_loc, 0); // TODO why 0
 
     // create empty vao & bind (required by core opengl)
     u32 vao;
@@ -300,13 +269,10 @@ void batched_render()
 
     // specify how vertices are laid out (TODO we don't need to do this every frame if we just save this inside the vao & bound
     // the same vao every frame NOTE that doesn't seem to work...)
-    //                  nr, count, type,  norm,     stride,         offset
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(f32), (void*) 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*) 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(f32)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(f32)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 1, GL_INT,   GL_FALSE, 5 * sizeof(float), (void*)(4 * sizeof(f32)));
-    glEnableVertexAttribArray(2);
 
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
@@ -385,31 +351,36 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // printf("%f ",       tex_w);
                 // printf("%f\n",      tex_h);
 
-                batched_vbo[vertex_count++] = {
-                    screen_x,            screen_y,            tex_x,         tex_y,         (int) tex_id,
-                };
-                batched_vbo[vertex_count++] = {
-                    screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,         (int) tex_id,
-                };
-                batched_vbo[vertex_count++] = {
-                    screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, (int) tex_id,
-                };
-                batched_vbo[vertex_count++] = {
-                    screen_x,            screen_y,            tex_x,         tex_y,         (int) tex_id,
-                };
-                batched_vbo[vertex_count++] = {
-                    screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, (int) tex_id,
-                };
-                batched_vbo[vertex_count++] = {
-                    screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h, (int) tex_id
-                };
+                // if we are looking at the texture for tiles, batch the vertex
+                // attributes into a buffer for later batched rendering TODO hardcoded
+                if (tex_id == 1)
+                {
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y,            tex_x,         tex_y,         // vertex 1
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,         // vertex 2
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 3
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y,            tex_x,         tex_y,         // vertex 4
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h, // vertex 5
+                    };
+                    batched_vbo[vertex_count++] = {
+                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h  // vertex 6
+                    };
 
-                //if (texture_change_count == 0) texture_change_lut[texture_change_count++] = {0, tex_id}; // 'init' the lut
-                //else if (texture_change_lut[texture_change_count-1].tex_id != tex_id)
-                //    texture_change_lut[texture_change_count++] = { vertex_count, tex_id };
-                curr_entry += sizeof(render_entry_texture_t);
-                continue;
-                //batched_render(); // if the texture changed, do the batched render right away so that ordering is
+                    //if (texture_change_count == 0) texture_change_lut[texture_change_count++] = {0, tex_id}; // 'init' the lut
+                    //else if (texture_change_lut[texture_change_count-1].tex_id != tex_id)
+                    //    texture_change_lut[texture_change_count++] = { vertex_count, tex_id };
+                    curr_entry += sizeof(render_entry_texture_t);
+                    continue;
+                }
+                batched_render(); // if the texture changed, do the batched render right away so that ordering is
                                   // preserved. This means that the batched render is not as 'batched' as it could be &
                                   // it often gets called with nothing batched at all
 
@@ -509,8 +480,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
             case RENDER_ENTRY_TYPE_PRESENT:
             {
                 curr_entry += sizeof(render_entry_header_t);
-
-                batched_render(); // TODO find better place to call this
 
                 /* TODO opengl code here */
                 // NOTE maybe this shouldn't be a renderer command after all and
