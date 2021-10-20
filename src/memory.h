@@ -68,6 +68,28 @@ struct game_state_t
     b32 render_imgui;               // used by game
 };
 
+// NOTE testing memory arena ///////////////////////////////////////////////////////////////////
+struct mem_arena_t
+{
+    void* base_addr;
+    void* curr_addr;
+    u64   total_size;
+};
+void mem_arena_init(mem_arena_t* mem_arena, u64 size_in_bytes)
+{
+    mem_arena->base_addr  = malloc(size_in_bytes);
+    mem_arena->total_size = size_in_bytes;
+    mem_arena->curr_addr  = mem_arena->base_addr;
+}
+void* mem_arena_alloc(mem_arena_t* mem_arena, u64 size_in_bytes)
+{
+    void* allocation = mem_arena->curr_addr;
+    mem_arena->curr_addr = (u8*) mem_arena->curr_addr + size_in_bytes;
+    ASSERT(mem_arena->curr_addr <= ((u8*) mem_arena->base_addr + mem_arena->total_size));
+    return allocation;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*
 struct game_state
 {
