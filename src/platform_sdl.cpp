@@ -19,12 +19,12 @@ global_var SDL_GLContext gl_context;
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
 // UNITY BUILD
-#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
 #ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
   #include "platform_renderer_opengl.cpp"
 #else
   #include "platform_renderer_sdl.cpp"
 #endif
+#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
 
 // game functions
 typedef void (*game_main_loop_fn)();
@@ -39,15 +39,15 @@ struct game_api_t
     game_quit_fn           quit;
     int                    id;
 };
-static game_api_t game;
+global_var game_api_t game;
 
 void platform_quit();
 extern platform_api_t platform_api;
-static b32 game_running = true;
+global_var b32 game_running = true;
 
 #include <dlfcn.h>    // for opening shared objects (needs to be linked with -ldl)
 #include <sys/stat.h> // for checking if dll changed on disk (TODO does it work crossplatform?)
-static void* dll_handle = nullptr;
+global_var void* dll_handle = nullptr;
 #ifdef PLATFORM_WIN32
   const char* GAME_DLL = "./dep/libgame.dll";
 #else
@@ -109,14 +109,42 @@ b32 platform_load_code()
     return true;
 }
 
+#include "memory.h"
+struct game_memory_t
+{
+    mem_arena_t total_arena;
+      mem_arena_t platform_arena;
+        // mem_arena_t render_arena;
+      mem_arena_t game_arena;
+        // mem_arena_t entity_arena;
+
+    //ring_buffer_t temp_storage; // TODO
+};
+game_memory_t memory = {};
+
 struct game_state_t;
 game_state_t* game_state = nullptr;
+
+// TODO define TOTAL_MEMORY_SIZE
 #define GAME_MEMORY_SIZE 67108864 // 2^26
+// TODO define PLATFORM_MEMORY_SIZE
+
 // entry point
 int main(int argc, char* args[])
 {
+    mem_arena_init(&memory.total_arena, GAME_MEMORY_SIZE + 6000012);
+    mem_arena_nested_init(&memory.total_arena, &memory.platform_arena, 6000012); // TODO hardcoded
+    mem_arena_nested_init(&memory.total_arena, &memory.game_arena, GAME_MEMORY_SIZE);
+    printf("start of total_arena at: %p\n", memory.total_arena.base_addr);
+    printf("end of   total_arena at: %p\n", memory.total_arena.curr_addr);
+    printf("start of platf_arena at: %p\n", memory.platform_arena.base_addr);
+    printf("end of   platf_arena at: %p\n", memory.platform_arena.curr_addr);
+    printf("start of  game_arena at: %p\n", memory.game_arena.base_addr);
+    printf("end of    game_arena at: %p\n", memory.game_arena.curr_addr);
+
     //platform_init();
-    game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
+    //game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
+    game_state = (game_state_t*) mem_arena_alloc(&memory.game_arena, GAME_MEMORY_SIZE);
     memset(game_state, 0, GAME_MEMORY_SIZE);
     {
         // get the game.id (inode) so we don't perform a code reload when first
@@ -196,8 +224,8 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     // ...
 #endif
 
-    // TODO don't call malloc
-    platform_window_t* window = (platform_window_t*) malloc(sizeof(platform_window_t));
+    platform_window_t* window = (platform_window_t*) mem_arena_alloc(&memory.platform_arena,
+                                                                     sizeof(platform_window_t));
 
     window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       screen_width, screen_height, window_flags);
@@ -209,7 +237,7 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     SDL_GL_MakeCurrent(window->handle, gl_context);
 #endif
 
-    renderer_init(window);
+    renderer_init(window, &memory.platform_arena);
 
     SDL_version version;
     SDL_GetVersion(&version);

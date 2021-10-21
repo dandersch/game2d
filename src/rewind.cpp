@@ -6,7 +6,7 @@
 static const u32 FPS       = 60;  // TODO support variable fps
 static const u32 TOLERANCE = 100;
 
-#include "memory.h"
+//#include "memory.h"
 extern game_state_t* state;
 
 // COMMAND /////////////////////////////////////////////////////////////////////////////////////////

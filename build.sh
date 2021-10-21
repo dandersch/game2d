@@ -51,4 +51,4 @@ rm json.* &&
 end_timer=$(date +%s.%N)
 compile_time=$(echo "$end_timer - $start_timer" | bc -l)
 echo "Compile time (real): ${compile_time}s" \
-&& ./bin/megastruct
+&& ./bin/megastruct # TODO don't start if a 'megastruct' process is already running

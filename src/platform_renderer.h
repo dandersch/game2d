@@ -6,6 +6,8 @@
 struct renderer_t; // SDL_Renderer, ...
 struct texture_t;
 
+struct mem_arena_t;
+
 enum render_entry_type_e
 {
     //RENDER_ENTRY_TYPE_RECT,
@@ -64,6 +66,16 @@ struct render_entry_texture_mod_t
     color_t              rgba;   // SDL_SetTextureColorMod, SDL_SetTextureAlphaMod
 };
 
+// TODO what should happen if buffer is full?
+#define MAX_CMD_BUF_SIZE 5000000 // TODO find better max
+struct renderer_cmd_buf_t
+{
+    u8  buf[MAX_CMD_BUF_SIZE];
+    //u64 base_addr;
+    u8* buf_offset;            // TODO better name
+    u32 entry_count;
+};
+
 /* called by game layer */
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale);
 void renderer_push_texture(render_entry_texture_t draw_tex);
@@ -76,6 +88,6 @@ texture_t* renderer_create_texture_from_surface(platform_window_t* window, surfa
 i32        renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h);
 
 /* called by platform layer */
-void renderer_init(platform_window_t* window);
+void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena);
 void renderer_destroy(renderer_t* renderer);
 void renderer_cmd_buf_process();

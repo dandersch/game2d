@@ -1,5 +1,65 @@
 #include "game.h"
 
+#include "memory.h"
+// TODO move this somewhere else ///////////////////////////////////////////////////////////////////
+struct platform_window_t;
+
+typedef void (*button_callback_fn)(game_state_t*);
+struct Button
+{
+    const char* label; // TODO font to render
+    enum State {NONE, HOVER, PRESSED, COUNT} state;
+    rect_t     box;
+    // TODO maybe use 1 tex w/ an array of rects
+    texture_t*  tex[COUNT];
+    texture_t*  text_texture;
+    rect_t     text_box;
+    //std::function<void(game_state_t*)> callback;
+    button_callback_fn callback;
+};
+#define MENU_BUTTON_COUNT 3
+struct game_state_t
+{
+    b32 initialized = true;            // used by game
+    //platform_api_t platform;         // unused
+    platform_window_t* window;         // used by game, layer, resourcemgr
+    b32 game_running = true;           // used by game
+
+    Entity ents[MAX_ENTITIES] = {};    // used by entity, game, layer
+    u32    temp_count         = 0;     // used by entity
+    Tile   tiles[MAX_TILES]   = {};    // used by entity, game
+    u32    tile_count         = 0;     // used by entity
+
+    game_input_t game_input;           // used by input, layer
+    u32 actionState;                   // used by input, rewind, player
+
+    f32 last_frame_time;               // global because we need it in the
+    f32 cycles_left_over;              // "main_loop" used for emscripten
+
+    Camera cam = {};                   // used by game, layer
+    bool debugDraw;                    // used by layer
+    Entity* focusedEntity;             // used by layer
+    rect_t focusArrow = {64,32,16,32}; // used by layer TODO hardcoded
+
+    // commandprocessor
+    u32 cmdIdx = 0;            // used by rewind, layer
+
+    // reset
+    bool isRewinding;          // used by rewind, layer
+    f32 loopTime;              // used by rewind, layer (debug)
+
+    // menulayer
+    Button btns[MENU_BUTTON_COUNT];  // used by layer
+    texture_t*  btn_inactive_tex;    // used by layer
+    texture_t*  btn_hover_tex;       // used by layer
+    texture_t*  btn_pressed_tex;     // used by layer
+    texture_t*  greyout_tex;         // used by layer
+    b32 g_layer_menu_is_active;      // used by layer, game
+
+    b32 render_imgui;                // used by game
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // we use a unity build, see en.wikipedia.org/wiki/Unity_build
 #include "camera.cpp"
 #include "physics.cpp"
@@ -25,10 +85,16 @@ platform_api_t platform = {0};
 const u32 SCREEN_WIDTH  = 1280;
 const u32 SCREEN_HEIGHT =  960;
 
+// mem_arena_t game_arena
 extern "C" void game_state_update(game_state_t* game_state, platform_api_t platform_api)
 {
     state    = game_state;
-    if (!game_state->initialized) game_state = new (game_state) game_state_t();
+    if (!game_state->initialized)
+    {
+        state = new (game_state) game_state_t();
+        //mem_arena(&game_arena,)
+        //state->entity_arena
+    }
     platform = platform_api;
 }
 

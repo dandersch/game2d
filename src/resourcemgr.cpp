@@ -1,6 +1,7 @@
 #include "resourcemgr.h"
 #include "platform.h"
-#include "memory.h"
+//#include "memory.h"
+extern game_state_t* state;
 
 // TODO load in "missing" placeholder assets
 

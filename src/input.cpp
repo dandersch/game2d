@@ -1,6 +1,6 @@
 #include "input.h"
 
-#include "memory.h"
+//#include "memory.h"
 extern game_state_t* state;
 
 // Note on SDL_GetKeyboardState():

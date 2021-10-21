@@ -1,5 +1,6 @@
 #include "platform_renderer.h"
 #include "utils.h"
+#include "memory.h"
 
 /* This is the implementation of the renderer api with the SDL renderer, which
  * can use OpenGL, OpenGLES, D3D, Metal, Software rendering and possibly more
@@ -11,10 +12,13 @@ struct texture_t
     SDL_Texture* id;
 };
 
-void renderer_init(platform_window_t* window)
+global_var renderer_cmd_buf_t* cmds;
+
+void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 {
-    cmds.buf_offset  = cmds.buf;
-    cmds.entry_count = 0;
+    cmds = (renderer_cmd_buf_t*) mem_arena_alloc(platform_mem_arena, sizeof(cmds));
+    cmds->buf_offset  = cmds->buf;
+    cmds->entry_count = 0;
 
     // TODO needs to be in renderer_sdl.cpp
     window->renderer = (renderer_t*) SDL_CreateRenderer(window->handle, -1, SDL_RENDERER_ACCELERATED
@@ -77,8 +81,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
 {
     SDL_Renderer* renderer = (SDL_Renderer*) window->renderer;
 
-    u8* curr_entry = cmds.buf;
-    for (s32 entry_nr = 0; entry_nr < cmds.entry_count; ++entry_nr)
+    u8* curr_entry = cmds->buf;
+    for (s32 entry_nr = 0; entry_nr < cmds->entry_count; ++entry_nr)
     {
         render_entry_header_t* entry_header = (render_entry_header_t*) curr_entry;
         switch (entry_header->type)
@@ -151,6 +155,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
     }
 
     // reset cmd buffer
-    cmds.entry_count = 0;
-    cmds.buf_offset  = cmds.buf;
+    cmds->entry_count = 0;
+    cmds->buf_offset  = cmds->buf;
 }

@@ -1,6 +1,6 @@
 #include "entity.h"
 
-#include "memory.h"
+//#include "memory.h"
 extern game_state_t* state;
 
 bool EntityMgr::copyEntity(const Entity ent)

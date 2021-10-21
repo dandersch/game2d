@@ -1,5 +1,7 @@
 #pragma once
 
+// only needed by game layer:
+// TODO separate from platform code
 enum Action
 {
     ACTION_MOVE_UP    = (1 << 0),
@@ -13,6 +15,8 @@ enum Action
 
 void input_update();
 
+// only needed by platform layer:
+// TODO separate from game code & pass in a game_input_t to the main_loop
 struct game_input_state_t
 {
     i32 up_down_count; // count of up/down or down/up transitions

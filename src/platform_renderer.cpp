@@ -4,25 +4,25 @@
  * buffer (or push buffer) and the buffer itself. No rendering backend specific
  * code (i.e. OpenGL, SDL, etc.) should be here*/
 
-// TODO what should happen if buffer is full?
-#define MAX_CMD_BUF_SIZE 5000000 // TODO find better max
-struct renderer_cmd_buf_t
-{
-    u8  buf[MAX_CMD_BUF_SIZE];
-    //u64 base_addr;
-    u8* buf_offset;            // TODO better name
-    u32 entry_count;
-};
+// // TODO what should happen if buffer is full?
+// #define MAX_CMD_BUF_SIZE 5000000 // TODO find better max
+// struct renderer_cmd_buf_t
+// {
+//     u8  buf[MAX_CMD_BUF_SIZE];
+//     //u64 base_addr;
+//     u8* buf_offset;            // TODO better name
+//     u32 entry_count;
+// };
 
-static renderer_cmd_buf_t cmds = {0}; // TODO allocate differently
+//extern global_var renderer_cmd_buf_t* cmds;
 
 #define PUSH_CMD(type, entry)                                                     \
-    ASSERT(cmds.buf_offset < &cmds.buf[MAX_CMD_BUF_SIZE]);                        \
-    *((render_entry_header_t*) cmds.buf_offset)  = {type};                        \
-    cmds.buf_offset                             += sizeof(render_entry_header_t); \
-    *((decltype(entry)*) cmds.buf_offset)        = entry;                         \
-    cmds.buf_offset                             += sizeof(entry);                 \
-    cmds.entry_count++;
+    ASSERT(cmds->buf_offset < &cmds->buf[MAX_CMD_BUF_SIZE]);                        \
+    *((render_entry_header_t*) cmds->buf_offset)  = {type};                        \
+    cmds->buf_offset                             += sizeof(render_entry_header_t); \
+    *((decltype(entry)*) cmds->buf_offset)        = entry;                         \
+    cmds->buf_offset                             += sizeof(entry);                 \
+    cmds->entry_count++;
 
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
 {

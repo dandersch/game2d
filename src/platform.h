@@ -12,21 +12,21 @@ typedef void surface_t; // SDL_Surface, ...
 typedef void font_t;    // ttf, ...
 
 struct game_state_t;
-struct game_memory_t
-{
-    game_state_t* game_state;
+/* struct game_memory_t */
+/* { */
+/*     game_state_t* game_state; */
 
-    // DEBUG
-    // struct debug_table* DebugTable;
-    // struct debug_state* DebugState;
+/*     // DEBUG */
+/*     // struct debug_table* DebugTable; */
+/*     // struct debug_state* DebugState; */
 
-    // platform_work_queue *HighPriorityQueue;
-    // platform_work_queue *LowPriorityQueue;
-    // struct renderer_texture_queue *TextureQueue;
+/*     // platform_work_queue *HighPriorityQueue; */
+/*     // platform_work_queue *LowPriorityQueue; */
+/*     // struct renderer_texture_queue *TextureQueue; */
 
-    // b32 ExecutableReloaded;
-    // platform_api PlatformAPI;
-};
+/*     // b32 ExecutableReloaded; */
+/*     // platform_api PlatformAPI; */
+/* }; */
 
 typedef platform_window_t* (*platform_window_open_fn)(const char*, u32, u32);
 typedef void               (*platform_window_close_fn)(platform_window_t*);

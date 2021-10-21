@@ -48,7 +48,7 @@ struct Entity
     // u32 charID; // TODO read in from .tmx
     b32      active;               // determines if needs updating NOTE ZII violation ?
     b32      freed        = true;  // determines if can be replaced with new entity NOTE ZII violation
-    u32      flags;
+    u32      flags; // TODO try out using just bools for this
     u32      state;
     u32      orient;
     v3f      position;             // NOTE maybe make private or similar bc we want pos to be set with setPivPos
