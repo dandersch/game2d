@@ -9,7 +9,6 @@
 #include "input.h"
 #include "camera.h"
 #include "player.h"
-#include "layer.h"
 #include "physics.h"
 #include "animation.h"
 #include "rewind.h"

@@ -27,21 +27,14 @@ global_var SDL_GLContext gl_context;
 #include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
 
 // game functions
-typedef void (*game_main_loop_fn)();
-typedef b32  (*game_init_fn)(game_state_t*);
-typedef void (*game_state_update_fn)(game_state_t*, platform_api_t);
-typedef b32  (*game_quit_fn)();
+typedef void (*game_main_loop_fn)(game_state_t*, platform_api_t);
 struct game_api_t
 {
-    game_state_update_fn   state_update;
-    game_init_fn           init;
     game_main_loop_fn      main_loop;
-    game_quit_fn           quit;
     int                    id;
 };
 global_var game_api_t game;
 
-void platform_quit();
 extern platform_api_t platform_api;
 global_var b32 game_running = true;
 
@@ -62,10 +55,7 @@ b32 platform_load_code()
     // unload old dll
     if (dll_handle)
     {
-        game.state_update = nullptr;
         game.main_loop    = nullptr;
-        game.init         = nullptr;
-        game.quit         = nullptr;
         game.id           = 0;
 
         if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
@@ -92,13 +82,7 @@ b32 platform_load_code()
         return false;
     }
 
-    // TODO pass memory to new dll
-    // ...
-
-    game.state_update = (game_state_update_fn) dlsym(dll_handle, "game_state_update");
     game.main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
-    game.init         = (game_init_fn)         dlsym(dll_handle, "game_init");
-    game.quit         = (game_quit_fn)         dlsym(dll_handle, "game_quit");
 
     if (!game.main_loop)
     {
@@ -142,28 +126,24 @@ int main(int argc, char* args[])
     printf("start of  game_arena at: %p\n", memory.game_arena.base_addr);
     printf("end of    game_arena at: %p\n", memory.game_arena.curr_addr);
 
-    //platform_init();
     //game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
     game_state = (game_state_t*) mem_arena_alloc(&memory.game_arena, GAME_MEMORY_SIZE);
     memset(game_state, 0, GAME_MEMORY_SIZE);
     {
-        // get the game.id (inode) so we don't perform a code reload when first
-        // entering the main loop
+        // get the game.id (inode) so we don't perform a code reload when first entering the main loop
         struct stat attr;
         stat(GAME_DLL, &attr);
         game.id = attr.st_ino;
     }
     platform_load_code(); // initial loading of the game dll
-    game.state_update(game_state, platform_api);
-    game.init(game_state);
     game_running = true;
 
 #if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(game_main_loop, -1, 1); // NOTE no code reloading
+    emscripten_set_main_loop(game_main_loop, -1, 1); // NOTE no code reloading, outdated
 #else
     while (game_running)
     {
-        game.main_loop();
+        game.main_loop(game_state, platform_api);
 
         // check if dll/so changed on disk
         // NOTE: should only happen in debug builds
@@ -173,13 +153,13 @@ int main(int argc, char* args[])
             printf("Attempting code reload\n");
             platform_load_code();
             game.id = attr.st_ino;
-            game.state_update(game_state, platform_api); // pass memory to game dll
         }
     }
-#endif
 
-    game.quit();
-    platform_quit();
+    // we can register that the game was quit in an 'invalid' way here, i.e. not
+    // by e.g. pressing the quit button in the menu, but by forcing the window to close etc.
+    exit(1);
+#endif
 }
 
 platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)
@@ -366,7 +346,6 @@ void platform_event_loop(game_input_t* input)
             {
                 if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
                 {
-                        //input->quit_requested = true;
                     game_running = false;
                 }
             } break;

@@ -4,20 +4,6 @@
 // TODO move this somewhere else ///////////////////////////////////////////////////////////////////
 struct platform_window_t;
 
-typedef void (*button_callback_fn)(game_state_t*);
-struct Button
-{
-    const char* label; // TODO font to render
-    enum State {NONE, HOVER, PRESSED, COUNT} state;
-    rect_t     box;
-    // TODO maybe use 1 tex w/ an array of rects
-    texture_t*  tex[COUNT];
-    texture_t*  text_texture;
-    rect_t     text_box;
-    //std::function<void(game_state_t*)> callback;
-    button_callback_fn callback;
-};
-#define MENU_BUTTON_COUNT 3
 struct game_state_t
 {
     b32 initialized = true;            // used by game
@@ -48,23 +34,16 @@ struct game_state_t
     bool isRewinding;          // used by rewind, layer
     f32 loopTime;              // used by rewind, layer (debug)
 
-    // menulayer
-    Button btns[MENU_BUTTON_COUNT];  // used by layer
-    texture_t*  btn_inactive_tex;    // used by layer
-    texture_t*  btn_hover_tex;       // used by layer
-    texture_t*  btn_pressed_tex;     // used by layer
-    texture_t*  greyout_tex;         // used by layer
-    b32 g_layer_menu_is_active;      // used by layer, game
-
     b32 render_imgui;                // used by game
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+extern game_state_t* state;     // TODO some cpp files depend on this
+extern platform_api_t platform; // TODO some cpp files depend on this
 // we use a unity build, see en.wikipedia.org/wiki/Unity_build
 #include "camera.cpp"
 #include "physics.cpp"
 #include "entity.cpp"
-#include "layer.cpp"
 #include "input.cpp"
 #include "player.cpp"
 #include "resourcemgr.cpp"
@@ -77,50 +56,32 @@ struct game_state_t
 #define UPDATE_INTERVAL (1.0 / MAXIMUM_FRAME_RATE)
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
-enum Layers { LAYER_GAME, LAYER_MENU, LAYER_IMGUI, LAYER_COUNT };
-// TODO maybe use a bool array for keeping track of in-/active layers, i.e. bool[LAYER_COUNT]
-
 game_state_t* state = nullptr;
 platform_api_t platform = {0};
 const u32 SCREEN_WIDTH  = 1280;
 const u32 SCREEN_HEIGHT =  960;
+const char* GAME_LEVEL = "res/map_level01.json";
+const int MAX_RENDER_LAYERS = 100;
 
-// mem_arena_t game_arena
-extern "C" void game_state_update(game_state_t* game_state, platform_api_t platform_api)
+// TODO pass in game_input_t too (?)
+extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform_api)
 {
     state    = game_state;
-    if (!game_state->initialized)
+    platform = platform_api;
+    if (!state->initialized)
     {
         state = new (game_state) game_state_t();
         //mem_arena(&game_arena,)
         //state->entity_arena
+        state = game_state;
+        state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
+        { // layer_game_init:
+            if (!levelgen_level_load(GAME_LEVEL, nullptr, MAX_ENTITIES, state)) exit(1);
+            physics_init();
+        }
+        platform.imgui_init(state->window, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
-    platform = platform_api;
-}
 
-extern "C" b32 game_init(game_state_t* game_state)
-{
-    state = game_state;
-    state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    // init layers
-    layer_game_init();
-    layer_menu_init();
-    layer_imgui_init();
-
-    return true; // TODO error handling
-}
-
-extern "C" b32 game_quit()
-{
-    layer_imgui_destroy();
-    platform.window_close(state->window);
-    platform.quit();
-    return true;
-}
-
-extern "C" void game_main_loop()
-{
     // TIMESTEP ////////////////////////////////////////////////////////////
     f32 curr_time = platform.ticks() / 1000.f;
     f32 update_iterations = ((curr_time - state->last_frame_time) + state->cycles_left_over);
@@ -130,58 +91,152 @@ extern "C" void game_main_loop()
         update_iterations = (MAX_CYCLES_PER_FRAME * UPDATE_INTERVAL);
     }
 
-    while (update_iterations > UPDATE_INTERVAL) {
+    while (update_iterations > UPDATE_INTERVAL)
+    {
         update_iterations -= UPDATE_INTERVAL;
 
         // EVENT HANDLING //////////////////////////////////////////////////////////////////////////
         platform.event_loop(&state->game_input);
 
-        // if (globals.game_input.quit_requested) globals.game_running = false;
-
-        // toggle testmenu TODO hardcoded
-        if (input_pressed(state->game_input.keyboard.keys['\e']))
-            state->g_layer_menu_is_active = !state->g_layer_menu_is_active;
-
         if (state->game_input.keyboard.f_key_pressed[1])
             state->render_imgui = !state->render_imgui;
 
-        for (int layer = LAYER_COUNT; layer >= 0; layer--)
+        // quit game on escape
+        if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
+
         {
-            switch (layer)
+            if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
             {
-                case LAYER_GAME:
-                {
-                    layer_game_handle_event();
-                } break;
+                v3i  mouse_pos = state->game_input.mouse.pos;
+                auto click     = camera_screen_to_world(state->cam, {(f32) mouse_pos.x, (f32) mouse_pos.y, 0});
 
-                case LAYER_MENU:
+                // TODO interpolate TODO breaks w/ zooming
+                // put camera where clicked
+                state->cam.rect.x = click.x - (state->cam.rect.w/2.f);
+                state->cam.rect.y = click.y - (state->cam.rect.h/2.f);
+                // TODO put cursor where clicked
+                //SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
+
+                // get 'clicked on' playable entity
+                for (u32 i = 0; i < MAX_ENTITIES; i++)
                 {
-                    if (state->g_layer_menu_is_active) {
-                        layer_menu_handle_event();
-                        layer = 0; // to break out of loop
+                    auto ents = state->ents;
+                    if (!ents[i].active) continue;
+                    if (!(ents[i].flags & ENT_FLAG_CMD_CONTROLLED)) continue;
+                    point_t  clickpoint = {(i32) click.x, (i32) click.y};
+                    rect_t   coll       = ents[i].getColliderInWorld();
+                    if (utils_point_in_rect(clickpoint, coll)) // TODO
+                    {
+                        if (state->focusedEntity)
+                        {
+                            state->focusedEntity->flags ^= ENT_FLAG_PLAYER_CONTROLLED;
+                            state->focusedEntity->flags |= ENT_FLAG_CMD_CONTROLLED;
+                        }
+                        ents[i].flags |= ENT_FLAG_PLAYER_CONTROLLED;
+                        ents[i].flags ^= ENT_FLAG_CMD_CONTROLLED;
+                        state->focusedEntity = &ents[i];
                     }
-                } break;
-
-                case LAYER_IMGUI:
-                {
-                    layer_imgui_handle_event(&state->game_input);
-                } break;
-
+                }
             }
+
+            if (state->game_input.keyboard.key_up.is_down)    state->cam.rect.y -= 5;
+            if (state->game_input.keyboard.key_down.is_down)  state->cam.rect.y += 5;
+            if (state->game_input.keyboard.key_left.is_down)  state->cam.rect.x -= 5;
+            if (state->game_input.keyboard.key_right.is_down) state->cam.rect.x += 5;
+
+            // TODO zoom in/out on mouse scroll
+            if (state->game_input.keyboard.f_key_pressed[2]) state->cam.rect.w *= 0.5f;
+            if (state->game_input.keyboard.f_key_pressed[3]) state->cam.rect.w *= 2.0f;
         }
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
-        for (int layer = LAYER_COUNT; layer >= 0; layer--)
-        {
-            // TODO hardcoded, implements 'pause' functionality
-            if (state->g_layer_menu_is_active) break;
-            switch (layer)
+        { // layer_game_update(dt);
+            EntityMgr::freeTemporaryStorage();
+
+            // update input
+            input_update();
+            Reset::update(dt); // TODO fixed delta time
+
+            auto tiles = EntityMgr::getTiles();
+
+            // TODO find out if it matters if we do everything in one loop for one
+            // entity vs. every "system" has its own loop
+            for (u32 i = 0; i < MAX_ENTITIES; i++)
             {
-                case LAYER_GAME:
+                auto& ent = state->ents[i];
+
+                // PLAYER CONTROLLER ///////////////////////////////////////////////////////////////////////
+                if (!state->isRewinding && ent.active)
                 {
-                    layer_game_update(dt);
-                } break;
+                    if (ent.flags & ENT_FLAG_PLAYER_CONTROLLED)
+                    {
+                        player_update(dt, ent);
+                    }
+                }
+
+                // COMMAND REPLAY //////////////////////////////////////////////////////////////////////////
+                if (!state->isRewinding && ent.active)
+                {
+                    if (ent.flags & ENT_FLAG_CMD_CONTROLLED)
+                    {
+                        command_replay(ent);
+                    }
+                }
+
+                // COLLISION CHECKING //////////////////////////////////////////////////////////////////////
+                if (!state->isRewinding && ent.active && i != MAX_ENTITIES)
+                {
+                    bool collided = false;
+                    if ((ent.flags & ENT_FLAG_IS_COLLIDER)
+                        /*
+                        && ((ent.flags & ENT_FLAG_PLAYER_CONTROLLED) ||
+                            (ent.flags & ENT_FLAG_CMD_CONTROLLED) ||
+                            (ent.flags & ENT_FLAG_ATTACK_BOX) || // TODO improve this
+                            (ent.flags & ENT_FLAG_PICKUP_BOX))
+                            */
+                        )
+                    {
+                        for (u32 k = 0; k < EntityMgr::getTileCount(); k++)
+                        {
+                            if (!tiles[k].collidable) continue;
+                            collided |= physics_check_collision_with_tile(ent, tiles[k]);
+                            if (collided) break;
+                        }
+
+                        for (u32 j = i+1; j < MAX_ENTITIES; j++)
+                        {
+                            Entity& e2 = state->ents[j];
+                            if (!e2.active) continue;
+                            if ((e2.flags & ENT_FLAG_IS_COLLIDER))
+                                collided |= physics_check_collision(ent, e2);
+                        }
+                    }
+                    // TODO should we set movement to zero here if collided?
+                    if (!collided)
+                    {
+                        ent.position = {ent.position.x + ent.movement.x,
+                                        ent.position.y + ent.movement.y,
+                                        ent.position.z + ent.movement.z};
+                    }
+                }
+
+                // TIME REWIND /////////////////////////////////////////////////////////////////////////////
+                if ((ent.flags & ENT_FLAG_IS_REWINDABLE))
+                {
+                    Rewind::update(dt, ent);
+                }
+
+                // NOTE animation should probably be last after input & collision etc.
+                // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
+                if (ent.flags & ENT_FLAG_IS_ANIMATED)
+                {
+                    //ent.sprite.box = Animator::animate(dt, ent.anim);
+                    ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
+                }
             }
+
+            // after loop update
+            command_on_update_end();
         }
     }
 
@@ -189,42 +244,84 @@ extern "C" void game_main_loop()
     state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////////////////////////////
+
     platform.renderer.push_clear({});
-    for (int layer = 0; layer < LAYER_COUNT; layer++)
-    {
-        switch (layer)
+    { // layer_game_render();
+        u32 maxlayer = 0;
+        Entity* ents = state->ents;
+        Tile* tiles = EntityMgr::getTiles();
+        for (u32 l = 0; l < MAX_RENDER_LAYERS; l++) // TODO use z coordinate and let
+                                                    // renderer sort w/ a cmd key
         {
-            case LAYER_GAME:
+            // RENDER TILES ////////////////////////////////////////////////////////////////////////////
+            // TODO tilemap culling
+            for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
             {
-                layer_game_render();
-            } break;
+                if (tiles[i].renderLayer != l) continue;
+                platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
+                                              camera_world_to_screen(state->cam, tiles[i].position),
+                                              state->cam.scale);
 
-            case LAYER_MENU:
-            {
-                if (!state->g_layer_menu_is_active) break;
-                layer_menu_render();
-            } break;
-        }
-    }
+                if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
 
-#ifdef IMGUI
-    platform.render(state->window); // NOTE workaround to get imgui to render
-    if (state->render_imgui)
-    {
-        layer_imgui_begin();
-        for (int layer = 0; layer < LAYER_COUNT; layer++)
-        {
-            switch (layer)
-            {
-                case LAYER_GAME:
+                if (state->debugDraw)
                 {
-                    layer_game_imgui_render(dt);
-                } break;
+                    auto pos = camera_world_to_screen(state->cam, tiles[i].position);
+                    platform.debug_draw(state->window, tiles[i].collider, pos, {0,0,0,255}, 1.0f);
+                }
             }
+
+            // RENDER ENTITIES /////////////////////////////////////////////////////////////////////////
+            for (u32 i = 0; i < MAX_ENTITIES; i++)
+            {
+                if (!ents[i].active) continue;
+                if (ents[i].renderLayer != l) continue;
+                if (ents[i].sprite.tex != nullptr) // workaround for temporary invisible entities,
+                                                   // TODO instead we should maybe just have an ENT_FLAG_RENDERED
+                                                   // that we check here
+                    platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
+                                                  camera_world_to_screen(state->cam, ents[i].position),
+                                                  state->cam.scale);
+
+                if (state->debugDraw)
+                {
+                    // change color depending on entity flags
+                    color_t c = {0,0,0,255}; // TODO get this out
+                    if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
+                    if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
+
+                    auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
+                    platform.debug_draw(state->window, ents[i].collider, ent_pos, c, ents[i].scale);
+                }
+
+                if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
+            }
+            // no need to go through all renderlayers
+            if (l > maxlayer) break;
         }
-        layer_imgui_end();
+
+        // draw focusarrow on focused entity TODO hardcoded & very hacky
+        if (state->focusedEntity)
+        {
+            sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
+            auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
+            platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
+        }
     }
-#endif
     platform.renderer.push_present({});
+
+    // platform.render(state->window);
+    // platform.imgui_begin(state->window);
+    // if (state->render_imgui) layer_game_imgui_render(dt);
+    // platform.imgui_end(); // TODO get imgui to render
+
     platform.render(state->window);
+
+    // game_quit:
+    if (!state->game_running)
+    {
+        platform.window_close(state->window);
+        platform.quit();
+        exit(0);
+    }
 }
