@@ -216,11 +216,11 @@ struct rect_t
     i32 x, y; // TODO rename to left, top...
     i32 w, h;
 };
-struct point_t
-{
-    i32 x;
-    i32 y;
-};
+/* struct point_t */
+/* { */
+/*     i32 x; */
+/*     i32 y; */
+/* }; */
 struct color_t // NOTE maybe add a 24bit version
 {
     u8 r; u8 g; u8 b; u8 a;

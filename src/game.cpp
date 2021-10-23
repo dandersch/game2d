@@ -61,11 +61,20 @@ const u32 SCREEN_HEIGHT =  960;
 const char* GAME_LEVEL = "res/map_level01.json";
 const int MAX_RENDER_LAYERS = 100;
 
+texture_t* test_tex = nullptr;
+//rect_t dst = {0.5f, 0.5f, 0.1f, 0.1f};
+rect_t test_dst = {200, 200, 200, 100};
+
+#include "interface.h"
+ui_t ui_ctx = {};
+
 // TODO pass in game_input_t too (?)
 extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform_api)
 {
     state    = game_state;
     platform = platform_api;
+
+    // INIT ///////////////////////////////////////////////////////////////////////////////
     if (!state->initialized)
     {
         state = new (game_state) game_state_t();
@@ -77,6 +86,25 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             if (!levelgen_level_load(GAME_LEVEL, nullptr, MAX_ENTITIES, state)) exit(1);
             physics_init();
         }
+
+        test_tex = resourcemgr_texture_load("button.png", state);
+
+        /*
+        Tile newTile = {0};
+        newTile.sprite.box   = {96, 0, 16, 32};
+        newTile.sprite.pivot = {0.5f, 0.5f};
+        newTile.sprite.tex   = resourcemgr_texture_load("tileset.png", state);
+        newTile.renderLayer  = 1;
+        newTile.collidable   = false;
+        for (u32 x = 0; x < 1600; x += 16)
+        {
+            for (u32 y = 0; y < 1600; y += 16)
+            {
+                newTile.setPivPos( { (f32) x, (f32) y - 24, 0}); // TODO why -24
+                EntityMgr::createTile(newTile);
+            }
+        }
+        */
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -98,7 +126,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         // quit game on escape
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
 
-        {
+        { // game event handling
             if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
             {
                 v3i  mouse_pos = state->game_input.mouse.pos;
@@ -117,7 +145,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                     auto ents = state->ents;
                     if (!ents[i].active) continue;
                     if (!(ents[i].flags & ENT_FLAG_CMD_CONTROLLED)) continue;
-                    point_t  clickpoint = {(i32) click.x, (i32) click.y};
+                    v2i  clickpoint = {(i32) click.x, (i32) click.y};
                     rect_t   coll       = ents[i].getColliderInWorld();
                     if (utils_point_in_rect(clickpoint, coll)) // TODO
                     {
@@ -231,7 +259,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
 
             // after loop update
             command_on_update_end();
-        }
+        } // update loop
     }
 
     state->cycles_left_over = update_iterations;
@@ -302,8 +330,17 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
         }
     }
-    platform.renderer.push_present({});
 
+    /* test our immediate mode ui */
+    // ui_begin():
+    ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
+    ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
+    ui_ctx.btn_texture   = test_tex;
+    if (ui_button(&ui_ctx, test_dst, 1)) printf("pressed!\n");
+    // ui_end();
+    // ...
+
+    platform.renderer.push_present({});
 
     platform.render(state->window);
 

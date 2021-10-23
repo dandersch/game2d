@@ -1,7 +1,7 @@
 #pragma once
 
 inline
-b32 utils_point_in_rect(point_t point, rect_t rect)
+b32 utils_point_in_rect(v2i point, rect_t rect)
 {
     return (rect.x + rect.w >= point.x &&
                      rect.x <= point.x &&
