@@ -420,84 +420,6 @@ void platform_quit()
     SDL_Quit();
 }
 
-// IMGUI BACKEND ///////////////////////////////////////////////////////////////////////////////////
-void platform_imgui_init(platform_window_t* window, u32 screen_width, u32 screen_height)
-{
-#ifdef IMGUI
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImGui::StyleColorsDark();
-  #ifndef USE_OPENGL
-    ImGuiSDL::Initialize((SDL_Renderer*) window->renderer, screen_width, screen_height);
-    // WORKAROUND: imgui_impl_sdl.cpp doesn't know the window (g_Window) if we
-    // don't call an init function, but all of them require a rendering api
-    // (InitForOpenGL() etc.). This breaks a bunch of stuff in the
-    // eventhandling. We expose the internal function below to circumvent that.
-    ImGui_ImplSDL2_Init(window->handle);
-  #else
-    const char* glsl_version = "#version 130";
-    ImGui_ImplSDL2_InitForOpenGL(window->handle, gl_context);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-  #endif
-#endif
-}
-
-void platform_imgui_destroy()
-{
-#ifdef IMGUI
-    #ifndef USE_OPENGL
-    ImGuiSDL::Deinitialize();
-    #endif
-    ImGui::DestroyContext();
-#endif
-}
-
-void platform_imgui_event_handle(game_input_t* input)
-{
-#ifdef IMGUI
-    // NOTE for some reason we don't have to call this...
-    //ImGui_ImplSDL2_ProcessEvent(&e.sdl);
-
-    ImGuiIO& io = ImGui::GetIO();
-
-    // don't let mouse clicks on imgui propagate through underlying layers
-    if (io.WantCaptureMouse)
-    {
-        // TODO hack: zero out mouseclick data so layers underneath don't react to them
-        memset(input->mouse.buttons, 0, sizeof(input->mouse.buttons));
-    }
-
-    //io.WantCaptureKeyboard;
-
-    //e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
-    //e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
-#endif
-}
-
-void platform_imgui_begin(platform_window_t* window)
-{
-#ifdef IMGUI
-    #ifdef USE_OPENGL
-    ImGui_ImplOpenGL3_NewFrame();
-    #endif
-    ImGui_ImplSDL2_NewFrame(window->handle);
-    ImGui::NewFrame();
-#endif
-}
-
-void platform_imgui_end()
-{
-#ifdef IMGUI
-    ImGui::Render();
-  #ifndef USE_OPENGL
-    ImGuiSDL::Render(ImGui::GetDrawData()); // TODO make this renderer agnostic
-  #else
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-  #endif
-#endif
-}
-
 platform_api_t platform_api =
 {
   &platform_file_load,
@@ -515,11 +437,6 @@ platform_api_t platform_api =
   &platform_text_render,
   &platform_debug_draw,
   &platform_debug_performance_counter,
-  &platform_imgui_init,
-  &platform_imgui_destroy,
-  &platform_imgui_event_handle,
-  &platform_imgui_begin,
-  &platform_imgui_end,
   { // renderer api
     &renderer_push_sprite,
     &renderer_push_texture,

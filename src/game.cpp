@@ -33,8 +33,6 @@ struct game_state_t
     // reset
     bool isRewinding;          // used by rewind, layer
     f32 loopTime;              // used by rewind, layer (debug)
-
-    b32 render_imgui;                // used by game
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -79,7 +77,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             if (!levelgen_level_load(GAME_LEVEL, nullptr, MAX_ENTITIES, state)) exit(1);
             physics_init();
         }
-        platform.imgui_init(state->window, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -97,9 +94,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
 
         // EVENT HANDLING //////////////////////////////////////////////////////////////////////////
         platform.event_loop(&state->game_input);
-
-        if (state->game_input.keyboard.f_key_pressed[1])
-            state->render_imgui = !state->render_imgui;
 
         // quit game on escape
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
@@ -310,10 +304,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
     }
     platform.renderer.push_present({});
 
-    // platform.render(state->window);
-    // platform.imgui_begin(state->window);
-    // if (state->render_imgui) layer_game_imgui_render(dt);
-    // platform.imgui_end(); // TODO get imgui to render
 
     platform.render(state->window);
 

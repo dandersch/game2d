@@ -4,14 +4,14 @@
 
 #include "levelgen.h"
 
-//internal
+internal_fn
 void copy_json_string(char* str_buf, u32 buf_size, const char* string)
 {
     ASSERT(buf_size >= strlen(string));
     strcpy(str_buf, string);
 }
 
-//internal
+internal_fn
 void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
 {
     struct json_array_s* array = ((struct json_array_s*) value->payload);
@@ -50,11 +50,8 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
     }
 }
 
-#include "debug.h" // for rudimentary profiling
 b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state_t* game_state)
 {
-    // TODO measure performance of json parsing vs xml parsing
-
     struct json_value_s* json_dom;
     { // JSON PARSING
         file_t json_file = platform.file_load(file);
@@ -77,7 +74,6 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
     map = (tiled_map_t*) malloc(sizeof(tiled_map_t));
     // memset(map, 0, sizeof(*map));
 
-    { TIMED_BLOCK(); // id 0, profile our json serialization
     struct json_object_s* object = (struct json_object_s*) json_dom->payload;
 
     // NOTE way to make this more performant w/ fewer calls to strcmp()
@@ -294,7 +290,6 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
     }
 
     free(json_dom); // NOTE we can only free this bc we copy out the strings
-    } // TIMED_BLOCK
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 

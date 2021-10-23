@@ -10,14 +10,3 @@
 #include <new>     // for placement new
 
 #include "json.h"
-
-#ifdef IMGUI
-  #include "imgui.h"
-  //#include "imgui_sdl.h"
-  //#include "imgui_impl_sdl.h"
-  //#include "imgui_demo.cpp"
-  //#include "imgui.cpp"
-  //#include "imgui_widgets.cpp"
-  //#include "imgui_tables.cpp"
-  //#include "imgui_draw.cpp"
-#endif

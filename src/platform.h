@@ -57,12 +57,6 @@ typedef surface_t* (*platform_text_render_fn)(font_t*, const char*, color_t, u32
 typedef void (*platform_debug_draw_fn)(platform_window_t*, rect_t, v3f, color_t, u32);
 typedef u64  (*platform_debug_performance_counter_fn)();
 
-typedef void (*platform_imgui_init_fn)(platform_window_t*, u32, u32);
-typedef void (*platform_imgui_destroy_fn)();
-typedef void (*platform_imgui_event_handle_fn)(game_input_t*);
-typedef void (*platform_imgui_begin_fn)(platform_window_t*);
-typedef void (*platform_imgui_end_fn)();
-
 // RENDERER API ////////////////////////////////////////////////////////////////////////////////
 #include "platform_renderer.h" // TODO temp
 typedef void (*renderer_push_sprite_fn)(texture_t*, rect_t, v3f, f32);
@@ -105,11 +99,6 @@ struct platform_api_t
     platform_text_render_fn                 text_render;
     platform_debug_draw_fn                  debug_draw;
     platform_debug_performance_counter_fn   debug_performance_counter;
-    platform_imgui_init_fn                  imgui_init;
-    platform_imgui_destroy_fn               imgui_destroy;
-    platform_imgui_event_handle_fn          imgui_event_handle;
-    platform_imgui_begin_fn                 imgui_begin;
-    platform_imgui_end_fn                   imgui_end;
 
     renderer_api_t                          renderer;
 };

@@ -12,15 +12,12 @@ rm -f compile_commands.json
 CmnFlags="-g -std=c++11 -DENABLE_ASSERTS -fPIC -fno-rtti
           -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
           -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "
-CmnFlags+="-DIMGUI "
 # other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings
 # -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing
 # -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses
 # -Wno-return-type -Wno-array-bounds -maes msse4.1
-CmnIncludes="-I./src/ -I./dep/imgui-1.82"
+CmnIncludes="-I./src/ "
 CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ "
-#CmnLibs+=" -limgui_sdl "
-CmnLibs+=" -limgui_ogl3 "
 
 # precompiled header for game layer
 clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch &&
