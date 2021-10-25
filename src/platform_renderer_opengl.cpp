@@ -56,7 +56,6 @@ const char* fragment_shader_src =
 global_var u32 prog_id;
 global_var i32 uniform_loc;
 global_var i32 uni_loc_tex_units;
-
 struct vertex_t
 {
     f32 vert_x, vert_y;

@@ -67,6 +67,7 @@ rect_t test_dst = {200, 200, 200, 100};
 
 #include "interface.h"
 ui_t ui_ctx = {};
+sprite_t skelly_sprite; // TODO hardcoded
 
 // TODO pass in game_input_t too (?)
 extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform_api)
@@ -88,6 +89,10 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         }
 
         test_tex = resourcemgr_texture_load("button.png", state);
+
+        skelly_sprite.box   = {0,0,16,32};
+        skelly_sprite.tex   = resourcemgr_texture_load("tileset.png", state);
+        skelly_sprite.pivot = {0.5f, 0.5f};
 
         /*
         Tile newTile = {0};
@@ -259,6 +264,19 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
 
             // after loop update
             command_on_update_end();
+
+            /* test our immediate mode ui */
+            // ui_begin():
+            ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
+            ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
+            ui_ctx.btn_texture   = test_tex;
+            ui_ctx.curr_focus    = __COUNTER__; // zero
+            if (ui_button(&ui_ctx, test_dst, skelly_sprite, __COUNTER__))
+                printf("pressed btn 1!\n");
+            if (ui_button(&ui_ctx, {test_dst.x, test_dst.y + 200, test_dst.w, test_dst.h}, skelly_sprite, __COUNTER__))
+                printf("pressed btn 2!\n");
+            // ui_end();
+
         } // update loop
     }
 
@@ -331,14 +349,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         }
     }
 
-    /* test our immediate mode ui */
-    // ui_begin():
-    ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
-    ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
-    ui_ctx.btn_texture   = test_tex;
-    if (ui_button(&ui_ctx, test_dst, 1)) printf("pressed!\n");
-    // ui_end();
-    // ...
+    ui_render(&ui_ctx);
 
     platform.renderer.push_present({});
 
