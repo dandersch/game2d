@@ -2,10 +2,12 @@
 
 /* This file has all the code for pushing commands onto the renderer command
  * buffer (or push buffer) and the buffer itself. No rendering backend specific
- * code (i.e. OpenGL, SDL, etc.) should be here*/
+ * code (i.e. OpenGL, SDL, etc.) should be here */
 
 #include <float.h>  // for FLT_MAX/MIN
 #include <limits.h>
+
+renderer_cmd_buf_t* cmds;
 
 #define PUSH_CMD(type, entry)                                                      \
     ASSERT(cmds->buf_offset < &cmds->buf[MAX_CMD_BUF_SIZE]);                       \
@@ -16,11 +18,44 @@
     cmds->buf_offset                             += sizeof(entry);                 \
     cmds->entry_count++;
 
+// SORTING
+struct sort_entry
+{
+    i32   key1;      // upper y coord
+    i32   key2;      // lower y coord
+    void* cmd_entry;
+};
+#define MAX_SORT_BUF_SIZE 20000 // TODO find better max, right now about 10500 cmds per frame
+sort_entry sort_buf[MAX_SORT_BUF_SIZE] = {};
+u32 sort_entry_count                   = 0;
+internal_fn void renderer_sort_buffer()
+{
+    // TODO this sorting code is not renderer specific
+    qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
+          [](const void* elem1, const void* elem2)
+          {
+              i32 a = ((sort_entry*) elem1)->key1;
+              i32 b = ((sort_entry*) elem1)->key2;
+              i32 c = ((sort_entry*) elem2)->key1;
+              i32 d = ((sort_entry*) elem2)->key2;
+
+              // TODO could be simplified perhaps
+              if (a < c && a < d && b < c && b < d) { return -1; } // 1 is above 2
+              if (a > c && a > d && b > c && b > d) { return  1; } // 1 is under 2
+              if (a < c && a < d && b > c && b < d) { return -1; } // 1 is behind 2
+              if (a > c && a < d && b > c && b > d) { return  1; } // 1 is in front of 2
+              //if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2
+              return 0;
+          });
+}
+
+
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
 {
     rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
     renderer_push_texture({sprite_tex, sprite_box, dst});
 }
+
 
 void renderer_push_texture(render_entry_texture_t draw_tex)
 {
@@ -29,11 +64,13 @@ void renderer_push_texture(render_entry_texture_t draw_tex)
     PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE, draw_tex);
 }
 
+
 // NOTE doesn't get called
 void renderer_push_texture_mod(render_entry_texture_mod_t mod)
 {
     PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE_MOD, mod);
 }
+
 
 // NOTE doesn't get called for now
 void renderer_push_rect(render_entry_rect_t rect)
@@ -41,12 +78,14 @@ void renderer_push_rect(render_entry_rect_t rect)
     PUSH_CMD(RENDER_ENTRY_TYPE_RECT, rect);
 }
 
+
 void renderer_push_clear(render_entry_clear_t clear)
 {
     sort_buf[sort_entry_count].key1 = INT_MIN;
     sort_buf[sort_entry_count].key2 = INT_MIN;
     PUSH_CMD(RENDER_ENTRY_TYPE_CLEAR, clear);
 }
+
 
 void renderer_push_present(render_entry_present_t present)
 {

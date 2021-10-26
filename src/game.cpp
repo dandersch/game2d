@@ -97,6 +97,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         skelly_sprite.tex   = resourcemgr_texture_load("tileset.png", state);
         skelly_sprite.pivot = {0.5f, 0.5f};
 
+        // TODO create prototype functions
         entity_skeleton.active       = true;
         entity_skeleton.freed        = false;
         entity_skeleton.sprite.box   = skelly_sprite.box;
@@ -245,7 +246,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 {
                     if (ent.flags & ENT_FLAG_CMD_CONTROLLED)
                     {
-                        command_replay(ent);
+                        command_record_or_replay(&ent, nullptr);
                     }
                 }
 

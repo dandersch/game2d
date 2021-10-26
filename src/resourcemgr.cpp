@@ -138,10 +138,6 @@ font_t* resourcemgr_font_load(const char* filename, game_state_t* state, i32 pts
 // TODO
 b32 resourcemgr_free(const char* filename, game_state_t* state)
 {
-    //if (state->pool_textures.find(filename) != state->pool_textures.end()) // found
-    //{
-    //    // TODO free_resource() for all Resources
-    //    return true;
-    //}
-    return false; // not found
+    UNREACHABLE("'%s' not implemented\n", __FUNCTION__);
+    return false;
 }

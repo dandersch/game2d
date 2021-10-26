@@ -5,10 +5,8 @@
 struct Entity;
 
 // COMMAND /////////////////////////////////////////////////////////////////////////////////////////
-void command_record(Entity& ent, Command cmd);
-void command_replay(Entity& ent);
+void command_record_or_replay(Entity* ent, Command* cmd);
 void command_init(Entity& ent);
-void command_exec(Entity& ent, Command cmd);
 void command_on_update_end();
 
 // REWIND //////////////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +26,6 @@ namespace Rewind
     void initializeFrames(Entity& e);
     void update(f32 dt, Entity& e);
     void record(f32 dt, Entity& e);
-    u32 TimeToIndex(f32 dt);
     void rewind(f32 dt, Entity& e);
 
 } // namespace Rewind

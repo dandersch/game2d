@@ -64,7 +64,8 @@ void player_update(f32 dt, Entity &ent)
         ent.item->setPivPos({ent.position.x + 8, ent.position.y + (-8), ent.position.z + 0});
 
     // use commands instead of calling tryMove directly
-    command_record(ent, {cmdtype, movement});
+    Command cmd = {cmdtype, movement};
+    command_record_or_replay(&ent, &cmd);
 }
 
 void player_try_move(v3f movement, Entity& ent)

@@ -9,32 +9,18 @@
 struct platform_window_t
 {
     SDL_Window*   handle;
-    renderer_t*   renderer;   // TODO needs to opaque/not renderer specific
+    renderer_t*   renderer;
 };
-
-#ifdef USE_OPENGL
-global_var SDL_GLContext gl_context;
-#endif
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
-// TODO move this
-struct sort_entry
-{
-    i32   key1;      // upper y coord
-    i32   key2;      // lower y coord
-    void* cmd_entry;
-};
-#define MAX_SORT_BUF_SIZE 20000 // TODO find better max, right now about 10500 cmds per frame
-sort_entry sort_buf[MAX_SORT_BUF_SIZE] = {};
-u32 sort_entry_count                   = 0;
 // UNITY BUILD
+#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
 #ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
   #include "platform_renderer_opengl.cpp"
 #else
   #include "platform_renderer_sdl.cpp"
 #endif
-#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
 
 // game functions
 typedef void (*game_main_loop_fn)(game_state_t*, platform_api_t);
@@ -129,14 +115,7 @@ int main(int argc, char* args[])
     mem_arena_init(&memory.total_arena, GAME_MEMORY_SIZE + 6000012);
     mem_arena_nested_init(&memory.total_arena, &memory.platform_arena, 6000012); // TODO hardcoded
     mem_arena_nested_init(&memory.total_arena, &memory.game_arena, GAME_MEMORY_SIZE);
-    printf("start of total_arena at: %p\n", memory.total_arena.base_addr);
-    printf("end of   total_arena at: %p\n", memory.total_arena.curr_addr);
-    printf("start of platf_arena at: %p\n", memory.platform_arena.base_addr);
-    printf("end of   platf_arena at: %p\n", memory.platform_arena.curr_addr);
-    printf("start of  game_arena at: %p\n", memory.game_arena.base_addr);
-    printf("end of    game_arena at: %p\n", memory.game_arena.curr_addr);
 
-    //game_state = (game_state_t*) malloc(GAME_MEMORY_SIZE);
     game_state = (game_state_t*) mem_arena_alloc(&memory.game_arena, GAME_MEMORY_SIZE);
     memset(game_state, 0, GAME_MEMORY_SIZE);
     {
@@ -171,6 +150,7 @@ int main(int argc, char* args[])
     exit(1);
 #endif
 }
+
 
 platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)
 {
@@ -216,15 +196,16 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
 
     platform_window_t* window = (platform_window_t*) mem_arena_alloc(&memory.platform_arena,
                                                                      sizeof(platform_window_t));
-
     window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       screen_width, screen_height, window_flags);
     SDL_ERROR(window->handle);
 
 #ifdef USE_OPENGL
-    gl_context = SDL_GL_CreateContext(window->handle);
+    window->renderer = (renderer_t*) mem_arena_alloc(&memory.platform_arena, sizeof(renderer_t));
+    SDL_GLContext gl_context = SDL_GL_CreateContext(window->handle);
     SDL_ERROR(gl_context); // Failed to create OpenGL context.
     SDL_GL_MakeCurrent(window->handle, gl_context);
+    window->renderer->gl_context = gl_context;
 #endif
 
     renderer_init(window, &memory.platform_arena);
@@ -236,11 +217,13 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     return window;
 }
 
+
 void platform_window_close(platform_window_t* window)
 {
     renderer_destroy(window->renderer);
     SDL_DestroyWindow(window->handle);
 }
+
 
 // should return a file_t w/ handle & buffer
 file_t platform_file_load(const char* file_name)
@@ -261,6 +244,7 @@ file_t platform_file_load(const char* file_name)
     return file;
 }
 
+
 void platform_file_close(file_t file)
 {
     i32 success = SDL_RWclose((SDL_RWops*) file.handle);
@@ -268,11 +252,13 @@ void platform_file_close(file_t file)
     SDL_ERROR(!success);
 }
 
+
 b32 platform_file_save(u8* file_name, u8* buffer)
 {
     UNREACHABLE("function not implementd");
     return false;
 }
+
 
 // EVENTS //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -287,6 +273,7 @@ void input_event_process(game_input_state_t* new_state, b32 is_down)
         ++new_state->up_down_count;
     }
 }
+
 
 void platform_event_loop(game_input_t* input)
 {
@@ -363,6 +350,7 @@ void platform_event_loop(game_input_t* input)
     }
 }
 
+
 void platform_render(platform_window_t* window)
 {
     renderer_cmd_buf_process(window); // TODO this draws over imgui
@@ -388,15 +376,18 @@ void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos
     // SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
 }
 
+
 u64 platform_debug_performance_counter()
 {
     return SDL_GetPerformanceCounter();
 }
 
+
 void platform_surface_destroy(surface_t* surface)
 {
     SDL_FreeSurface((SDL_Surface*) surface);
 }
+
 
 // SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
 font_t* platform_font_load(const char* filename, i32 ptsize)
@@ -406,10 +397,12 @@ font_t* platform_font_load(const char* filename, i32 ptsize)
     return font;
 }
 
+
 void platform_font_init()
 {
     TTF_Init();
 }
+
 
 // TODO pass options to render blended/wrapped
 // NOTE this is not (as of now) an SDL Renderer specific function
@@ -421,7 +414,9 @@ surface_t* platform_text_render(font_t* font, const char* text, color_t color, u
     return text_surf;
 }
 
+
 u32  platform_ticks() { return SDL_GetTicks(); }
+
 
 void platform_quit()
 {
@@ -429,6 +424,7 @@ void platform_quit()
     IMG_Quit();
     SDL_Quit();
 }
+
 
 platform_api_t platform_api =
 {

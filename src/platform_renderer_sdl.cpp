@@ -12,7 +12,6 @@ struct texture_t
     SDL_Texture* id;
 };
 
-global_var renderer_cmd_buf_t* cmds;
 
 void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 {
@@ -32,16 +31,19 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     //printf("%s\n", SDL_GetHint("SDL_HINT_RENDER_SCALE_QUALITY")); SDL_RenderSetScale((SDL_Renderer*) window->renderer, 1.f, 1.f);
 }
 
+
 void renderer_destroy(renderer_t* renderer)
 {
     SDL_DestroyRenderer((SDL_Renderer*) renderer);
 }
+
 
 // 0 on success, -1 if texture is not valid
 i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
 {
     return SDL_QueryTexture(tex->id, format, access, w, h);
 }
+
 
 texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
 {
@@ -54,6 +56,7 @@ texture_t* renderer_create_texture_from_surface(platform_window_t* window, surfa
     return tex;
 }
 
+
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
     SDL_Texture* sdl_tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
@@ -64,6 +67,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
 
     return tex;
 }
+
 
 internal_fn
 SDL_BlendMode sdl_blendmode_lut(texture_blend_mode_e ours)
@@ -79,27 +83,11 @@ SDL_BlendMode sdl_blendmode_lut(texture_blend_mode_e ours)
     }
 }
 
+
 void renderer_cmd_buf_process(platform_window_t* window)
 {
     SDL_Renderer* renderer = (SDL_Renderer*) window->renderer;
-
-    // TODO this sorting code is not renderer specific
-    qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
-          [](const void* elem1, const void* elem2)
-          {
-              i32 a = ((sort_entry*) elem1)->key1;
-              i32 b = ((sort_entry*) elem1)->key2;
-              i32 c = ((sort_entry*) elem2)->key1;
-              i32 d = ((sort_entry*) elem2)->key2;
-
-              // TODO could be simplified perhaps
-              if (a < c && a < d && b < c && b < d) { return -1; } // 1 is above 2
-              if (a > c && a > d && b > c && b > d) { return  1; } // 1 is under 2
-              if (a < c && a < d && b > c && b < d) { return -1; } // 1 is behind 2
-              if (a > c && a < d && b > c && b > d) { return  1; } // 1 is in front of 2
-              //if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2
-              return 0;
-          });
+    renderer_sort_buffer();
 
     for (u32 i = 0; i < sort_entry_count; i++)
     {

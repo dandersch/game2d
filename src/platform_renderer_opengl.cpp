@@ -18,7 +18,7 @@
 
 struct renderer_t
 {
-    SDL_GLContext gl_context;
+    void* gl_context;
 };
 
 struct texture_t
@@ -62,13 +62,13 @@ struct vertex_t
     f32 tex_x,  tex_y;
 };
 
-#define BATCHED_VERTICES_MAX 50000 // TODO just flush the batch right before we would exceed this max
-global_var vertex_t* vbo_batch; // TODO find out good max size TODO put this in a frame_arena (?)
+#define BATCHED_VERTICES_MAX 50000 // batch gets flushed if it exceeds this max
+global_var vertex_t* vbo_batch;    // TODO put this in a frame_arena (?)
 global_var u32 vertex_count = 0;
 
 global_var u32 tex_array_id; // TODO use 1024x1024 textures for everything so that we can use texture arrays
 
-global_var renderer_cmd_buf_t* cmds;
+//global_var renderer_cmd_buf_t* cmds;
 
 global_var u32 vao;
 
@@ -308,23 +308,7 @@ void flush_batch()
 
 void renderer_cmd_buf_process(platform_window_t* window)
 {
-    // TODO this sorting code is not renderer specific
-    qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
-          [](const void* elem1, const void* elem2)
-          {
-              i32 a = ((sort_entry*) elem1)->key1;
-              i32 b = ((sort_entry*) elem1)->key2;
-              i32 c = ((sort_entry*) elem2)->key1;
-              i32 d = ((sort_entry*) elem2)->key2;
-
-              // TODO could be simplified perhaps
-              if (a < c && a < d && b < c && b < d) { return -1; } // 1 is above 2
-              if (a > c && a > d && b > c && b > d) { return  1; } // 1 is under 2
-              if (a < c && a < d && b > c && b < d) { return -1; } // 1 is behind 2
-              if (a > c && a < d && b > c && b > d) { return  1; } // 1 is in front of 2
-              //if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2
-              return 0;
-          });
+    renderer_sort_buffer();
 
     for (u32 i = 0; i < sort_entry_count; i++)
     {
