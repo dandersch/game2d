@@ -313,7 +313,6 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 Entity newEnt = {0};
                 newEnt.active       = true;
                 newEnt.freed        = false;
-                newEnt.renderLayer  = i;
 
                 const tiled_tile_t* t = nullptr;
                 ts                    = nullptr;
@@ -398,7 +397,6 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     newEnt.state        = ENT_STATE_MOVE;
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state); // TODO platform code (?)
-                    newEnt.renderLayer  = 1;
                     newEnt.orient       = ENT_ORIENT_DOWN;
                     newEnt.collider     = collider;
                     newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
@@ -487,7 +485,6 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 u32 x = tile_idx % layers[i].width;
                 u32 y = tile_idx / layers[i].height;
 
-                newTile.renderLayer  = i;
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
                 newTile.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);

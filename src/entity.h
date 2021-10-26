@@ -53,7 +53,6 @@ struct Entity
     u32      orient;
     v3f      position;             // NOTE maybe make private or similar bc we want pos to be set with setPivPos
     f32      scale        = 1.0f;  // NOTE violation against ZII
-    u32      renderLayer;
     sprite_t sprite;
     rect_t   collider;             // TODO box2d?
     v3f      movement;             // desired movement for this frame, used by physics

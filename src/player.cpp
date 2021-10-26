@@ -124,7 +124,6 @@ void player_try_pickup(v3f direction, Entity& ent)
     pickup_box.collider = { .x = 0, //(int) pickupPos.x,
                             .y = 0, //(int) pickupPos.y,
                            .w = 16, .h = 16};
-    pickup_box.renderLayer = 1;
     pickup_box.movement = {0,0,0};
     EntityMgr::copyTempEntity(pickup_box);
     isPickingUp = false;
@@ -140,7 +139,6 @@ void player_try_attack(v3f direction, Entity& ent)
     attack_box.flags |= ENT_FLAG_IS_COLLIDER;
     attack_box.flags |= ENT_FLAG_ATTACK_BOX;
     attack_box.collider = { .x = (int) attack_pos.x , .y = (int) attack_pos.y, .w = 16, .h = 16};
-    attack_box.renderLayer = 1;
     //attack_box.setPivPos({attack_pos});
     attack_box.movement = {0,0,0};
     EntityMgr::copyTempEntity(attack_box);

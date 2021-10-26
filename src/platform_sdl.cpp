@@ -18,6 +18,16 @@ global_var SDL_GLContext gl_context;
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
+// TODO move this
+struct sort_entry
+{
+    i32   key1;      // upper y coord
+    i32   key2;      // lower y coord
+    void* cmd_entry;
+};
+#define MAX_SORT_BUF_SIZE 20000 // TODO find better max, right now about 10500 cmds per frame
+sort_entry sort_buf[MAX_SORT_BUF_SIZE] = {};
+u32 sort_entry_count                   = 0;
 // UNITY BUILD
 #ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
   #include "platform_renderer_opengl.cpp"

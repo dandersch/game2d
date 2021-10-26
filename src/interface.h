@@ -24,7 +24,7 @@ struct ui_t
 };
 
 // TODO maybe add & use a float rect_t
-inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t sprite, ui_id id)
+inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t* sprite, ui_id id)
 {
     if (utils_point_in_rect(ctx->mouse_pos, btn_rect))
         ctx->curr_focus = id;
@@ -43,7 +43,7 @@ inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t sprite, ui_id id)
 
     /* push elements to render */
     ctx->render_buf[ctx->render_elems_count++] = {ctx->btn_texture, {0}, btn_rect};
-    ctx->render_buf[ctx->render_elems_count++] = {sprite.tex, sprite.box, btn_rect};
+    if (sprite) ctx->render_buf[ctx->render_elems_count++] = {sprite->tex, sprite->box, btn_rect};
 
     return pressed;
 }

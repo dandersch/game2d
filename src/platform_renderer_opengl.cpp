@@ -77,6 +77,7 @@ global_var u32 vao;
 
 void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 {
+    sort_entry_count  = 0;
     cmds = (renderer_cmd_buf_t*) mem_arena_alloc(platform_mem_arena, sizeof(cmds));
     cmds->buf_offset  = cmds->buf;
     cmds->entry_count = 0;
@@ -307,15 +308,33 @@ void flush_batch()
 
 void renderer_cmd_buf_process(platform_window_t* window)
 {
-    u8* curr_entry = cmds->buf;
-    for (s32 entry_nr = 0; entry_nr < cmds->entry_count; ++entry_nr)
+    // TODO this sorting code is not renderer specific
+    qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
+          [](const void* elem1, const void* elem2)
+          {
+              i32 a = ((sort_entry*) elem1)->key1;
+              i32 b = ((sort_entry*) elem1)->key2;
+              i32 c = ((sort_entry*) elem2)->key1;
+              i32 d = ((sort_entry*) elem2)->key2;
+
+              // TODO could be simplified perhaps
+              if (a < c && a < d && b < c && b < d) { return -1; } // 1 is above 2
+              if (a > c && a > d && b > c && b > d) { return  1; } // 1 is under 2
+              if (a < c && a < d && b > c && b < d) { return -1; } // 1 is behind 2
+              if (a > c && a < d && b > c && b > d) { return  1; } // 1 is in front of 2
+              //if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2
+              return 0;
+          });
+
+    for (u32 i = 0; i < sort_entry_count; i++)
     {
+        u8* curr_entry = (u8*) sort_buf[i].cmd_entry;
         render_entry_header_t* entry_header = (render_entry_header_t*) curr_entry;
+        curr_entry += sizeof(render_entry_header_t);
         switch (entry_header->type)
         {
             case RENDER_ENTRY_TYPE_TEXTURE:
             {
-                curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
                 const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
@@ -404,7 +423,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_RECT:
             {
-                curr_entry += sizeof(render_entry_header_t);
                 render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
 
                 // TODO opengl code here
@@ -415,7 +433,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_TEXTURE_MOD:
             {
-                curr_entry += sizeof(render_entry_header_t);
                 render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
 
                 // TODO opengl code here
@@ -426,8 +443,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_CLEAR:
             {
-                curr_entry += sizeof(render_entry_header_t);
-
                 /* opengl code here */
                 glClearColor(0.0f,0.0f,0.0f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT);      // clear color buffer
@@ -437,8 +452,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_PRESENT:
             {
-                curr_entry += sizeof(render_entry_header_t);
-
                 flush_batch(); // TODO find a better place to call this ?
 
                 /* TODO opengl code here */
@@ -456,8 +469,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
             }
         }
     }
-
     // reset cmd buffer
+    sort_entry_count  = 0;
     cmds->entry_count = 0;
     cmds->buf_offset  = cmds->buf;
 }

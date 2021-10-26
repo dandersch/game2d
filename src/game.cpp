@@ -33,6 +33,8 @@ struct game_state_t
     // reset
     bool isRewinding;          // used by rewind, layer
     f32 loopTime;              // used by rewind, layer (debug)
+
+    Entity* entity_to_place = nullptr;
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,6 +70,7 @@ rect_t test_dst = {200, 200, 200, 100};
 #include "interface.h"
 ui_t ui_ctx = {};
 sprite_t skelly_sprite; // TODO hardcoded
+Entity entity_skeleton = {};
 
 // TODO pass in game_input_t too (?)
 extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform_api)
@@ -94,22 +97,19 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         skelly_sprite.tex   = resourcemgr_texture_load("tileset.png", state);
         skelly_sprite.pivot = {0.5f, 0.5f};
 
-        /*
-        Tile newTile = {0};
-        newTile.sprite.box   = {96, 0, 16, 32};
-        newTile.sprite.pivot = {0.5f, 0.5f};
-        newTile.sprite.tex   = resourcemgr_texture_load("tileset.png", state);
-        newTile.renderLayer  = 1;
-        newTile.collidable   = false;
-        for (u32 x = 0; x < 1600; x += 16)
-        {
-            for (u32 y = 0; y < 1600; y += 16)
-            {
-                newTile.setPivPos( { (f32) x, (f32) y - 24, 0}); // TODO why -24
-                EntityMgr::createTile(newTile);
-            }
-        }
-        */
+        entity_skeleton.active       = true;
+        entity_skeleton.freed        = false;
+        entity_skeleton.sprite.box   = skelly_sprite.box;
+        entity_skeleton.sprite.pivot = {0.5f, 0.5f};
+        entity_skeleton.state        = ENT_STATE_MOVE;
+        entity_skeleton.sprite.tex   = skelly_sprite.tex;
+        entity_skeleton.orient       = ENT_ORIENT_DOWN;
+        entity_skeleton.collider     = skelly_sprite.box;
+        entity_skeleton.flags       |= ENT_FLAG_IS_COLLIDER;
+        entity_skeleton.flags       |= ENT_FLAG_CMD_CONTROLLED;
+        entity_skeleton.flags       |= ENT_FLAG_IS_REWINDABLE;
+        Rewind::initializeFrames(entity_skeleton);
+        command_init(entity_skeleton);
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -132,17 +132,14 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
 
         { // game event handling
+            v3i mouse_pos   = state->game_input.mouse.pos;
+            if (state->entity_to_place)
+                state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
+
             if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
             {
-                v3i  mouse_pos = state->game_input.mouse.pos;
-                auto click     = camera_screen_to_world(state->cam, {(f32) mouse_pos.x, (f32) mouse_pos.y, 0});
-
-                // TODO interpolate TODO breaks w/ zooming
-                // put camera where clicked
-                state->cam.rect.x = click.x - (state->cam.rect.w/2.f);
-                state->cam.rect.y = click.y - (state->cam.rect.h/2.f);
-                // TODO put cursor where clicked
-                //SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
+                v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
+                v2i clickpoint  = {(i32) click.x, (i32) click.y};
 
                 // get 'clicked on' playable entity
                 for (u32 i = 0; i < MAX_ENTITIES; i++)
@@ -150,7 +147,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                     auto ents = state->ents;
                     if (!ents[i].active) continue;
                     if (!(ents[i].flags & ENT_FLAG_CMD_CONTROLLED)) continue;
-                    v2i  clickpoint = {(i32) click.x, (i32) click.y};
                     rect_t   coll       = ents[i].getColliderInWorld();
                     if (utils_point_in_rect(clickpoint, coll)) // TODO
                     {
@@ -163,6 +159,24 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                         ents[i].flags ^= ENT_FLAG_CMD_CONTROLLED;
                         state->focusedEntity = &ents[i];
                     }
+                }
+
+                // try to place an entity if we have one selected
+                if (state->entity_to_place)
+                {
+                    printf("Placed entity!\n");
+                    state->entity_to_place->setPivPos({(f32)clickpoint.x, (f32)clickpoint.y, 1.0f});
+                    EntityMgr::copyEntity(*state->entity_to_place);
+                    state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
+                }
+                else
+                {
+                    // TODO interpolate TODO breaks w/ zooming
+                    // put camera where clicked
+                    state->cam.rect.x = click.x - (state->cam.rect.w/2.f);
+                    state->cam.rect.y = click.y - (state->cam.rect.h/2.f);
+                    // TODO put cursor where clicked
+                    //SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
                 }
             }
 
@@ -179,10 +193,35 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
         { // layer_game_update(dt);
             EntityMgr::freeTemporaryStorage();
-
-            // update input
             input_update();
             Reset::update(dt); // TODO fixed delta time
+
+            /* test our immediate mode ui */
+            // ui_begin():
+            ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
+            ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
+            ui_ctx.btn_texture   = test_tex;
+            ui_ctx.curr_focus    = __COUNTER__; // zero
+            // i32 button_count = 2;
+            // for (i32 i = 0; i < button_count; i++)
+            // {
+            //     rect_t button_dst = {1000, 800 - (i*150), 200, 100};
+            //     if (ui_button(&ui_ctx, button_dst, NULL, 10+i))
+            //     {
+            //         printf("btn %u!\n", i);
+            //     }
+            // }
+            if (ui_button(&ui_ctx, test_dst, &skelly_sprite, __COUNTER__))
+            {
+                printf("pressed btn 1!\n");
+                state->entity_to_place = &entity_skeleton;
+            }
+            if (ui_button(&ui_ctx, {test_dst.x, test_dst.y + 200, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 2!\n");
+                state->entity_to_place = nullptr;
+            }
+            // ui_end();
 
             auto tiles = EntityMgr::getTiles();
 
@@ -264,19 +303,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
 
             // after loop update
             command_on_update_end();
-
-            /* test our immediate mode ui */
-            // ui_begin():
-            ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
-            ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
-            ui_ctx.btn_texture   = test_tex;
-            ui_ctx.curr_focus    = __COUNTER__; // zero
-            if (ui_button(&ui_ctx, test_dst, skelly_sprite, __COUNTER__))
-                printf("pressed btn 1!\n");
-            if (ui_button(&ui_ctx, {test_dst.x, test_dst.y + 200, test_dst.w, test_dst.h}, skelly_sprite, __COUNTER__))
-                printf("pressed btn 2!\n");
-            // ui_end();
-
         } // update loop
     }
 
@@ -287,57 +313,45 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
 
     platform.renderer.push_clear({});
     { // layer_game_render();
-        u32 maxlayer = 0;
         Entity* ents = state->ents;
         Tile* tiles = EntityMgr::getTiles();
-        for (u32 l = 0; l < MAX_RENDER_LAYERS; l++) // TODO use z coordinate and let
-                                                    // renderer sort w/ a cmd key
+
+        // RENDER TILES ////////////////////////////////////////////////////////////////////////////
+        // TODO tilemap culling
+        for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
         {
-            // RENDER TILES ////////////////////////////////////////////////////////////////////////////
-            // TODO tilemap culling
-            for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
+            platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
+                                          camera_world_to_screen(state->cam, tiles[i].position),
+                                          state->cam.scale);
+
+            if (state->debugDraw)
             {
-                if (tiles[i].renderLayer != l) continue;
-                platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
-                                              camera_world_to_screen(state->cam, tiles[i].position),
+                auto pos = camera_world_to_screen(state->cam, tiles[i].position);
+                platform.debug_draw(state->window, tiles[i].collider, pos, {0,0,0,255}, 1.0f);
+            }
+        }
+
+        // RENDER ENTITIES /////////////////////////////////////////////////////////////////////////
+        for (u32 i = 0; i < MAX_ENTITIES; i++)
+        {
+            if (!ents[i].active) continue;
+            if (ents[i].sprite.tex != nullptr) // workaround for temporary invisible entities,
+                                               // TODO instead we should maybe just have an ENT_FLAG_RENDERED
+                                               // that we check here
+                platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
+                                              camera_world_to_screen(state->cam, ents[i].position),
                                               state->cam.scale);
 
-                if (tiles[i].renderLayer > maxlayer) maxlayer = tiles[i].renderLayer;
-
-                if (state->debugDraw)
-                {
-                    auto pos = camera_world_to_screen(state->cam, tiles[i].position);
-                    platform.debug_draw(state->window, tiles[i].collider, pos, {0,0,0,255}, 1.0f);
-                }
-            }
-
-            // RENDER ENTITIES /////////////////////////////////////////////////////////////////////////
-            for (u32 i = 0; i < MAX_ENTITIES; i++)
+            if (state->debugDraw)
             {
-                if (!ents[i].active) continue;
-                if (ents[i].renderLayer != l) continue;
-                if (ents[i].sprite.tex != nullptr) // workaround for temporary invisible entities,
-                                                   // TODO instead we should maybe just have an ENT_FLAG_RENDERED
-                                                   // that we check here
-                    platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
-                                                  camera_world_to_screen(state->cam, ents[i].position),
-                                                  state->cam.scale);
+                // change color depending on entity flags
+                color_t c = {0,0,0,255}; // TODO get this out
+                if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
+                if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
 
-                if (state->debugDraw)
-                {
-                    // change color depending on entity flags
-                    color_t c = {0,0,0,255}; // TODO get this out
-                    if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
-                    if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
-
-                    auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
-                    platform.debug_draw(state->window, ents[i].collider, ent_pos, c, ents[i].scale);
-                }
-
-                if (ents[i].renderLayer > maxlayer) maxlayer = ents[i].renderLayer;
+                auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
+                platform.debug_draw(state->window, ents[i].collider, ent_pos, c, ents[i].scale);
             }
-            // no need to go through all renderlayers
-            if (l > maxlayer) break;
         }
 
         // draw focusarrow on focused entity TODO hardcoded & very hacky
@@ -347,12 +361,16 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
             platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
         }
+
+        if (state->entity_to_place)
+        {
+            platform.renderer.push_sprite(state->entity_to_place->sprite.tex, state->entity_to_place->sprite.box,
+                                          state->entity_to_place->position, state->entity_to_place->scale);
+        }
     }
 
     ui_render(&ui_ctx);
-
     platform.renderer.push_present({});
-
     platform.render(state->window);
 
     // game_quit:
