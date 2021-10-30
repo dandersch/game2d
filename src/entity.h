@@ -57,6 +57,8 @@ struct Entity
     rect_t   collider;             // TODO box2d?
     v3f      movement;             // desired movement for this frame, used by physics
 
+    char type[20]; // TODO
+
     // ANIMATION TODO
     AnimationClip clips[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
     Animator      anim                              = {nullptr, 0, 0};

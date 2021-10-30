@@ -47,6 +47,7 @@ extern platform_api_t platform; // TODO some cpp files depend on this
 #include "input.cpp"
 #include "player.cpp"
 #include "resourcemgr.cpp"
+#include "parser.cpp"
 #include "rewind.cpp"
 #include "levelgen.cpp"
 
@@ -98,19 +99,20 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         skelly_sprite.pivot = {0.5f, 0.5f};
 
         // TODO create prototype functions
-        entity_skeleton.active       = true;
-        entity_skeleton.freed        = false;
-        entity_skeleton.sprite.box   = skelly_sprite.box;
-        entity_skeleton.sprite.pivot = {0.5f, 0.5f};
-        entity_skeleton.state        = ENT_STATE_MOVE;
-        entity_skeleton.sprite.tex   = skelly_sprite.tex;
-        entity_skeleton.orient       = ENT_ORIENT_DOWN;
-        entity_skeleton.collider     = skelly_sprite.box;
-        entity_skeleton.flags       |= ENT_FLAG_IS_COLLIDER;
-        entity_skeleton.flags       |= ENT_FLAG_CMD_CONTROLLED;
-        entity_skeleton.flags       |= ENT_FLAG_IS_REWINDABLE;
-        Rewind::initializeFrames(entity_skeleton);
-        command_init(entity_skeleton);
+        // entity_skeleton.active       = true;
+        // entity_skeleton.freed        = false;
+        // entity_skeleton.sprite.box   = skelly_sprite.box;
+        // entity_skeleton.sprite.pivot = {0.5f, 0.5f};
+        // entity_skeleton.state        = ENT_STATE_MOVE;
+        // entity_skeleton.sprite.tex   = skelly_sprite.tex;
+        // entity_skeleton.orient       = ENT_ORIENT_DOWN;
+        // entity_skeleton.collider     = skelly_sprite.box;
+        // entity_skeleton.flags       |= ENT_FLAG_IS_COLLIDER;
+        // entity_skeleton.flags       |= ENT_FLAG_CMD_CONTROLLED;
+        // entity_skeleton.flags       |= ENT_FLAG_IS_REWINDABLE;
+        // Rewind::initializeFrames(entity_skeleton);
+        // command_init(entity_skeleton);
+        entity_skeleton = create_entity_from_file("skeleton.ent");
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -132,10 +134,21 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         // quit game on escape
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
 
+
+
         { // game event handling
             v3i mouse_pos   = state->game_input.mouse.pos;
+            v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
+            //printf("mouse: %f, %f \n", (f32) mouse_pos.x, (f32) mouse_pos.y);
+            //printf("click: %f, %f \n", click.x, click.y);
             if (state->entity_to_place)
-                state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
+            {
+                f32 clamped_x_pos = (roundf(mouse_pos.x / 16.0f) * 16.0f);
+                f32 clamped_y_pos = (roundf(mouse_pos.y / 16.0f) * 16.0f);
+                //state->entity_to_place->setPivPos({clamped_x_pos, clamped_y_pos, 1.0f});
+                //state->entity_to_place->position   = {clamped_x_pos - 8, clamped_y_pos - 24, 1.0f};
+                //state->entity_to_place->position = {(f32) mouse_pos.x - 8, (f32) mouse_pos.y - 24, 1.0f};
+            }
 
             if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
             {
