@@ -114,10 +114,23 @@ typedef double   f64;
 #define global_var  static // 'static' variables in global scope can be considered global variables when
                         // compiling only one translation unit (unity build)
 
-// TODO numeric limits, i.e. U32_MAX, I32_MIN, F32_MAX etc.
+// numerical limits
+#include <float.h>  // for FLT_MAX/MIN
+#define U8_MAX  255
+#define U16_MAX 65535
+#define U32_MIN 0
+#define U32_MAX 4294967295
+#define U64_MIN 0
+#define U64_MAX 18446744073709551615
+#define I32_MIN ((i32) 0x80000000)
+#define I32_MAX ((i32) 0x7fffffff)
+#define S32_MIN ((s32) 0x80000000)
+#define S32_MAX ((s32) 0x7fffffff)
+#define F32_MAX FLT_MAX
+#define F32_MIN -FLT_MAX
 
-// vector types
-// TODO overload operators +-*/
+
+// vector types w/ overloaded operators + - * /
 union v2u
 {
     struct { u32 x; u32 y; };
@@ -216,12 +229,7 @@ struct rect_t
     i32 x, y; // TODO rename to left, top...
     i32 w, h;
 };
-/* struct point_t */
-/* { */
-/*     i32 x; */
-/*     i32 y; */
-/* }; */
-struct color_t // NOTE maybe add a 24bit version
+struct color_t // NOTE maybe add a 24bit version & float version
 {
     u8 r; u8 g; u8 b; u8 a;
 };

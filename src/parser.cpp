@@ -188,9 +188,10 @@ Entity create_entity_from_file(const char* asset_file_name)
     entity.collider   = spritebox;
     entity.sprite.box = spritebox;
 
-    // free linked list of tokens
+    // cleanup
+    free(filepath);
     node = head;
-    while (node != nullptr)
+    while (node != nullptr) // free linked list of tokens
     {
         token_node_t* node_to_free = node;
         node = node->next;

@@ -1,7 +1,4 @@
 #pragma once
-// TODO renderer api w/ a pushbuffer/commandbuffer scheme, where render commands
-// are put into a list by the game layer and processed in the platform (renderer) layer,
-// where the specific renderer api (e.g. opengl) processes and 'implements' them
 
 struct renderer_t; // SDL_Renderer, ...
 struct texture_t;
@@ -72,7 +69,7 @@ struct renderer_cmd_buf_t
 {
     u8  buf[MAX_CMD_BUF_SIZE];
     //u64 base_addr;
-    u8* buf_offset;            // TODO better name
+    u8* buf_offset;            // TODO better name, since this is not actually the offset
     u32 entry_count;
 };
 

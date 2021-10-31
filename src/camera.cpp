@@ -2,7 +2,6 @@
 
 // TODO make camera zoom in where the cursor currently is
 // TODO zoom in only in steps that are pixel-perfect
-// TODO get rid of glm::vec3
 
 v3f camera_screen_to_world(Camera& cam, const v3f& cam_pos)
 {

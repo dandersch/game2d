@@ -4,14 +4,12 @@
  * buffer (or push buffer) and the buffer itself. No rendering backend specific
  * code (i.e. OpenGL, SDL, etc.) should be here */
 
-#include <float.h>  // for FLT_MAX/MIN
-#include <limits.h>
-
 renderer_cmd_buf_t* cmds;
 
 #define PUSH_CMD(type, entry)                                                      \
     ASSERT(cmds->buf_offset < &cmds->buf[MAX_CMD_BUF_SIZE]);                       \
     *((render_entry_header_t*) cmds->buf_offset)  = {type};                        \
+    ASSERT(sort_entry_count < MAX_SORT_BUF_SIZE);                                  \
     sort_buf[sort_entry_count++].cmd_entry        = cmds->buf_offset;              \
     cmds->buf_offset                             += sizeof(render_entry_header_t); \
     *((decltype(entry)*) cmds->buf_offset)        = entry;                         \
@@ -28,9 +26,9 @@ struct sort_entry
 #define MAX_SORT_BUF_SIZE 20000 // TODO find better max, right now about 10500 cmds per frame
 sort_entry sort_buf[MAX_SORT_BUF_SIZE] = {};
 u32 sort_entry_count                   = 0;
+
 internal_fn void renderer_sort_buffer()
 {
-    // TODO this sorting code is not renderer specific
     qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
           [](const void* elem1, const void* elem2)
           {
@@ -81,15 +79,15 @@ void renderer_push_rect(render_entry_rect_t rect)
 
 void renderer_push_clear(render_entry_clear_t clear)
 {
-    sort_buf[sort_entry_count].key1 = INT_MIN;
-    sort_buf[sort_entry_count].key2 = INT_MIN;
+    sort_buf[sort_entry_count].key1 = I32_MIN;
+    sort_buf[sort_entry_count].key2 = I32_MIN;
     PUSH_CMD(RENDER_ENTRY_TYPE_CLEAR, clear);
 }
 
 
 void renderer_push_present(render_entry_present_t present)
 {
-    sort_buf[sort_entry_count].key1 = INT_MAX;
-    sort_buf[sort_entry_count].key2 = INT_MAX;
+    sort_buf[sort_entry_count].key1 = I32_MAX;
+    sort_buf[sort_entry_count].key2 = I32_MAX;
     PUSH_CMD(RENDER_ENTRY_TYPE_PRESENT, present);
 }
