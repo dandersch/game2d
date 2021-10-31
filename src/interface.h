@@ -23,6 +23,13 @@ struct ui_t
     ui_id last_focus;
 };
 
+
+inline void ui_init()
+{
+
+}
+
+
 // TODO maybe add & use a float rect_t
 inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t* sprite, ui_id id)
 {
@@ -47,6 +54,7 @@ inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t* sprite, ui_id id)
 
     return pressed;
 }
+
 
 inline void ui_render(ui_t* ctx)
 {

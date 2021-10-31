@@ -55,7 +55,7 @@ token_node_t* parse_asset_file(const char* filename)
     char* statement_token = strtok_r(asset_file_buf, "\n", &saveptr);
     while (statement_token != NULL)
     {
-        printf("STATEMENT: %s\n", statement_token);
+        //printf("STATEMENT: %s\n", statement_token);
 
         char* node_name  = strtok(statement_token, " = ");
         strcpy(node->name, node_name);
@@ -164,7 +164,7 @@ Entity create_entity_from_file(const char* asset_file_name)
             } break;
             case TOKEN_TYPE_FLOAT:
             {
-                printf("FLOAT VALUE UNUSED\n");
+                printf("PARSER: FLOAT VALUE UNUSED\n");
             } break;
             case TOKEN_TYPE_VEC2I:
             {

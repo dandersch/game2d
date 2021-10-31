@@ -98,20 +98,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         skelly_sprite.tex   = resourcemgr_texture_load("tileset.png", state);
         skelly_sprite.pivot = {0.5f, 0.5f};
 
-        // TODO create prototype functions
-        // entity_skeleton.active       = true;
-        // entity_skeleton.freed        = false;
-        // entity_skeleton.sprite.box   = skelly_sprite.box;
-        // entity_skeleton.sprite.pivot = {0.5f, 0.5f};
-        // entity_skeleton.state        = ENT_STATE_MOVE;
-        // entity_skeleton.sprite.tex   = skelly_sprite.tex;
-        // entity_skeleton.orient       = ENT_ORIENT_DOWN;
-        // entity_skeleton.collider     = skelly_sprite.box;
-        // entity_skeleton.flags       |= ENT_FLAG_IS_COLLIDER;
-        // entity_skeleton.flags       |= ENT_FLAG_CMD_CONTROLLED;
-        // entity_skeleton.flags       |= ENT_FLAG_IS_REWINDABLE;
-        // Rewind::initializeFrames(entity_skeleton);
-        // command_init(entity_skeleton);
         entity_skeleton = create_entity_from_file("skeleton.ent");
     }
 
@@ -384,6 +370,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
     }
 
     ui_render(&ui_ctx);
+
     platform.renderer.push_present({});
     platform.render(state->window);
 

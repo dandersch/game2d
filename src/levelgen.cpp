@@ -363,50 +363,30 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
 
                 rect_t spritebox = { (i32) x_pos, (i32) y_pos, (i32) o->width, (i32) o->height };
 
-                // TODO entity_create_character()
-                if (strcmp(type, "Character") == 0)
+                // TODO charID
+                if (strcmp(type, "skeleton") == 0)
                 {
-                    // TODO load in anims in here
-                    // load in animations TODO this only needs to be loaded in
-                    // once & not per character
-                    //u32 anim_idx = 0;
-                    //for (auto anim : animMap.getAnimatedTiles())
-                    //{
-                    //    std::vector<AnimationFrame> new_frames;
-                    //    //u32 frame_count = 0;
-                    //    for (auto frame : anim.second.animation.frames)
-                    //    {
-                    //        auto tileID = frame.tileID;
-                    //        // TODO get proper tileset
-                    //        auto pos    = animMap.getTilesets().at(0).getTile(tileID)->imagePosition;
-                    //        auto size   = animMap.getTilesets().at(0).getTile(tileID)->imageSize;
-                    //        //auto pos    = ts->getTile(tileID)->imagePosition;
-                    //        //auto size   = ts->getTile(tileID)->imageSize;
-                    //        rect_t bb = {(i32) pos.x,  (i32) pos.y, (i32) size.x, (i32) size.y};
-                    //        new_frames.push_back({bb, (f32) frame.duration/100.f}); // TODO why cast?
-                    //    }
-                    //    newEnt.clips[newEnt.clip_count].frames = new_frames;
-                    //    newEnt.clips[newEnt.clip_count].loop   = true;
-                    //    newEnt.clip_count++;
-                    //    newEnt.flags       |= ENT_FLAG_IS_ANIMATED;
-                    //}
-
-                    // TODO charID
-                    newEnt.sprite.box   = spritebox;
-                    newEnt.sprite.pivot = {0.5f, 0.5f};
-                    newEnt.state        = ENT_STATE_MOVE;
+                    newEnt = create_entity_from_file("skeleton.ent");
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state); // TODO platform code (?)
-                    newEnt.orient       = ENT_ORIENT_DOWN;
                     newEnt.collider     = collider;
-                    newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
-                    //newEnt.flags       |= ENT_FLAG_PLAYER_CONTROLLED;
-                    newEnt.flags       |= ENT_FLAG_CMD_CONTROLLED;
-                    newEnt.flags       |= ENT_FLAG_IS_REWINDABLE;
-                    Rewind::initializeFrames(newEnt);
-                    command_init(newEnt);
-
-                } else if (strcmp(type, "Item") == 0) {
+                }
+                else if (strcmp(type, "necromancer") == 0)
+                {
+                    newEnt = create_entity_from_file("necromancer.ent");
+                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
+                    newEnt.collider     = collider;
+                }
+                else if (strcmp(type, "spider") == 0)
+                {
+                    // TODO create_entity function needs to be generalized
+                    /*
+                    newEnt = create_entity_from_file("spider.ent");
+                    newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
+                    newEnt.collider     = collider;
+                    */
+                }
+                else if (strcmp(type, "Item") == 0)
+                {
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.75f};
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
