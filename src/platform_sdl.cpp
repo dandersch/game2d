@@ -288,6 +288,7 @@ void platform_event_loop(game_input_t* input)
     input->keyboard.key_down.up_down_count = 0;
     input->keyboard.key_left.up_down_count = 0;
     input->keyboard.key_right.up_down_count = 0;
+    input->mouse.wheel = 0;
 
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event))
@@ -329,6 +330,11 @@ void platform_event_loop(game_input_t* input)
                 input->mouse.pos = {sdl_event.motion.x, sdl_event.motion.y, 0};
             } break;
 
+            case SDL_MOUSEWHEEL:
+            {
+                input->mouse.wheel = sdl_event.wheel.y;
+            } break;
+
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
             {
@@ -360,7 +366,7 @@ void platform_render(platform_window_t* window)
 // TODO move into renderer
 void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, color_t color, u32 scale)
 {
-    rect_t dst = {(int) pos.x + collider_box.x, (int) pos.y + collider_box.y,
+    rect_t dst = {(int) pos.x + collider_box.left, (int) pos.y + collider_box.top,
                   (i32) (scale * collider_box.w), (i32) (scale * collider_box.h)};
 
     // don't draw 'empty' colliders (otherwise it will draw points & lines)

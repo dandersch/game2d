@@ -3,52 +3,54 @@
 #include "memory.h"
 // TODO move this somewhere else ///////////////////////////////////////////////////////////////////
 struct platform_window_t;
-
 struct game_state_t
 {
     b32 initialized = true;            // used by game
-    //platform_api_t platform;         // unused
     platform_window_t* window;         // used by game, layer, resourcemgr
     b32 game_running = true;           // used by game
+
+    game_input_t game_input;           // used by input, layer
+    u32 actionState;                   // used by input, rewind, player
 
     Entity ents[MAX_ENTITIES] = {};    // used by entity, game, layer
     u32    temp_count         = 0;     // used by entity
     Tile   tiles[MAX_TILES]   = {};    // used by entity, game
     u32    tile_count         = 0;     // used by entity
 
-    game_input_t game_input;           // used by input, layer
-    u32 actionState;                   // used by input, rewind, player
-
     f32 last_frame_time;               // global because we need it in the
     f32 cycles_left_over;              // "main_loop" used for emscripten
 
     Camera cam = {};                   // used by game, layer
-    bool debugDraw;                    // used by layer
-    Entity* focusedEntity;             // used by layer
-    rect_t focusArrow = {64,32,16,32}; // used by layer TODO hardcoded
 
-    // commandprocessor
+    // replay ctx
+    b32 isRewinding;           // used by rewind, layer
+    f32 loopTime;              // used by rewind, layer (debug)
     u32 cmdIdx = 0;            // used by rewind, layer
 
-    // reset
-    bool isRewinding;          // used by rewind, layer
-    f32 loopTime;              // used by rewind, layer (debug)
-
+    Entity* focusedEntity;             // used by layer
+    rect_t focusArrow = {64,32,16,32}; // used by layer TODO hardcoded
     Entity* entity_to_place = nullptr;
+};
+enum action_e
+{
+    ACTION_MOVE_UP    = (1 << 0),
+    ACTION_MOVE_DOWN  = (1 << 1),
+    ACTION_MOVE_RIGHT = (1 << 2),
+    ACTION_MOVE_LEFT  = (1 << 3),
+    ACTION_PICKUP     = (1 << 4),
+    ACTION_ATTACK     = (1 << 5),
+    ACTION_RESTART    = (1 << 6),
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-extern game_state_t* state;     // TODO some cpp files depend on this
-extern platform_api_t platform; // TODO some cpp files depend on this
 // we use a unity build, see en.wikipedia.org/wiki/Unity_build
 #include "camera.cpp"
 #include "physics.cpp"
 #include "entity.cpp"
-#include "input.cpp"
 #include "player.cpp"
+#include "rewind.cpp"
 #include "resourcemgr.cpp"
 #include "parser.cpp"
-#include "rewind.cpp"
 #include "levelgen.cpp"
 
 // TIMESTEP constants
@@ -57,48 +59,30 @@ extern platform_api_t platform; // TODO some cpp files depend on this
 #define UPDATE_INTERVAL (1.0 / MAXIMUM_FRAME_RATE)
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
-game_state_t* state = nullptr;
-platform_api_t platform = {0};
 const u32 SCREEN_WIDTH  = 1280;
 const u32 SCREEN_HEIGHT =  960;
 const char* GAME_LEVEL = "res/map_level01.json";
 const int MAX_RENDER_LAYERS = 100;
 
-texture_t* test_tex = nullptr;
-//rect_t dst = {0.5f, 0.5f, 0.1f, 0.1f};
-rect_t test_dst = {200, 200, 200, 100};
-
 #include "interface.h"
 ui_t ui_ctx = {};
-sprite_t skelly_sprite; // TODO hardcoded
-Entity entity_skeleton = {};
+Entity ui_entities[9] = {};
 
 // TODO pass in game_input_t too (?)
-extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform_api)
+extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 {
-    state    = game_state;
-    platform = platform_api;
-
     // INIT ///////////////////////////////////////////////////////////////////////////////
     if (!state->initialized)
     {
-        state = new (game_state) game_state_t();
-        //mem_arena(&game_arena,)
-        //state->entity_arena
-        state = game_state;
+        state = new (state) game_state_t();
         state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
         { // layer_game_init:
-            if (!levelgen_level_load(GAME_LEVEL, nullptr, MAX_ENTITIES, state)) exit(1);
+            if (!levelgen_level_load(GAME_LEVEL, MAX_ENTITIES, &platform, state)) exit(1);
             physics_init();
         }
 
-        test_tex = resourcemgr_texture_load("button.png", state);
-
-        skelly_sprite.box   = {0,0,16,32};
-        skelly_sprite.tex   = resourcemgr_texture_load("tileset.png", state);
-        skelly_sprite.pivot = {0.5f, 0.5f};
-
-        entity_skeleton = create_entity_from_file("skeleton.ent");
+        ui_entities[0] = create_entity_from_file("skeleton.ent", &platform, state->window);
+        ui_entities[1] = create_entity_from_file("necromancer.ent", &platform, state->window);
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -120,8 +104,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         // quit game on escape
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;
 
-
-
         { // game event handling
             v3i mouse_pos   = state->game_input.mouse.pos;
             v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
@@ -131,12 +113,12 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             {
                 f32 clamped_x_pos = (roundf(mouse_pos.x / 16.0f) * 16.0f);
                 f32 clamped_y_pos = (roundf(mouse_pos.y / 16.0f) * 16.0f);
-                //state->entity_to_place->setPivPos({clamped_x_pos, clamped_y_pos, 1.0f});
+                state->entity_to_place->setPivPos({clamped_x_pos, clamped_y_pos, 1.0f});
                 //state->entity_to_place->position   = {clamped_x_pos - 8, clamped_y_pos - 24, 1.0f};
                 //state->entity_to_place->position = {(f32) mouse_pos.x - 8, (f32) mouse_pos.y - 24, 1.0f};
             }
 
-            if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]))
+            if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]) && !ui_ctx.curr_focus)
             {
                 v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
                 v2i clickpoint  = {(i32) click.x, (i32) click.y};
@@ -166,68 +148,99 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 {
                     printf("Placed entity!\n");
                     state->entity_to_place->setPivPos({(f32)clickpoint.x, (f32)clickpoint.y, 1.0f});
-                    EntityMgr::copyEntity(*state->entity_to_place);
+                    EntityMgr::copyEntity(*state->entity_to_place, state);
                     state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
                 }
                 else
                 {
                     // TODO interpolate TODO breaks w/ zooming
                     // put camera where clicked
-                    state->cam.rect.x = click.x - (state->cam.rect.w/2.f);
-                    state->cam.rect.y = click.y - (state->cam.rect.h/2.f);
+                    state->cam.rect.left = click.x - (state->cam.rect.w/2.f);
+                    state->cam.rect.top  = click.y - (state->cam.rect.h/2.f);
                     // TODO put cursor where clicked
                     //SDL_WarpMouseInWindow(globals.rw->window, (cam.rect.w/2.f), (cam.rect.h/2.f));
                 }
             }
 
-            if (state->game_input.keyboard.key_up.is_down)    state->cam.rect.y -= 5;
-            if (state->game_input.keyboard.key_down.is_down)  state->cam.rect.y += 5;
-            if (state->game_input.keyboard.key_left.is_down)  state->cam.rect.x -= 5;
-            if (state->game_input.keyboard.key_right.is_down) state->cam.rect.x += 5;
+            if (state->game_input.keyboard.key_up.is_down)    state->cam.rect.top  -= 5;
+            if (state->game_input.keyboard.key_down.is_down)  state->cam.rect.top  += 5;
+            if (state->game_input.keyboard.key_left.is_down)  state->cam.rect.left -= 5;
+            if (state->game_input.keyboard.key_right.is_down) state->cam.rect.left += 5;
 
-            // TODO zoom in/out on mouse scroll
-            if (state->game_input.keyboard.f_key_pressed[2]) state->cam.rect.w *= 0.5f;
-            if (state->game_input.keyboard.f_key_pressed[3]) state->cam.rect.w *= 2.0f;
+            // zoom in/out on mouse scroll
+            if (state->game_input.mouse.wheel < 0) state->cam.rect.w *= 0.5f;
+            if (state->game_input.mouse.wheel > 0) state->cam.rect.w *= 2.0f;
         }
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
         { // layer_game_update(dt);
-            EntityMgr::freeTemporaryStorage();
-            input_update();
-            Reset::update(dt); // TODO fixed delta time
+            EntityMgr::freeTemporaryStorage(state);
+            { // input_update();
+                state->actionState = 0;
+
+                if (input_down(state->game_input.keyboard.keys['w'])) state->actionState |= ACTION_MOVE_UP;
+                if (input_down(state->game_input.keyboard.keys['a'])) state->actionState |= ACTION_MOVE_LEFT;
+                if (input_down(state->game_input.keyboard.keys['s'])) state->actionState |= ACTION_MOVE_DOWN;
+                if (input_down(state->game_input.keyboard.keys['d'])) state->actionState |= ACTION_MOVE_RIGHT;
+
+                if (input_pressed(state->game_input.keyboard.keys['r'])) state->actionState |= ACTION_RESTART;
+                if (input_pressed(state->game_input.keyboard.keys['f'])) state->actionState |= ACTION_PICKUP;
+                if (input_pressed(state->game_input.keyboard.keys['e'])) state->actionState |= ACTION_ATTACK;
+            }
+            // TODO use fixed delta time
+            Reset::update(dt, &state->isRewinding, &state->loopTime, &state->cmdIdx, state->actionState);
 
             /* test our immediate mode ui */
-            // ui_begin():
+            ui_begin(&ui_ctx);
             ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
             ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
-            ui_ctx.btn_texture   = test_tex;
             ui_ctx.btn_color     = {0.6f, 0.2f, 0.2f, 1.0f};
             ui_ctx.curr_focus    = __COUNTER__; // zero
-            // i32 button_count = 2;
-            // for (i32 i = 0; i < button_count; i++)
-            // {
-            //     rect_t button_dst = {1000, 800 - (i*150), 200, 100};
-            //     if (ui_button(&ui_ctx, button_dst, NULL, 10+i))
-            //     {
-            //         printf("btn %u!\n", i);
-            //     }
-            // }
-            if (ui_button(&ui_ctx, test_dst, &skelly_sprite, __COUNTER__))
+
+            rect_t test_dst = {128, 800, 100, 100};
+            if (ui_button(&ui_ctx, test_dst, &ui_entities[0].sprite, __COUNTER__))
             {
                 printf("pressed btn 1!\n");
-                state->entity_to_place = &entity_skeleton;
+                state->entity_to_place = &ui_entities[0];
             }
-            if (ui_button(&ui_ctx, {test_dst.x, test_dst.y + 200, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (ui_button(&ui_ctx, {test_dst.left + 128*2, test_dst.top, test_dst.w, test_dst.h},  &ui_entities[1].sprite, __COUNTER__))
             {
                 printf("pressed btn 2!\n");
+                state->entity_to_place = &ui_entities[1];
+            }
+            if (ui_button(&ui_ctx, {test_dst.left + 128*1, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 3!\n");
+            }
+            if (ui_button(&ui_ctx, {test_dst.left + 128*3, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 4!\n");
+            }
+            if (ui_button(&ui_ctx, {test_dst.left + 128*4, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 5!\n");
+            }
+            if (ui_button(&ui_ctx, {test_dst.left + 128*5, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 6!\n");
+            }
+            if (ui_button(&ui_ctx, {test_dst.left + 128*6, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 7!\n");
+                state->cmdIdx = 0;
+            }
+            ui_ctx.btn_texture   = resourcemgr_texture_load("button.png", &platform, state->window);
+            if (ui_button(&ui_ctx, {test_dst.left + 128*7, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            {
+                printf("pressed btn 8!\n");
                 state->entity_to_place = nullptr;
             }
+            ui_ctx.btn_texture   = nullptr;
             // ui_end();
-
-            auto tiles = EntityMgr::getTiles();
 
             // TODO find out if it matters if we do everything in one loop for one
             // entity vs. every "system" has its own loop
+            auto tiles = state->tiles;
             for (u32 i = 0; i < MAX_ENTITIES; i++)
             {
                 auto& ent = state->ents[i];
@@ -237,7 +250,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 {
                     if (ent.flags & ENT_FLAG_PLAYER_CONTROLLED)
                     {
-                        player_update(dt, ent);
+                        player_update(dt, ent, state->actionState, &state->cmdIdx);
                     }
                 }
 
@@ -246,7 +259,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 {
                     if (ent.flags & ENT_FLAG_CMD_CONTROLLED)
                     {
-                        command_record_or_replay(&ent, nullptr);
+                        command_record_or_replay(&ent, nullptr, &state->cmdIdx);
                     }
                 }
 
@@ -263,7 +276,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                             */
                         )
                     {
-                        for (u32 k = 0; k < EntityMgr::getTileCount(); k++)
+                        for (u32 k = 0; k < state->tile_count; k++)
                         {
                             if (!tiles[k].collidable) continue;
                             collided |= physics_check_collision_with_tile(ent, tiles[k]);
@@ -290,20 +303,19 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 // TIME REWIND /////////////////////////////////////////////////////////////////////////////
                 if ((ent.flags & ENT_FLAG_IS_REWINDABLE))
                 {
-                    Rewind::update(dt, ent);
+                    Rewind::update(dt, ent, state->loopTime, state->isRewinding);
                 }
 
                 // NOTE animation should probably be last after input & collision etc.
                 // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
                 if (ent.flags & ENT_FLAG_IS_ANIMATED)
                 {
-                    //ent.sprite.box = Animator::animate(dt, ent.anim);
                     ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
                 }
             }
 
             // after loop update
-            command_on_update_end();
+            state->cmdIdx++; // command_on_update_end();
         } // update loop
     }
 
@@ -311,25 +323,17 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
     state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////////////////////////////
-
     platform.renderer.push_clear({});
     { // layer_game_render();
         Entity* ents = state->ents;
-        Tile* tiles = EntityMgr::getTiles();
+        Tile* tiles  = state->tiles;
 
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
-        // TODO tilemap culling
-        for (u32 i = 0; i < EntityMgr::getTileCount(); i++)
+        for (u32 i = 0; i < state->tile_count; i++) // TODO tilemap culling
         {
             platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
                                           camera_world_to_screen(state->cam, tiles[i].position),
                                           state->cam.scale);
-
-            if (state->debugDraw)
-            {
-                auto pos = camera_world_to_screen(state->cam, tiles[i].position);
-                platform.debug_draw(state->window, tiles[i].collider, pos, {0,0,0,255}, 1.0f);
-            }
         }
 
         // RENDER ENTITIES /////////////////////////////////////////////////////////////////////////
@@ -342,17 +346,6 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
                 platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
                                               camera_world_to_screen(state->cam, ents[i].position),
                                               state->cam.scale);
-
-            if (state->debugDraw)
-            {
-                // change color depending on entity flags
-                color_t c = {0,0,0,255}; // TODO get this out
-                if (ents[i].flags & ENT_FLAG_ATTACK_BOX) c = {255,100,100,255};
-                if (ents[i].flags & ENT_FLAG_PICKUP_BOX) c = {100,255,100,255};
-
-                auto ent_pos = camera_world_to_screen(state->cam, ents[i].position);
-                platform.debug_draw(state->window, ents[i].collider, ent_pos, c, ents[i].scale);
-            }
         }
 
         // draw focusarrow on focused entity TODO hardcoded & very hacky
@@ -370,7 +363,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
         }
     }
 
-    ui_render(&ui_ctx);
+    ui_render(&ui_ctx, &platform);
 
     platform.renderer.push_present({});
     platform.render(state->window);

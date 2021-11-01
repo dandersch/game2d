@@ -100,6 +100,10 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
+                SDL_Texture* tex_id = nullptr;
+                if (draw_tex->tex) tex_id = draw_tex->tex->id;
+
+
                 // NOTE we need to do this here because SDL_RenderCopy expects
                 // pointers & NULL has special meaning (and a nullptr doesn't do
                 // the same things as an empty rectangle)
@@ -108,7 +112,20 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 if (utils_rect_empty(draw_tex->src)) src = NULL;
                 if (utils_rect_empty(draw_tex->dst)) dst = NULL;
 
-                SDL_RenderCopy(renderer, draw_tex->tex->id, src, dst);
+                SDL_SetRenderDrawColor(renderer, (u8) (draw_tex->color.r * 255),
+                                                 (u8) (draw_tex->color.g * 255),
+                                                 (u8) (draw_tex->color.b * 255),
+                                                 (u8) (draw_tex->color.a * 255));
+                if (tex_id)
+                {
+                    SDL_RenderCopy(renderer, tex_id, src, dst);
+                }
+                else
+                {
+                    SDL_RenderFillRect(renderer, dst);
+                }
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
 

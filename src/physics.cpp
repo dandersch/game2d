@@ -47,13 +47,13 @@ b32 physics_check_collision_with_tile(Entity& e1, Tile& t1)
 {
     // TODO use unpivoted pos or calculate pos back to unpivoted here
     // collider of e1 after moving
-    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
-                (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
+    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.left,
+                (i32) (e1.position.y + e1.movement.y) + e1.collider.top,
                 e1.collider.w, e1.collider.h};
 
     // collider of tile
-    rect_t b = {(i32) t1.position.x + t1.collider.x,
-                (i32) t1.position.y + t1.collider.y,
+    rect_t b = {(i32) t1.position.x + t1.collider.left,
+                (i32) t1.position.y + t1.collider.top,
                 t1.collider.w, t1.collider.h};
 
     b32 collided = aabb(a, b);
@@ -73,14 +73,14 @@ b32 physics_check_collision(Entity& e1, Entity& e2)
 
     // TODO use unpivoted pos or calculate pos back to unpivoted here
     // collider of e1 after moving
-    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.x,
-                (i32) (e1.position.y + e1.movement.y) + e1.collider.y,
+    rect_t a = {(i32) (e1.position.x + e1.movement.x) + e1.collider.left,
+                (i32) (e1.position.y + e1.movement.y) + e1.collider.top,
                 e1.collider.w, e1.collider.h};
 
     // collider of e2 currently
     // TODO use collider of e2 after moving?
-    rect_t b = {(i32) e2.position.x + e2.collider.x,
-                (i32) e2.position.y + e2.collider.y,
+    rect_t b = {(i32) e2.position.x + e2.collider.left,
+                (i32) e2.position.y + e2.collider.top,
                 e2.collider.w, e2.collider.h};
 
     b32 collided = aabb(a, b);

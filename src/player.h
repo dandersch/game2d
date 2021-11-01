@@ -16,7 +16,7 @@ struct Command
 struct Entity;
 struct Camera;
 
-void player_update(f32 dt, Entity& ent);
+void player_update(f32 dt, Entity &ent, u32 action_state, u32* cmd_idx);
 void player_try_move(v3f movement, Entity& ent);
 void player_try_pickup(v3f direction, Entity& ent);
 void player_try_attack(v3f direction, Entity& ent);

@@ -69,7 +69,6 @@ struct Entity
     // TODO fill up with nullcommands at start?
     //Command* cmds[MAX_CMD_COUNT]; // command array for replay
     Command* cmds = nullptr; // command array for replay
-    //u32 cmdIdx = 0;
     PointInTime* frames = nullptr;   // contains pos, state, orient, active
 
     // ITEMS
@@ -89,24 +88,17 @@ struct Entity
 
     rect_t getColliderInWorld() // collider itself is relative to entity
     {
-        return {(i32) (position.x + collider.x), (i32) (position.y + collider.y), collider.w, collider.h};
+        return {(i32) (position.x + collider.left), (i32) (position.y + collider.top), collider.w, collider.h};
     }
 };
 
 // TILES ///////////////////////////////////////////////////////////////////////////////////////////
-enum tile_type_e
-{
-    TILE_TYPE_GRASS,
-    TILE_TYPE_DIRT
-};
-
 struct Tile
 {
     bool     collidable  = false;
-    //TileType type;
     u32      tileID      = 0;
     v3f      position    = {0,0,0};
-    sprite_t sprite;                  //= {{0,0,0,0}, nullptr, {0,0}, 0 /*SDL_FLIP_NONE*/};
+    sprite_t sprite      = {0};
     u32      renderLayer = 0;
     rect_t   collider    = {0,0,0,0};
 
@@ -127,13 +119,8 @@ struct Tile
 // https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
 namespace EntityMgr
 {
-    // TODO std::move?
-    bool copyEntity(const Entity ent);
-    void freeTemporaryStorage();
-    bool copyTempEntity(const Entity ent);
-
-    // tile functions
-    bool createTile(const Tile tile);
-    Tile* getTiles();
-    u32 getTileCount();
+    bool copyEntity(const Entity ent, game_state_t* state);
+    void freeTemporaryStorage(game_state_t* state);
+    bool copyTempEntity(const Entity ent, game_state_t* state);
+    bool createTile(const Tile tile, game_state_t* state);
 };

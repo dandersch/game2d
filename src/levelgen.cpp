@@ -50,11 +50,13 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
     }
 }
 
-b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state_t* game_state)
+b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform, game_state_t* state)
 {
+    platform_window_t* window = state->window;
+
     struct json_value_s* json_dom;
     { // JSON PARSING
-        file_t json_file = platform.file_load(file);
+        file_t json_file = platform->file_load(file);
 
         // get the root of the json DOM
         // NOTE library uses malloc, but canb e given an alloc_fun_ptr w/ user_data
@@ -62,7 +64,7 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
         json_dom = json_parse_ex(json_file.buffer, json_file.size, 0, NULL, NULL, &result);
         if (!json_dom) printf("JSON didn't parse. Error type '%zu' at line %zu\n",
                               result.error, result.error_line_no);
-        platform.file_close(json_file); // close file & free buffer
+        platform->file_close(json_file); // close file & free buffer
     }
 
     // NOTE right now this needs to be malloc'ed, stack allocation causes a
@@ -366,13 +368,13 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                 // TODO charID
                 if (strcmp(type, "skeleton") == 0)
                 {
-                    newEnt = create_entity_from_file("skeleton.ent");
+                    newEnt = create_entity_from_file("skeleton.ent", platform, window);
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.collider     = collider;
                 }
                 else if (strcmp(type, "necromancer") == 0)
                 {
-                    newEnt = create_entity_from_file("necromancer.ent");
+                    newEnt = create_entity_from_file("necromancer.ent", platform, window);
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.collider     = collider;
                 }
@@ -390,14 +392,14 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.75f};
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, platform, window);
                     newEnt.collider     = collider;
                     newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
                     newEnt.flags       |= ENT_FLAG_IS_ITEM;
                     newEnt.flags       |= ENT_FLAG_IS_REWINDABLE;
                     Rewind::initializeFrames(newEnt);
                 }
-                EntityMgr::copyEntity(newEnt); // copy new entity into array TODO slow
+                EntityMgr::copyEntity(newEnt, state); // copy new entity into array TODO slow
             } // object loop
         } // objectlayer
 
@@ -467,10 +469,10 @@ b32 levelgen_level_load(const char* file, Entity* ents, u32 max_ents, game_state
 
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
-                newTile.sprite.tex   = resourcemgr_texture_load(ts->image, game_state);
+                newTile.sprite.tex   = resourcemgr_texture_load(ts->image, platform, window);
                 newTile.setPivPos({x * 16.f, y * 16.f, 0}); // TODO hardcoded
 
-                EntityMgr::createTile(newTile); // copy new tile into array TODO slow
+                EntityMgr::createTile(newTile, state); // copy new tile into array TODO slow
             } // tile loop
         } // tilelayer
     } // layer loop

@@ -97,7 +97,7 @@ token_node_t* parse_asset_file(const char* filename)
     return head;
 }
 
-Entity create_entity_from_file(const char* asset_file_name)
+Entity create_entity_from_file(const char* asset_file_name, platform_api_t* platform, platform_window_t* window)
 {
     const char* res_folder = "res/";
     char* filepath = (char*) malloc(sizeof(char) * (strlen(res_folder) + strlen(asset_file_name)));
@@ -140,7 +140,7 @@ Entity create_entity_from_file(const char* asset_file_name)
                 }
                 else if (!strcmp(node->name, "spritesheet"))
                 {
-                    entity.sprite.tex   = resourcemgr_texture_load(node->string, state);
+                    entity.sprite.tex   = resourcemgr_texture_load(node->string, platform, window);
                 }
             } break;
             case TOKEN_TYPE_INTEGER:
@@ -170,8 +170,8 @@ Entity create_entity_from_file(const char* asset_file_name)
             {
                 if (!strcmp(node->name, "sprite"))
                 {
-                    spritebox.x = node->vec2i[0];
-                    spritebox.y = node->vec2i[1];
+                    spritebox.left = node->vec2i[0];
+                    spritebox.top = node->vec2i[1];
                 }
             } break;
             default:
@@ -181,8 +181,8 @@ Entity create_entity_from_file(const char* asset_file_name)
         }
     }
 
-    spritebox.x      *= tilewidth;
-    spritebox.y      *= tileheight;
+    spritebox.left   *= tilewidth;
+    spritebox.top    *= tileheight;
     spritebox.w       = entity_width  * tilewidth;
     spritebox.h       = entity_height * tileheight;
     entity.collider   = spritebox;

@@ -1,20 +1,5 @@
 #pragma once
 
-// only needed by game layer:
-// TODO separate from platform code
-enum Action
-{
-    ACTION_MOVE_UP    = (1 << 0),
-    ACTION_MOVE_DOWN  = (1 << 1),
-    ACTION_MOVE_RIGHT = (1 << 2),
-    ACTION_MOVE_LEFT  = (1 << 3),
-    ACTION_PICKUP     = (1 << 4),
-    ACTION_ATTACK     = (1 << 5),
-    ACTION_RESTART    = (1 << 6),
-};
-
-void input_update();
-
 // only needed by platform layer:
 // TODO separate from game code & pass in a game_input_t to the main_loop
 struct game_input_state_t
@@ -53,7 +38,7 @@ struct game_mouse_input_t
 {
     game_input_state_t buttons[MOUSE_BUTTON_COUNT];
     v3i pos; // NOTE in clip space
-    // TODO mousewheel input
+    s32 wheel; // mousewheel: positive is up and negative is down
 };
 
 struct game_pad_input_t
@@ -95,7 +80,7 @@ struct game_pad_input_t
 #define MAX_CONTROLLER_COUNT 5
 struct game_input_t
 {
-    f32 dt_for_frame; // TODO what is this
+    f32 dt_for_frame; // NOTE unused
 
     game_pad_input_t        pads[MAX_CONTROLLER_COUNT];
     game_keyboard_input_t   keyboard;

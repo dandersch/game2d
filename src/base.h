@@ -226,8 +226,13 @@ union v3f
 // some other useful types
 struct rect_t
 {
-    i32 x, y; // TODO rename to left, top...
+    i32 left, top;
     i32 w, h;
+};
+struct rectf_t
+{
+    f32 left, top;
+    f32 w, h;
 };
 struct color_t // NOTE maybe add a 24bit version
 {

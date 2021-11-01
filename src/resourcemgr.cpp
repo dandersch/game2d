@@ -1,7 +1,5 @@
 #include "resourcemgr.h"
 #include "platform.h"
-//#include "memory.h"
-extern game_state_t* state;
 
 // TODO load in "missing" placeholder assets
 
@@ -13,8 +11,10 @@ struct ht_entry_t
 };
 ht_entry_t hash_table_backend[HASH_TABLE_SIZE] = {0}; // NOTE should be in game_state?
 
+
 // TODO better hash function. see e.g. https://cp-algorithms.com/string/string-hashing.html
-internal_fn u32 hash_function(const char* key)
+internal_fn
+u32 hash_function(const char* key)
 {
     u32 ht_idx = 0;
     for (int i = 0; i < strlen(key); i++)
@@ -30,7 +30,9 @@ internal_fn u32 hash_function(const char* key)
     return ht_idx;
 }
 
-internal_fn b32 hash_table_add_entry(const char* key, void* value)
+
+internal_fn
+b32 hash_table_add_entry(const char* key, void* value)
 {
     u32 hash = hash_function(key);
     b32 wrapped_around = false;
@@ -58,7 +60,9 @@ internal_fn b32 hash_table_add_entry(const char* key, void* value)
     return false;
 }
 
-internal_fn void* hash_table_get_value(const char* key)
+
+internal_fn
+void* hash_table_get_value(const char* key)
 {
     u32 hash = hash_function(key);
     b32 wrapped_around = false;
@@ -95,21 +99,26 @@ internal_fn void* hash_table_get_value(const char* key)
     return result;
 }
 
+
 // NOTE we use this to concatenate every filename w/ the resource folder "res/"
 // this means filepaths can't be longer than 256 characters
 #define MAX_CHARS_FOR_FILEPATH 256
 #define RESOURCE_FOLDER "res/"
-texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
+#define CONSTRUCT_FILEPATH(filepath, filename)                                         \
+        char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;                       \
+        ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER))); \
+        strcat(filepath, filename)
+
+
+texture_t* resourcemgr_texture_load(const char* filename, platform_api_t* platform, platform_window_t* window)
 {
-    char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
-    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
-    strcat(filepath, filename);
+    CONSTRUCT_FILEPATH(filepath, filename);
 
     texture_t* tex = (texture_t*) hash_table_get_value(filename);
     if (tex) return tex;
     else // not found
     {
-        tex = platform.renderer.load_texture(state->window, filepath);
+        tex = platform->renderer.load_texture(window, filepath);
         hash_table_add_entry(filename, tex);
         if (!tex) return (texture_t*) hash_table_get_value("missing"); // TODO handle if this fails
     }
@@ -117,23 +126,23 @@ texture_t* resourcemgr_texture_load(const char* filename, game_state_t* state)
     return tex;
 }
 
-font_t* resourcemgr_font_load(const char* filename, game_state_t* state, i32 ptsize)
+
+font_t* resourcemgr_font_load(const char* filename, platform_api_t* platform, i32 ptsize)
 {
-    char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;
-    ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER)));
-    strcat(filepath, filename);
+    CONSTRUCT_FILEPATH(filepath, filename);
 
     font_t* font = hash_table_get_value(filename);
     if (font) return font;
     else // not found
     {
-        font = platform.font_load(filepath, ptsize);
+        font = platform->font_load(filepath, ptsize);
         hash_table_add_entry(filename, font);
         if (!font) return hash_table_get_value("missing"); // TODO handle if this fails
     }
 
     return font;
 }
+
 
 // TODO
 b32 resourcemgr_free(const char* filename, game_state_t* state)

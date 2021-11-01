@@ -6,9 +6,6 @@
 
 static const f32 playerSpeed = 150.f; // NOTE not compatible with code hotloading
 
-//#include "memory.h"
-extern game_state_t* state;
-
 v3f getDirectionFrom(u32 orient)
 {
     v3f dir = {0,0,0};
@@ -31,7 +28,7 @@ u32 callback(u32 interval, void* param )
     return 0;
 }
 
-void player_update(f32 dt, Entity &ent)
+void player_update(f32 dt, Entity &ent, u32 action_state, u32* cmd_idx)
 {
     // TODO block input while picking up, attacking etc.
     if (isPickingUp) return;
@@ -41,7 +38,7 @@ void player_update(f32 dt, Entity &ent)
     v3f movement = {0,0,0};
 
     // use inputhandler
-    u32 input = state->actionState;
+    u32 input = action_state;
     if (input & ACTION_MOVE_UP)    movement = { 0,-1 * playerSpeed * dt, 0};
     if (input & ACTION_MOVE_LEFT)  movement = {-1 * playerSpeed * dt, 0, 0};
     if (input & ACTION_MOVE_DOWN)  movement = { 0, 1 * playerSpeed * dt, 0};
@@ -65,7 +62,7 @@ void player_update(f32 dt, Entity &ent)
 
     // use commands instead of calling tryMove directly
     Command cmd = {cmdtype, movement};
-    command_record_or_replay(&ent, &cmd);
+    command_record_or_replay(&ent, &cmd, cmd_idx);
 }
 
 void player_try_move(v3f movement, Entity& ent)
@@ -114,6 +111,7 @@ void player_try_pickup(v3f direction, Entity& ent)
     // create a collision box at playerpos + direction
     // TODO try to check for collisions directly
     // TODO add flag to not render this
+#if 0
     Entity pickup_box = {0};
     pickup_box.active = true;
     pickup_box.owner  = &ent;
@@ -122,16 +120,19 @@ void player_try_pickup(v3f direction, Entity& ent)
     pickup_box.flags |= ENT_FLAG_PICKUP_BOX;
     pickup_box.sprite.pivot = {0.5f, 0.5f};
     pickup_box.setPivPos({pickup_pos});
-    pickup_box.collider = { .x = 0, //(int) pickupPos.x,
-                            .y = 0, //(int) pickupPos.y,
+    pickup_box.collider = { .left = 0, //(int) pickupPos.x,
+                            .top = 0, //(int) pickupPos.y,
                            .w = 16, .h = 16};
     pickup_box.movement = {0,0,0};
     EntityMgr::copyTempEntity(pickup_box);
     isPickingUp = false;
+#endif
 }
+
 
 void player_try_attack(v3f direction, Entity& ent)
 {
+#if 0
     // create a collision box at playerpos + direction
     v3f attack_pos = ent.position + direction;
     Entity attack_box = {0};
@@ -139,8 +140,9 @@ void player_try_attack(v3f direction, Entity& ent)
     attack_box.freed  = false;
     attack_box.flags |= ENT_FLAG_IS_COLLIDER;
     attack_box.flags |= ENT_FLAG_ATTACK_BOX;
-    attack_box.collider = { .x = (int) attack_pos.x , .y = (int) attack_pos.y, .w = 16, .h = 16};
+    attack_box.collider = { .left = (int) attack_pos.x , .top = (int) attack_pos.y, .w = 16, .h = 16};
     //attack_box.setPivPos({attack_pos});
     attack_box.movement = {0,0,0};
     EntityMgr::copyTempEntity(attack_box);
+#endif
 }

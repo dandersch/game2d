@@ -5,20 +5,33 @@
 
 static const u32 FPS       = 60;  // TODO support variable fps
 static const u32 TOLERANCE = 100; // NOTE can be zero apparently
-
 const f32 Reset::rewindFactor   = 3.0f; // can slow down/speed up rewind
 const f32 Reset::TIME_FOR_LOOP  = 10.f;
-
 const u32 MAX_CMD_COUNT = 5000;
 
-void command_record_or_replay(Entity* ent, Command* record_cmd)
+// TODO add rewind_ctx struct and pass that in & out
+// should also contain
+//   Command     cmds[MAX_CHAR_COUNT][MAX_CMD_COUNT]
+//   PointInTime frames[MAX_ENTITY_COUNT][FRAMECOUUNT]
+// look up into cmds with a char_id & into frames with an entity_id (or both with entity_id)
+//
+// struct replay_ctx
+// {
+//     Command      cmds[][];
+//     PointInTime  frames[][];
+//     f32 loop_time;
+//     u32 curr_cmd_idx;
+//     b32 rewinding;
+// }
+
+void command_record_or_replay(Entity* ent, Command* record_cmd, u32* cmd_idx)
 {
-    ASSERT(state->cmdIdx < MAX_CMD_COUNT);
+    ASSERT(*cmd_idx < MAX_CMD_COUNT);
 
     // record command if given
-    if (record_cmd) ent->cmds[state->cmdIdx] = *record_cmd;
+    if (record_cmd) ent->cmds[*cmd_idx] = *record_cmd;
 
-    Command* cmd = &ent->cmds[state->cmdIdx];
+    Command* cmd = &ent->cmds[*cmd_idx];
     switch (cmd->type)
     {
         case Command::MOVE:   { player_try_move(cmd->movement, *ent);   } break;
@@ -35,12 +48,6 @@ void command_init(Entity& ent)
 }
 
 
-void command_on_update_end()
-{
-    state->cmdIdx++;
-}
-
-
 void Rewind::initializeFrames(Entity& e)
 {
     const u32 FRAMECOUNT = Reset::TIME_FOR_LOOP * FPS + TOLERANCE;
@@ -49,64 +56,63 @@ void Rewind::initializeFrames(Entity& e)
 }
 
 
-void Rewind::update(f32 dt, Entity& e)
+void Rewind::update(f32 dt, Entity& e, f32 loop_time, b32 is_rewinding)
 {
-    if (state->isRewinding)
-        rewind(dt, e);
+    if (is_rewinding)
+        rewind(dt, e, loop_time);
     else
-        record(dt, e);
+        record(dt, e, loop_time);
 }
 
 
-internal_fn u32 TimeToIndex(f32 dt) // translate looptime into index in array
+internal_fn u32 TimeToIndex(f32 dt, f32 loop_time) // translate looptime into index in array
 {
     u32 index = 0;
-    index = (u32) std::round(state->loopTime / dt); // TODO fixed delta time
+    index = (u32) std::round(loop_time / dt); // TODO fixed delta time
     return index;
 }
 
 
-void Rewind::record(f32 dt, Entity& e)
+void Rewind::record(f32 dt, Entity& e, f32 loop_time)
 {
-    e.frames[TimeToIndex(dt)].pos    = e.position;
-    e.frames[TimeToIndex(dt)].state  = e.state;
-    e.frames[TimeToIndex(dt)].orient = e.orient;
-    e.frames[TimeToIndex(dt)].active = e.active;
-    e.frames[TimeToIndex(dt)].wasSet = true;
+    e.frames[TimeToIndex(dt, loop_time)].pos    = e.position;
+    e.frames[TimeToIndex(dt, loop_time)].state  = e.state;
+    e.frames[TimeToIndex(dt, loop_time)].orient = e.orient;
+    e.frames[TimeToIndex(dt, loop_time)].active = e.active;
+    //e.frames[TimeToIndex(dt, loop_time)].wasSet = true;
 }
 
 
-void Rewind::rewind(f32 dt, Entity& e)
+void Rewind::rewind(f32 dt, Entity& e, f32 loop_time)
 {
-    ASSERT(e.frames[TimeToIndex(dt)-1].wasSet);
+    // TODO what is this needed for
+    //ASSERT(e.frames[TimeToIndex(dt, loop_time)-1].wasSet);
 
-    e.position = e.frames[TimeToIndex(dt)].pos;
-    e.state    = e.frames[TimeToIndex(dt)].state;
-    e.orient   = e.frames[TimeToIndex(dt)].orient;
-    e.active   = e.frames[TimeToIndex(dt)].active;
+    e.position = e.frames[TimeToIndex(dt, loop_time)].pos;
+    e.state    = e.frames[TimeToIndex(dt, loop_time)].state;
+    e.orient   = e.frames[TimeToIndex(dt, loop_time)].orient;
+    e.active   = e.frames[TimeToIndex(dt, loop_time)].active;
 }
 
 
-void Reset::update(f32 dt)
+void Reset::update(f32 dt, b32* is_rewinding, f32* loop_time, u32* cmd_idx, const u32 action_state)
 {
     // count down when rewinding
-    if (state->isRewinding) state->loopTime -= rewindFactor * dt;
-    else state->loopTime += 1 * dt;
+    if (*is_rewinding) *loop_time -= rewindFactor * dt;
+    else *loop_time += 1 * dt;
 
-    if (state->loopTime <= 0.0f)
+    if (*loop_time <= 0.0f)
     {
         printf("REWIND FINISHED\n");
-        state->loopTime    = 0.0f;
-        state->isRewinding = false;
+        *loop_time    = 0.0f;
+        *is_rewinding = false;
     }
 
-    if (state->loopTime >= TIME_FOR_LOOP ||
-        state->actionState & ACTION_RESTART) // TODO manual restart is broken
+    if (*loop_time >= TIME_FOR_LOOP || action_state & ACTION_RESTART) // TODO manual restart is broken
     {
         printf("REWIND INIT\n");
-        state->loopTime    = Reset::TIME_FOR_LOOP;
-        state->isRewinding = true;
-
-        state->cmdIdx = 0;
+        *loop_time    = Reset::TIME_FOR_LOOP;
+        *is_rewinding = true;
+        *cmd_idx      = 0;
     }
 }

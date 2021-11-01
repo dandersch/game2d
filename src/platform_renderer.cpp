@@ -58,8 +58,8 @@ void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position
 
 void renderer_push_texture(render_entry_texture_t draw_tex)
 {
-    sort_buf[sort_entry_count].key1 = draw_tex.dst.y;
-    sort_buf[sort_entry_count].key2 = draw_tex.dst.y + draw_tex.dst.h;
+    sort_buf[sort_entry_count].key1 = draw_tex.dst.top;
+    sort_buf[sort_entry_count].key2 = draw_tex.dst.top + draw_tex.dst.h;
     PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE, draw_tex);
 }
 

@@ -1,9 +1,7 @@
 #include "entity.h"
 
-//#include "memory.h"
-extern game_state_t* state;
 
-bool EntityMgr::copyEntity(const Entity ent)
+bool EntityMgr::copyEntity(const Entity ent, game_state_t* state)
 {
     for (u32 i = 0; i < MAX_ENTITIES_WO_TEMP; i++)
     {
@@ -22,24 +20,16 @@ bool EntityMgr::copyEntity(const Entity ent)
     return false;
 }
 
-void EntityMgr::freeTemporaryStorage()
+
+void EntityMgr::freeTemporaryStorage(game_state_t* state)
 {
     // NOTE we shouldn't have to zero out the memory
     memset(&state->ents[MAX_ENTITIES_WO_TEMP], 0, MAX_ENTITIES - MAX_ENTITIES_WO_TEMP);
     state->temp_count = 0;
 }
 
-u32 EntityMgr::getTileCount()
-{
-    return state->tile_count;
-}
 
-Tile* EntityMgr::getTiles()
-{
-    return state->tiles;
-}
-
-bool EntityMgr::createTile(const Tile tile)
+bool EntityMgr::createTile(const Tile tile, game_state_t* state)
 {
     ASSERT(state->tile_count < MAX_TILES);
 
@@ -47,7 +37,8 @@ bool EntityMgr::createTile(const Tile tile)
     return true;
 }
 
-bool EntityMgr::copyTempEntity(const Entity ent)
+
+bool EntityMgr::copyTempEntity(const Entity ent, game_state_t* state)
 {
     ASSERT(state->temp_count < 100);
     state->ents[MAX_ENTITIES_WO_TEMP + state->temp_count] = ent;

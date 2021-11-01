@@ -373,8 +373,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280, y,h:0-960),
                 // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
-                f32 screen_x = (draw_tex->dst.x / (SCREEN_WIDTH/2.f))  - 1.f;
-                f32 screen_y = (draw_tex->dst.y / (SCREEN_HEIGHT/2.f)) - 1.f;
+                f32 screen_x = (draw_tex->dst.left / (SCREEN_WIDTH/2.f))  - 1.f;
+                f32 screen_y = (draw_tex->dst.top  / (SCREEN_HEIGHT/2.f)) - 1.f;
                 f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
                 f32 screen_h = (draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
 
@@ -382,8 +382,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // (x,w:0-texture_width y,h:0-texture_height with origin in top left corner),
                 // but opengl needs texture coordinates from 0 to 1 (origin is bottom left corner)
                 // TODO change origin
-                f32 tex_x = (draw_tex->src.x / TEXTURE_WIDTH);
-                f32 tex_y = (draw_tex->src.y / TEXTURE_HEIGHT);
+                f32 tex_x = (draw_tex->src.left / TEXTURE_WIDTH);
+                f32 tex_y = (draw_tex->src.top  / TEXTURE_HEIGHT);
                 f32 tex_w = (draw_tex->src.w / TEXTURE_WIDTH);
                 f32 tex_h = (draw_tex->src.h / TEXTURE_HEIGHT);
 
