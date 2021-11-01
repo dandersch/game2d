@@ -229,9 +229,14 @@ struct rect_t
     i32 x, y; // TODO rename to left, top...
     i32 w, h;
 };
-struct color_t // NOTE maybe add a 24bit version & float version
+struct color_t // NOTE maybe add a 24bit version
 {
     u8 r; u8 g; u8 b; u8 a;
+};
+struct colorf_t // TODO add some implicit conversion functions
+{
+    f32 r; f32 g; f32 b; f32 a;
+    //operator color_t() const { return {(u8)(255*r),(u8)(255*g),(u8)(255*b),(u8)(255*a)}; }
 };
 
 

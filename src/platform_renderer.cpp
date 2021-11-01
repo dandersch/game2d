@@ -48,6 +48,7 @@ internal_fn void renderer_sort_buffer()
 }
 
 
+// TODO pass in a color
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
 {
     rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};

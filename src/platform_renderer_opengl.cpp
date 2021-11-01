@@ -30,40 +30,45 @@ const char* vertex_shader_src =
     "layout (location = 0) in vec2 pos;\n"
     "layout (location = 1) in vec2 tex_coords;\n"
     "layout (location = 2) in float tex_index;\n"
+    "layout (location = 3) in vec4 color;\n"
     "out vec2 o_tex_coords;\n"
     "out float o_tex_index;\n"
+    "out vec4 o_color;\n"
     "void main()\n"
     "{\n"
         "gl_Position  = vec4(pos.x, -pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
         "o_tex_coords = tex_coords;\n"
         "o_tex_index  = tex_index;\n"
+        "o_color      = color;\n"
     "}\0";
 const char* fragment_shader_src =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
     "in vec2 o_tex_coords;\n"
     "in float o_tex_index;\n"
+    "in vec4 o_color;\n"
     "uniform sampler2D u_tex_units[16];\n"
     "void main()\n"
     "{\n"
+        "FragColor = o_color;\n"
         "switch(int(o_tex_index))\n"
         "{\n"
-            "case  0: FragColor = texture(u_tex_units[ 0], o_tex_coords); break;\n"
-            "case  1: FragColor = texture(u_tex_units[ 1], o_tex_coords); break;\n"
-            "case  2: FragColor = texture(u_tex_units[ 2], o_tex_coords); break;\n"
-            "case  3: FragColor = texture(u_tex_units[ 3], o_tex_coords); break;\n"
-            "case  4: FragColor = texture(u_tex_units[ 4], o_tex_coords); break;\n"
-            "case  5: FragColor = texture(u_tex_units[ 5], o_tex_coords); break;\n"
-            "case  6: FragColor = texture(u_tex_units[ 6], o_tex_coords); break;\n"
-            "case  7: FragColor = texture(u_tex_units[ 7], o_tex_coords); break;\n"
-            "case  8: FragColor = texture(u_tex_units[ 8], o_tex_coords); break;\n"
-            "case  9: FragColor = texture(u_tex_units[ 9], o_tex_coords); break;\n"
-            "case 10: FragColor = texture(u_tex_units[10], o_tex_coords); break;\n"
-            "case 11: FragColor = texture(u_tex_units[11], o_tex_coords); break;\n"
-            "case 12: FragColor = texture(u_tex_units[12], o_tex_coords); break;\n"
-            "case 13: FragColor = texture(u_tex_units[13], o_tex_coords); break;\n"
-            "case 14: FragColor = texture(u_tex_units[14], o_tex_coords); break;\n"
-            "case 15: FragColor = texture(u_tex_units[15], o_tex_coords); break;\n"
+            "case  0:                                                    ; break;\n"
+            "case  1: FragColor *= texture(u_tex_units[ 1], o_tex_coords); break;\n"
+            "case  2: FragColor *= texture(u_tex_units[ 2], o_tex_coords); break;\n"
+            "case  3: FragColor *= texture(u_tex_units[ 3], o_tex_coords); break;\n"
+            "case  4: FragColor *= texture(u_tex_units[ 4], o_tex_coords); break;\n"
+            "case  5: FragColor *= texture(u_tex_units[ 5], o_tex_coords); break;\n"
+            "case  6: FragColor *= texture(u_tex_units[ 6], o_tex_coords); break;\n"
+            "case  7: FragColor *= texture(u_tex_units[ 7], o_tex_coords); break;\n"
+            "case  8: FragColor *= texture(u_tex_units[ 8], o_tex_coords); break;\n"
+            "case  9: FragColor *= texture(u_tex_units[ 9], o_tex_coords); break;\n"
+            "case 10: FragColor *= texture(u_tex_units[10], o_tex_coords); break;\n"
+            "case 11: FragColor *= texture(u_tex_units[11], o_tex_coords); break;\n"
+            "case 12: FragColor *= texture(u_tex_units[12], o_tex_coords); break;\n"
+            "case 13: FragColor *= texture(u_tex_units[13], o_tex_coords); break;\n"
+            "case 14: FragColor *= texture(u_tex_units[14], o_tex_coords); break;\n"
+            "case 15: FragColor *= texture(u_tex_units[15], o_tex_coords); break;\n"
         "}\n"
     "}\0";
 
@@ -72,7 +77,7 @@ struct vertex_t
     f32 vert_x, vert_y;
     f32 tex_x,  tex_y;
     f32 tex_idx;
-    // TODO color?
+    colorf_t color;
 };
 #define BATCHED_VERTICES_MAX 50000 // batch gets flushed if it exceeds this max
 global_var vertex_t* vbo_batch;    // TODO put this in a frame_arena (?)
@@ -154,7 +159,7 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 
     vbo_batch = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
 
-    glEnable(GL_TEXTURE_2D);
+    //glEnable(GL_TEXTURE_2D); // NOTE causes unknown error
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -167,7 +172,8 @@ internal_fn texture_t* create_and_upload_texture(i32 width, i32 height, i32 mode
 {
     GLuint tex_id = 0;
     glGenTextures(1, &tex_id);
-    glActiveTexture(GL_TEXTURE0 + tex_id); // NOTE TEXTURE0 is actually unused this way...
+    glActiveTexture(GL_TEXTURE0 + tex_id); // NOTE TEXTURE0 is actually unused this way, so right now
+                                           // we don't sample any texture when tex_id = 0
     glBindTexture(GL_TEXTURE_2D, tex_id);
 
     // how to sample the texture when its larger or smaller
@@ -300,6 +306,8 @@ void flush_batch()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*) offsetof(vertex_t, tex_idx));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*) offsetof(vertex_t, color));
+    glEnableVertexAttribArray(3);
 
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
@@ -311,6 +319,7 @@ void flush_batch()
 
     vertex_count = 0;
 }
+
 
 void renderer_cmd_buf_process(platform_window_t* window)
 {
@@ -330,9 +339,17 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
                 const u32 SCREEN_HEIGHT = 960; // TODO hardcoded
 
-                f32 TEXTURE_WIDTH  = draw_tex->tex->width;
-                f32 TEXTURE_HEIGHT = draw_tex->tex->height;
-                GLuint tex_id      = draw_tex->tex->id;
+                f32 TEXTURE_WIDTH  = 0;
+                f32 TEXTURE_HEIGHT = 0;
+                GLuint tex_id      = 0;
+                colorf_t color     = draw_tex->color;
+
+                if (draw_tex->tex)
+                {
+                    TEXTURE_WIDTH  = draw_tex->tex->width;
+                    TEXTURE_HEIGHT = draw_tex->tex->height;
+                    tex_id      = draw_tex->tex->id;
+                }
 
                 // TODO we need to do this here because right now the game layer can push empty src/dst rectangles,
                 // which is supposed to mean to use the entire texture/entire screen.
@@ -376,22 +393,22 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 { // add to batch
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id // vertex 1
+                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 1
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,          (f32) tex_id // vertex 2
+                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,          (f32) tex_id, color // vertex 2
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id // vertex 3
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 3
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id // vertex 4
+                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 4
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id // vertex 5
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 5
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  (f32) tex_id // vertex 6
+                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  (f32) tex_id, color // vertex 6
                     };
                 }
 

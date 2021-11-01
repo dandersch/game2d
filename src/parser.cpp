@@ -164,7 +164,7 @@ Entity create_entity_from_file(const char* asset_file_name)
             } break;
             case TOKEN_TYPE_FLOAT:
             {
-                printf("PARSER: FLOAT VALUE UNUSED\n");
+                //printf("PARSER: FLOAT VALUE UNUSED\n");
             } break;
             case TOKEN_TYPE_VEC2I:
             {

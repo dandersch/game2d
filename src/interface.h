@@ -12,6 +12,7 @@ struct ui_t
     b32 mouse_pressed;
 
     texture_t* btn_texture;
+    colorf_t   btn_color;
     rect_t btn_spritebox;
 
     render_entry_texture_t render_buf[UI_ELEMENTS_MAX];
@@ -49,7 +50,7 @@ inline b32 ui_button(ui_t* ctx, rect_t btn_rect, sprite_t* sprite, ui_id id)
     }
 
     /* push elements to render */
-    ctx->render_buf[ctx->render_elems_count++] = {ctx->btn_texture, {0}, btn_rect};
+    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, btn_rect, ctx->btn_color};
     if (sprite) ctx->render_buf[ctx->render_elems_count++] = {sprite->tex, sprite->box, btn_rect};
 
     return pressed;

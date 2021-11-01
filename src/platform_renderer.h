@@ -31,6 +31,7 @@ struct render_entry_texture_t // all data needed for this render command
     texture_t* tex;
     rect_t     src;
     rect_t     dst;
+    colorf_t   color = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 struct render_entry_rect_t // debug

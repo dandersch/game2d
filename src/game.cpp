@@ -201,6 +201,7 @@ extern "C" void game_main_loop(game_state_t* game_state, platform_api_t platform
             ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
             ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
             ui_ctx.btn_texture   = test_tex;
+            ui_ctx.btn_color     = {0.6f, 0.2f, 0.2f, 1.0f};
             ui_ctx.curr_focus    = __COUNTER__; // zero
             // i32 button_count = 2;
             // for (i32 i = 0; i < button_count; i++)
