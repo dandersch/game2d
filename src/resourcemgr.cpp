@@ -104,6 +104,8 @@ void* hash_table_get_value(const char* key)
 // this means filepaths can't be longer than 256 characters
 #define MAX_CHARS_FOR_FILEPATH 256
 #define RESOURCE_FOLDER "res/"
+
+// TODO use sprintf for this
 #define CONSTRUCT_FILEPATH(filepath, filename)                                         \
         char filepath[MAX_CHARS_FOR_FILEPATH] = RESOURCE_FOLDER;                       \
         ASSERT(strlen(filename) < (MAX_CHARS_FOR_FILEPATH - strlen(RESOURCE_FOLDER))); \

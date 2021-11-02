@@ -147,9 +147,11 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 if (state->entity_to_place)
                 {
                     printf("Placed entity!\n");
-                    state->entity_to_place->setPivPos({(f32)clickpoint.x, (f32)clickpoint.y, 1.0f});
+                    f32 clamped_x_pos = (roundf(mouse_pos.x / 16.0f) * 16.0f);
+                    f32 clamped_y_pos = (roundf(mouse_pos.y / 16.0f) * 16.0f);
+                    state->entity_to_place->setPivPos(camera_screen_to_world(state->cam, {clamped_x_pos, clamped_y_pos, 0 }));
                     EntityMgr::copyEntity(*state->entity_to_place, state);
-                    state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
+                    //state->entity_to_place->setPivPos({(f32) mouse_pos.x, (f32) mouse_pos.y, 1.0f});
                 }
                 else
                 {
