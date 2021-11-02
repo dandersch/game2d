@@ -10,6 +10,7 @@
  *  [ ] tilemap culling (should probably happen in the game layer)
  *  [ ] use glBufferData(GL_ARRAY_BUFFER, sizeof(batch), NULL, GL_STATIC_DRAW)
  *      to allocate memory on the gpu beforehand
+ *  [ ] use instancing
  */
 
 struct renderer_t

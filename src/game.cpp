@@ -192,10 +192,11 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
             /* test our immediate mode ui */
             ui_begin(&ui_ctx);
-            ui_ctx.mouse_pos     = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
-            ui_ctx.mouse_pressed = input_pressed(state->game_input.mouse.buttons[0]);
-            ui_ctx.btn_color     = {0.6f, 0.2f, 0.2f, 1.0f};
-            ui_ctx.curr_focus    = __COUNTER__; // zero
+            ui_ctx.mouse_pos                           = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
+            ui_ctx.mouse_pressed                       = input_pressed(state->game_input.mouse.buttons[0]);
+            ui_ctx.style.colors[UI_COLOR_BUTTON]       = {0.6f, 0.2f, 0.2f, 1.0f};
+            ui_ctx.style.colors[UI_COLOR_BUTTONHOVER]  = {0.8f, 0.2f, 0.2f, 1.0f};
+            ui_ctx.curr_focus                          = __COUNTER__; // zero
 
             rect_t test_dst = {128, 800, 100, 100};
             if (ui_button(&ui_ctx, test_dst, &ui_entities[0].sprite, __COUNTER__))
@@ -203,12 +204,12 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 printf("pressed btn 1!\n");
                 state->entity_to_place = &ui_entities[0];
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*2, test_dst.top, test_dst.w, test_dst.h},  &ui_entities[1].sprite, __COUNTER__))
+            if (ui_button(&ui_ctx, {test_dst.left + 128*1, test_dst.top, test_dst.w, test_dst.h},  &ui_entities[1].sprite, __COUNTER__))
             {
                 printf("pressed btn 2!\n");
                 state->entity_to_place = &ui_entities[1];
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*1, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (ui_button(&ui_ctx, {test_dst.left + 128*2, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
             {
                 printf("pressed btn 3!\n");
             }
