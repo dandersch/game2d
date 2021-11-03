@@ -21,6 +21,7 @@ struct sort_entry
 {
     i32   key1;      // upper y coord
     i32   key2;      // lower y coord
+    i32   z_key;
     void* cmd_entry;
 };
 #define MAX_SORT_BUF_SIZE 20000 // TODO find better max, right now about 10500 cmds per frame
@@ -36,6 +37,11 @@ internal_fn void renderer_sort_buffer()
               i32 b = ((sort_entry*) elem1)->key2;
               i32 c = ((sort_entry*) elem2)->key1;
               i32 d = ((sort_entry*) elem2)->key2;
+
+              i32 z1 = ((sort_entry*) elem1)->z_key;
+              i32 z2 = ((sort_entry*) elem2)->z_key;
+              if (z1 > z2) { return -1; }
+              if (z1 < z2) { return  1; }
 
               // TODO could be simplified perhaps
               if (a < c && a < d && b < c && b < d) { return -1; } // 1 is above 2
@@ -58,8 +64,9 @@ void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position
 
 void renderer_push_texture(render_entry_texture_t draw_tex)
 {
-    sort_buf[sort_entry_count].key1 = draw_tex.dst.top;
-    sort_buf[sort_entry_count].key2 = draw_tex.dst.top + draw_tex.dst.h;
+    sort_buf[sort_entry_count].key1  = draw_tex.dst.top;
+    sort_buf[sort_entry_count].key2  = draw_tex.dst.top + draw_tex.dst.h;
+    sort_buf[sort_entry_count].z_key = draw_tex.z_idx;
     PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE, draw_tex);
 }
 
@@ -80,15 +87,17 @@ void renderer_push_rect(render_entry_rect_t rect)
 
 void renderer_push_clear(render_entry_clear_t clear)
 {
-    sort_buf[sort_entry_count].key1 = I32_MIN;
-    sort_buf[sort_entry_count].key2 = I32_MIN;
+    sort_buf[sort_entry_count].key1  = I32_MIN;
+    sort_buf[sort_entry_count].key2  = I32_MIN;
+    sort_buf[sort_entry_count].z_key = I32_MAX;
     PUSH_CMD(RENDER_ENTRY_TYPE_CLEAR, clear);
 }
 
 
 void renderer_push_present(render_entry_present_t present)
 {
-    sort_buf[sort_entry_count].key1 = I32_MAX;
-    sort_buf[sort_entry_count].key2 = I32_MAX;
+    sort_buf[sort_entry_count].key1  = I32_MAX;
+    sort_buf[sort_entry_count].key2  = I32_MAX;
+    sort_buf[sort_entry_count].z_key = I32_MIN;
     PUSH_CMD(RENDER_ENTRY_TYPE_PRESENT, present);
 }

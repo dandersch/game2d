@@ -26,9 +26,11 @@ TODO -*- mode: org -*-
 - [X] set up a renderer api & start using openGL
 - [X] import character/items sprite with tmx
 - [X] batch rendering in ogl renderer
-- [ ] improve batch rendering
-- [ ] fix imgui rendering
-- [ ] fix exit button
+- [X] improve batch rendering
+- [X] +fix imgui rendering+
+- [X] +fix exit button+
+- [ ] camera with zooming
+- [ ] improve custom immediate mode ui
 - [ ] add (debug) logging
 - [ ] improve inline profiling
 - [ ] set up a memory arena & use it for the game/platform layer (no more malloc)
@@ -36,16 +38,15 @@ TODO -*- mode: org -*-
 - [ ] timer utility
 - [ ] animation system
 - [ ] use interpolation for movement
-- [ ] implement platform_win32.cpp
 - [ ] sound/audiosystem
 - [ ] add EntityHandles and use them instead of raw pointers
 - [ ] tilemap culling
 - [ ] support layers when reading in a tmx
 - [ ] import animations in tmx
-- [ ] camera with zooming
 - [ ] application class that provides a main loop for emscripten
 - [ ] threadpool ?
+- [ ] implement composite colliders
 - [ ] entitymanager (handles entity array & can ask for free slot etc.)
 - [ ] "AI"controller subsystem
-- [ ] implement composite colliders
 - [ ] uncap framerate (curr. capped to 60FPS)
+- [ ] implement platform_win32.cpp
