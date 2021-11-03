@@ -6,14 +6,14 @@
 typedef i32 ui_id;
 
 // TODO embed a bitmap font
-#include "bitmap_font.h"
+//#include "bitmap_font.h"
 
 #define UI_ELEMENTS_MAX 100
 enum ui_color_e
 {
     UI_COLOR_TEXT,
     //UI_COLOR_BORDER,
-    //UI_COLOR_WINDOWBG,
+    UI_COLOR_WINDOW,
     //UI_COLOR_TITLEBG,
     //UI_COLOR_TITLETEXT,
     //UI_COLOR_PANELBG,
@@ -35,6 +35,23 @@ struct ui_style_t
     colorf_t colors[UI_COLOR_COUNT];
 };
 
+
+// TODO possible improvements
+// [ ] ability to center text
+// [ ] automatic linebreaks
+// [ ] fit font size to button size
+struct ui_font_t
+{
+    const u32 FONT_WIDTH       = 128;
+    const u32 FONT_HEIGHT      =  64;
+    const u32 FONT_COLS        =  18;
+    const u32 FONT_ROWS        =   7;
+    const i32 FONT_CHAR_WIDTH  = (FONT_WIDTH / FONT_COLS);
+    const i32 FONT_CHAR_HEIGHT = (FONT_HEIGHT / FONT_ROWS);
+    const u32 FONT_SOLID_CHAR  = 127;
+    texture_t* bitmap;
+};
+
 enum
 {
     WINDOW_STYLE_HORIZONTAL,
@@ -53,7 +70,6 @@ struct ui_window_t
     u32 style = WINDOW_STYLE_VERTICAL;
     i32 zindex  = -1; // smallest zindex gets drawn last
     u32 padding = 15;
-    colorf_t color = {0.3,0.3,0.9,0.5};
 };
 
 struct ui_t
@@ -64,6 +80,7 @@ struct ui_t
 
     ui_style_t style;
     rect_t btn_spritebox;
+    ui_font_t font;
 
     ui_id curr_focus;
     ui_id curr_active;
@@ -81,8 +98,9 @@ struct ui_t
 
 inline void ui_init(ui_t* ctx)
 {
-    ctx->style.colors[UI_COLOR_BUTTON]       = {0.6f, 0.2f, 0.2f, 1.0f};
-    ctx->style.colors[UI_COLOR_BUTTONHOVER]  = {0.8f, 0.2f, 0.2f, 1.0f};
+    ctx->style.colors[UI_COLOR_BUTTON]      = {0.6f, 0.2f, 0.2f, 1.0f};
+    ctx->style.colors[UI_COLOR_BUTTONHOVER] = {0.8f, 0.2f, 0.2f, 1.0f};
+    ctx->style.colors[UI_COLOR_WINDOW]      = {0.1,0.1,1.0,0.9};
     // TODO load in font texture
 }
 
@@ -98,7 +116,7 @@ inline void ui_begin(ui_t* ctx)
 
 inline void ui_end(ui_t* ctx)
 {
-    ASSERT(ctx->curr_window.active == false); // forgot to call ui_window_end?
+    //ASSERT(ctx->curr_window.active == false); // forgot to call ui_window_end?
 }
 
 
@@ -119,15 +137,27 @@ inline void ui_window_end(ui_t* ctx)
 
     rect_t   dst   = ctx->curr_window.rect;
     i32      z_idx = ctx->curr_window.zindex;
-    colorf_t color = ctx->curr_window.color;
+    colorf_t color = ctx->style.colors[UI_COLOR_WINDOW];
     ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, dst, z_idx, color};
 
-    ctx->curr_window.active = false;
+    //ctx->curr_window.active = false;
+}
+
+
+inline rect_t ui_font_get_box_for_char(ui_font_t font, char c)
+{
+    i32 index = c - ' ';
+    i32 row_idx = index / font.FONT_COLS ;
+    i32 col_idx = index % font.FONT_COLS ;
+    i32 x_pos = col_idx * font.FONT_CHAR_WIDTH;
+    i32 y_pos = row_idx * font.FONT_CHAR_HEIGHT;
+    return {x_pos, y_pos, font.FONT_CHAR_WIDTH, font.FONT_CHAR_HEIGHT};
 }
 
 
 // TODO maybe add & use a float rect_t
-inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id id)
+// TODO add an optional animator that updates the sprite when hovering over the button
+inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id id, const char* text = nullptr)
 {
     ASSERT(ctx->curr_window.active); // window now required
 
@@ -187,9 +217,52 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
     ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, btn_rect, BTN_Z_INDEX, btn_color};
     if (sprite)
     {
-        // try to center the sprite in the button, TODO hardcoded
-        rect_t dst = {btn_rect.left + 37, btn_rect.top + 25, btn_rect.w - 75, btn_rect.h - 50};
-        ctx->render_buf[ctx->render_elems_count++] = {sprite->tex, sprite->box, dst, BTN_Z_INDEX};
+        // try to center the sprite in the button
+        i32 sprite_offset_x = (width  - sprite->box.w)/2;
+        i32 sprite_offset_y = (height - sprite->box.h)/2;
+        i32 sprite_start_x  = btn_rect.left + sprite_offset_x;
+        i32 sprite_start_y  = btn_rect.top  + sprite_offset_y;
+        rect_t dst = {sprite_start_x, sprite_start_y, sprite->box.w, sprite->box.h};
+
+        ctx->render_buf[ctx->render_elems_count++] = {sprite->tex, sprite->box, dst, BTN_Z_INDEX-1};
+    }
+
+    /* push font chars to render */
+    if (text)
+    {
+        // determine width of text
+        u32 text_len = strlen(text);
+        u32 text_width_px  = text_len * ctx->font.FONT_CHAR_WIDTH;
+        u32 text_height_px = ctx->font.FONT_CHAR_HEIGHT; // TODO take multiline text into account
+
+        // determine if we need to insert a linebreak
+        // text_width is larger than button width
+        //if (text_width_px > width)
+
+        // if (centered)
+            i32 text_offset_x = (width  - text_width_px)/2;
+            i32 text_offset_y = (height - text_height_px)/2;
+            i32 text_start_x  = btn_rect.left + text_offset_x;
+            i32 text_start_y  = btn_rect.top  + text_offset_y;
+
+        // determine height of text
+        // are there newlines in the text?
+
+        rect_t char_dst = {text_start_x, text_start_y, ctx->font.FONT_CHAR_WIDTH, ctx->font.FONT_CHAR_HEIGHT};
+        for (int i = 0; i < text_len; i++)
+        {
+            if (text[i] == '\n')
+            {
+                char_dst.top  += ctx->font.FONT_CHAR_HEIGHT;
+                char_dst.left  = text_start_x;
+                continue;
+            }
+
+            rect_t char_box = ui_font_get_box_for_char(ctx->font, text[i]);
+            //rect_t char_box = {12,12, ctx->font.FONT_CHAR_WIDTH, ctx->font.FONT_CHAR_HEIGHT};
+            ctx->render_buf[ctx->render_elems_count++] = {ctx->font.bitmap, char_box, char_dst, BTN_Z_INDEX-2};
+            char_dst.left += char_box.w;
+        }
     }
 
     return pressed;
