@@ -81,6 +81,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             physics_init();
         }
 
+        ui_init(&ui_ctx);
         ui_entities[0] = create_entity_from_file("skeleton.ent", &platform, state->window);
         ui_entities[1] = create_entity_from_file("necromancer.ent", &platform, state->window);
     }
@@ -194,52 +195,63 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
             /* test our immediate mode ui */
             ui_begin(&ui_ctx);
+
+            // ui input update
             ui_ctx.mouse_pos                           = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
             ui_ctx.mouse_pressed                       = input_pressed(state->game_input.mouse.buttons[0]);
-            ui_ctx.style.colors[UI_COLOR_BUTTON]       = {0.6f, 0.2f, 0.2f, 1.0f};
-            ui_ctx.style.colors[UI_COLOR_BUTTONHOVER]  = {0.8f, 0.2f, 0.2f, 1.0f};
-            ui_ctx.curr_focus                          = __COUNTER__; // zero
 
-            rect_t test_dst = {128, 800, 100, 100};
-            if (ui_button(&ui_ctx, test_dst, &ui_entities[0].sprite, __COUNTER__))
+            i32 btn_size = 100;
+            local u32 window_style = WINDOW_STYLE_VERTICAL;
+            ui_window_begin(&ui_ctx, 50, 20, __COUNTER__, window_style);
+            if (ui_button(&ui_ctx, btn_size, btn_size, &ui_entities[0].sprite, __COUNTER__))
             {
                 printf("pressed btn 1!\n");
                 state->entity_to_place = &ui_entities[0];
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*1, test_dst.top, test_dst.w, test_dst.h},  &ui_entities[1].sprite, __COUNTER__))
+            if (ui_button(&ui_ctx, btn_size, btn_size,  &ui_entities[1].sprite, __COUNTER__))
             {
                 printf("pressed btn 2!\n");
                 state->entity_to_place = &ui_entities[1];
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*2, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (ui_button(&ui_ctx, btn_size, btn_size, NULL, __COUNTER__))
             {
                 printf("pressed btn 3!\n");
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*3, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (ui_button(&ui_ctx, btn_size, btn_size, NULL, __COUNTER__))
             {
                 printf("pressed btn 4!\n");
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*4, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (ui_button(&ui_ctx, btn_size, btn_size, NULL, __COUNTER__))
             {
                 printf("pressed btn 5!\n");
             }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*5, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
-            {
-                printf("pressed btn 6!\n");
-            }
-            if (ui_button(&ui_ctx, {test_dst.left + 128*6, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            local b32 show_btn = false;
+            if (ui_button(&ui_ctx, btn_size, btn_size, NULL, __COUNTER__))
             {
                 printf("pressed btn 7!\n");
-                state->cmdIdx = 0;
+                show_btn = !show_btn;
             }
-            ui_ctx.btn_texture   = resourcemgr_texture_load("button.png", &platform, state->window);
-            if (ui_button(&ui_ctx, {test_dst.left + 128*7, test_dst.top, test_dst.w, test_dst.h}, NULL, __COUNTER__))
+            if (show_btn && ui_button(&ui_ctx, btn_size+30, btn_size-20, NULL, __COUNTER__)) {}
+            if (ui_button(&ui_ctx, btn_size, btn_size, NULL, __COUNTER__))
             {
                 printf("pressed btn 8!\n");
                 state->entity_to_place = nullptr;
+                window_style = window_style == 0 ? WINDOW_STYLE_VERTICAL : WINDOW_STYLE_HORIZONTAL;
             }
-            ui_ctx.btn_texture   = nullptr;
-            // ui_end();
+            ui_window_end(&ui_ctx);
+
+            ui_window_begin(&ui_ctx, 1000, 500, __COUNTER__, WINDOW_STYLE_VERTICAL);
+            if (ui_button(&ui_ctx, btn_size, btn_size, &state->tiles[5420].sprite, __COUNTER__))
+            {
+                printf("pressed button 1 in window 2!\n");
+            }
+            if (ui_button(&ui_ctx, btn_size, btn_size, &state->tiles[4899].sprite, __COUNTER__))
+            {
+                printf("pressed button 2 in window 2!\n");
+            }
+            ui_window_end(&ui_ctx);
+
+            ui_end(&ui_ctx);
 
             // TODO find out if it matters if we do everything in one loop for one
             // entity vs. every "system" has its own loop
