@@ -81,8 +81,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             physics_init();
         }
 
-        ui_init(&ui_ctx);
-        ui_ctx.font.bitmap = resourcemgr_texture_load("charmap-cellphone_white-transparent.png", &platform, state->window);
+        ui_init(&ui_ctx, &platform, state->window);
         ui_entities[0] = create_entity_from_file("skeleton.ent", &platform, state->window);
         ui_entities[1] = create_entity_from_file("necromancer.ent", &platform, state->window);
     }
@@ -205,58 +204,64 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             i32 btn_size_y = 50;
             local u32 window_style = WINDOW_STYLE_VERTICAL;
             ui_window_begin(&ui_ctx, 50, 20, __COUNTER__, window_style);
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
-            {
-                printf("pressed btn 1!\n");
-                state->entity_to_place = &ui_entities[0];
-            }
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y,  &ui_entities[1].sprite, __COUNTER__))
-            {
-                printf("pressed btn 2!\n");
-                state->entity_to_place = &ui_entities[1];
-            }
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__,"a"))
-            {
-                printf("pressed btn 3!\n");
-            }
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__))
-            {
-                printf("pressed btn 4!\n");
-            }
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text\nwith\nnewl"))
-            {
-                printf("pressed btn 5!\n");
-            }
-            local b32 show_btn = false;
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "add a button"))
-            {
-                printf("pressed btn 7!\n");
-                show_btn = !show_btn;
-            }
-            local b32 show_window = false;
-            if (show_btn && ui_button(&ui_ctx, btn_size_x+30, btn_size_y-20, NULL, __COUNTER__, "add a window"))
-            {
-                show_window = !show_window;
-            }
-            if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "switch style"))
-            {
-                printf("pressed btn 8!\n");
-                state->entity_to_place = nullptr;
-                window_style = window_style == 0 ? WINDOW_STYLE_VERTICAL : WINDOW_STYLE_HORIZONTAL;
-            }
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
+                {
+                    printf("pressed btn 1!\n");
+                    state->entity_to_place = &ui_entities[0];
+                }
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y,  &ui_entities[1].sprite, __COUNTER__))
+                {
+                    printf("pressed btn 2!\n");
+                    state->entity_to_place = &ui_entities[1];
+                }
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__,"stop"))
+                {
+                    state->entity_to_place = nullptr;
+                }
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__))
+                {
+                    printf("pressed btn 4!\n");
+                }
+
+                local f32 r_value = 0.5f;
+                local f32 g_value = 0.5f;
+                local f32 b_value = 0.5f;
+                ui_ctx.style.colors[UI_COLOR_BUTTON] = {r_value, g_value, b_value, 1.0f};
+                if (ui_slider_float(&ui_ctx, &r_value, __COUNTER__) ||
+                    ui_slider_float(&ui_ctx, &g_value, __COUNTER__) ||
+                    ui_slider_float(&ui_ctx, &b_value, __COUNTER__))
+                {
+                    printf("new rgb: %.2f %.2f %.2f\n", r_value, g_value, b_value);
+                }
+
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text\nwith\nnewl")) {}
+                local b32 show_btn = false;
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "add a button"))
+                {
+                    show_btn = !show_btn;
+                }
+                local b32 show_window = false;
+                if (show_btn && ui_button(&ui_ctx, btn_size_x+30, btn_size_y-20, NULL, __COUNTER__, "add a window"))
+                {
+                    show_window = !show_window;
+                }
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "switch style"))
+                {
+                    window_style = window_style == 0 ? WINDOW_STYLE_VERTICAL : WINDOW_STYLE_HORIZONTAL;
+                }
             ui_window_end(&ui_ctx);
 
             if (show_window)
             {
                 ui_window_begin(&ui_ctx, 100, 700, __COUNTER__, WINDOW_STYLE_VERTICAL);
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[5420].sprite, __COUNTER__))
-                {
-                    printf("pressed button 1 in window 2!\n");
-                }
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[4899].sprite, __COUNTER__))
-                {
-                    printf("pressed button 2 in window 2!\n");
-                }
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[5420].sprite, __COUNTER__))
+                    {
+                        printf("pressed button 1 in window 2!\n");
+                    }
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[4899].sprite, __COUNTER__))
+                    {
+                        printf("pressed button 2 in window 2!\n");
+                    }
                 ui_window_end(&ui_ctx);
             }
 

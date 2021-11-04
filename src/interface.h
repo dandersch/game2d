@@ -25,6 +25,11 @@ enum ui_color_e
     //UI_COLOR_BASEFOCUS,
     //UI_COLOR_SCROLLBASE,
     //UI_COLOR_SCROLLTHUMB,
+
+    UI_COLOR_SLIDER,
+    UI_COLOR_SLIDER_LEFT,
+    UI_COLOR_SLIDER_RIGHT,
+
     UI_COLOR_COUNT
 };
 
@@ -96,12 +101,15 @@ struct ui_t
 };
 
 
-inline void ui_init(ui_t* ctx)
+inline void ui_init(ui_t* ctx, platform_api_t* platform, platform_window_t* window)
 {
-    ctx->style.colors[UI_COLOR_BUTTON]      = {0.6f, 0.2f, 0.2f, 1.0f};
-    ctx->style.colors[UI_COLOR_BUTTONHOVER] = {0.8f, 0.2f, 0.2f, 1.0f};
-    ctx->style.colors[UI_COLOR_WINDOW]      = {0.1,0.1,1.0,0.9};
-    // TODO load in font texture
+    ctx->style.colors[UI_COLOR_BUTTON]       = {0.6f, 0.2f, 0.2f, 1.0f};
+    ctx->style.colors[UI_COLOR_BUTTONHOVER]  = {0.8f, 0.2f, 0.2f, 1.0f};
+    ctx->style.colors[UI_COLOR_WINDOW]       = {0.1,0.1,1.0,0.9};
+    ctx->style.colors[UI_COLOR_SLIDER]       = {0.1,0.8,1.0,1.0};
+    ctx->style.colors[UI_COLOR_SLIDER_LEFT]  = {0.4,0.1,1.0,0.9};
+    ctx->style.colors[UI_COLOR_SLIDER_RIGHT] = {0.1,0.1,0.5,0.9};
+    ctx->font.bitmap = resourcemgr_texture_load("charmap-cellphone_white-transparent.png", platform, window);
 }
 
 
@@ -155,6 +163,41 @@ inline rect_t ui_font_get_box_for_char(ui_font_t font, char c)
 }
 
 
+inline void bump_window_size_by_rect(ui_window_t* window, rect_t* rect_to_add)
+{
+    // bump window size by padding + button size depending on window style
+    switch (window->style)
+    {
+        case WINDOW_STYLE_HORIZONTAL:
+        {
+            window->rect.h += window->padding;
+
+            if (window->rect.w <= 1) window->rect.w += (rect_to_add->w + 2*window->padding);
+            if (window->rect.w <= (rect_to_add->w  + 2*window->padding))
+                window->rect.w += ((rect_to_add->w + 2*window->padding) - window->rect.w);
+
+            rect_to_add->top  = window->rect.top  + window->rect.h;
+            rect_to_add->left = window->rect.left + window->padding;
+
+            window->rect.h += rect_to_add->h;
+        } break;
+        case WINDOW_STYLE_VERTICAL:
+        {
+            window->rect.w += window->padding;
+
+            if (window->rect.h <= 1) window->rect.h += (rect_to_add->h + 2*window->padding);
+            if (window->rect.h <= (rect_to_add->h + 2*window->padding))
+                window->rect.h += ((rect_to_add->h + 2*window->padding) - window->rect.h);
+
+            rect_to_add->left = window->rect.left + window->rect.w;
+            rect_to_add->top  = window->rect.top  + window->padding;
+
+            window->rect.w += rect_to_add->w;
+        } break;
+    }
+}
+
+
 // TODO maybe add & use a float rect_t
 // TODO add an optional animator that updates the sprite when hovering over the button
 inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id id, const char* text = nullptr)
@@ -164,37 +207,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
     colorf_t btn_color = ctx->style.colors[UI_COLOR_BUTTON];
     rect_t   btn_rect  = {0,0, width, height};
 
-    // bump window size by padding + button size depending on window style
-    // TODO refactor
-    if (ctx->curr_window.style == WINDOW_STYLE_HORIZONTAL)
-    {
-        ui_window_t* window = &ctx->curr_window;
-        window->rect.h += window->padding;
-
-        if (window->rect.w <= 1) window->rect.w += (width + 2*window->padding);
-        if (window->rect.w <= (width + 2*window->padding))
-            window->rect.w += ((width + 2*window->padding) - window->rect.w);
-
-        btn_rect.top  = window->rect.top  + window->rect.h;
-        btn_rect.left = window->rect.left + window->padding;
-
-        window->rect.h += height;
-    }
-    if (ctx->curr_window.style == WINDOW_STYLE_VERTICAL)
-    {
-        ui_window_t* window = &ctx->curr_window;
-        window->rect.w += window->padding;
-
-        if (window->rect.h <= 1) window->rect.h += (height + 2*window->padding);
-        if (window->rect.h <= (height + 2*window->padding))
-            window->rect.h += ((height + 2*window->padding) - window->rect.h);
-
-        btn_rect.left = window->rect.left + window->rect.w;
-        btn_rect.top  = window->rect.top  + window->padding;
-
-        window->rect.w += width;
-    }
-
+    bump_window_size_by_rect(&ctx->curr_window, &btn_rect);
 
     if (utils_point_in_rect(ctx->mouse_pos, btn_rect))
         ctx->curr_focus = id;
@@ -288,6 +301,68 @@ bool doButton(UI, ID, Text, ...)
     if (Inside()) SetHot();
 }
 */
+
+
+// TODO better colors
+// TODO make draggable
+inline b32 ui_slider_float(ui_t* ctx, f32* value, ui_id id, f32 min = 0.0f, f32 max = 1.0f,
+                           i32 width = 100, i32 height = 20/*, const char* text = nullptr*/)
+{
+    ASSERT(ctx->curr_window.active); // window now required
+
+    colorf_t slider_color = ctx->style.colors[UI_COLOR_SLIDER];
+    colorf_t widget_color = ctx->style.colors[UI_COLOR_SLIDER_RIGHT];
+    colorf_t left_color   = ctx->style.colors[UI_COLOR_SLIDER_LEFT];
+    rect_t widget_rect  = {0,0, width, height};
+
+    bump_window_size_by_rect(&ctx->curr_window, &widget_rect);
+
+    f32 normalized_value = (*value - min)/(max - min); // bring value in 0-1 range
+
+    // determine where the slider is
+    i32 slider_padding_px  = 6;  // make the slider slightly taller than the widget
+    i32 slider_width       = 10; // width of the actual slider "button"
+    i32 slider_pos_x       = widget_rect.left + (((normalized_value) * width) - (slider_width/2));
+    rect_t slider_rect     = {slider_pos_x, widget_rect.top - (slider_padding_px/2),
+                              slider_width, height + slider_padding_px};
+    rect_t left_rect       = {widget_rect.left, widget_rect.top,
+                              (slider_rect.left - widget_rect.left), widget_rect.h};
+    //rect_t right_rect      = {0,0, width, height};
+
+    // slider logic
+    f32 new_value_if_pressed = *value;
+    if (utils_point_in_rect(ctx->mouse_pos, widget_rect))
+    {
+        ctx->curr_focus = id;
+
+        // slider "click" logic
+        i32 delta_px = ctx->mouse_pos.x - widget_rect.left;
+        f32 interpolant = (f32) delta_px / (f32) widget_rect.w;
+        new_value_if_pressed = min + interpolant * (max - min); // lerp
+    }
+
+    b32 pressed = false;
+    if (ctx->curr_focus == id)
+    {
+        slider_color = ctx->style.colors[UI_COLOR_BUTTONHOVER];
+        if (ctx->mouse_pressed)
+        {
+            if (ctx->curr_focus == id)
+            {
+                pressed = true;
+                *value = new_value_if_pressed;
+            }
+        }
+    }
+
+    const i32 BTN_Z_INDEX = -2;
+    /* push elements to render */
+    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, widget_rect, BTN_Z_INDEX, widget_color};
+    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, left_rect,   BTN_Z_INDEX, left_color};
+    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, slider_rect, BTN_Z_INDEX - 1, slider_color};
+
+    return pressed;
+}
 
 
 inline void ui_render(ui_t* ctx, platform_api_t* platform)
