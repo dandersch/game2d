@@ -200,10 +200,23 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             ui_ctx.mouse_pos      = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
             ui_ctx.mouse_pressed  = input_pressed(state->game_input.mouse.buttons[0]);
 
+            char string_buf_1[256];
+            sprite_t sprite = { {256, 160, 16, 16}, ui_entities[0].sprite.tex }; // TODO hardcoded
+            sprintf(string_buf_1,"mouse x: %d\nmouse y: %d", ui_ctx.mouse_pos.x, ui_ctx.mouse_pos.y);
+            char string_buf_2[256];
+            sprintf(string_buf_2,"TICKS %d", platform.ticks());
+
+            ui_window_begin(&ui_ctx, 5, 5, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
+                ui_text(&ui_ctx, __COUNTER__, "Text here", 2);
+                ui_text(&ui_ctx, __COUNTER__, string_buf_1, 2);
+                ui_icon(&ui_ctx, __COUNTER__, sprite, 3);
+                ui_text(&ui_ctx, __COUNTER__, string_buf_2, 2);
+            ui_window_end(&ui_ctx);
+
             i32 btn_size_x = 100;
             i32 btn_size_y = 50;
-            local u32 window_style = WINDOW_STYLE_VERTICAL;
-            ui_window_begin(&ui_ctx, 50, 20, __COUNTER__, window_style);
+            local u32 window_style = WINDOW_LAYOUT_VERTICAL;
+            ui_window_begin(&ui_ctx, 50, 800, __COUNTER__, window_style);
                 if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
                 {
                     printf("pressed btn 1!\n");
@@ -227,14 +240,14 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 local f32 g_value = 0.5f;
                 local f32 b_value = 0.5f;
                 ui_ctx.style.colors[UI_COLOR_BUTTON] = {r_value, g_value, b_value, 1.0f};
-                if (ui_slider_float(&ui_ctx, &r_value, __COUNTER__) ||
-                    ui_slider_float(&ui_ctx, &g_value, __COUNTER__) ||
+                if (ui_slider_float(&ui_ctx, &r_value, __COUNTER__) | // bitwise or to avoid short circuit
+                    ui_slider_float(&ui_ctx, &g_value, __COUNTER__) | // evaluation
                     ui_slider_float(&ui_ctx, &b_value, __COUNTER__))
                 {
                     printf("new rgb: %.2f %.2f %.2f\n", r_value, g_value, b_value);
                 }
 
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text\nwith\nnewl")) {}
+                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text with\nnewline chars")) {}
                 local b32 show_btn = false;
                 if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "add a button"))
                 {
@@ -247,13 +260,16 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 }
                 if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "switch style"))
                 {
-                    window_style = window_style == 0 ? WINDOW_STYLE_VERTICAL : WINDOW_STYLE_HORIZONTAL;
+                    if (window_style == WINDOW_LAYOUT_VERTICAL)
+                        window_style = WINDOW_LAYOUT_HORIZONTAL_UP;
+                    else if (window_style == WINDOW_LAYOUT_HORIZONTAL_UP)
+                        window_style = WINDOW_LAYOUT_VERTICAL;
                 }
             ui_window_end(&ui_ctx);
 
             if (show_window)
             {
-                ui_window_begin(&ui_ctx, 100, 700, __COUNTER__, WINDOW_STYLE_VERTICAL);
+                ui_window_begin(&ui_ctx, 100, 700, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
                     if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[5420].sprite, __COUNTER__))
                     {
                         printf("pressed button 1 in window 2!\n");
