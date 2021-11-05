@@ -403,13 +403,13 @@ void renderer_cmd_buf_process(platform_window_t* window)
                         screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 3
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 4
+                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 1
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 5
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 3
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  (f32) tex_id, color // vertex 6
+                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  (f32) tex_id, color // vertex 4
                     };
                 }
 

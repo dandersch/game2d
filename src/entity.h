@@ -27,19 +27,31 @@ enum entity_flag_e
 
 enum entity_state_e
 {
+    //ENT_STATE_INVALID,
     ENT_STATE_IDLE,
     ENT_STATE_MOVE,
     ENT_STATE_ATTACK,
+    ENT_STATE_HOLD,
     ENT_STATE_COUNT
 };
 
 enum entity_orientation_e
 {
+    //ENT_ORIENT_INVALID,
     ENT_ORIENT_UP,
     ENT_ORIENT_DOWN,
     ENT_ORIENT_RIGHT,
     ENT_ORIENT_LEFT,
     ENT_ORIENT_COUNT
+};
+
+// TODO move
+struct animation_t
+{
+    u32 count;         // how many sprites are in the animation (NOTE starts at 0)
+    i32 start_pos_x;   // where the sprite animation starts on x-axis
+    i32 start_pos_y;   // ... on y-axis
+    i32 delta_x;       // dist. to next sprite on x-axis
 };
 
 // TODO default values
@@ -63,6 +75,8 @@ struct Entity
     AnimationClip clips[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
     Animator      anim                              = {nullptr, 0, 0};
     u32           clip_count                        = 0;
+    f32 anim_timer = 0.0f;
+    animation_t anims[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
     //Animation anim;    // TODO use an index that accesses into anims instead
     //Animation anims[STATE_COUNT * ORIENT_COUNT];
 

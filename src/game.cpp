@@ -28,6 +28,7 @@ struct game_state_t
     u32 cmdIdx = 0;            // used by rewind, layer
 
     Entity* focusedEntity;             // used by layer
+    i32     focusedEntityIdx = -1;
     rect_t focusArrow = {64,32,16,32}; // used by layer TODO hardcoded
     Entity* entity_to_place = nullptr;
 };
@@ -67,6 +68,63 @@ const int MAX_RENDER_LAYERS = 100;
 #include "interface.h"
 ui_t ui_ctx = {};
 Entity ui_entities[9] = {};
+
+// TESTING AN IMMEDIATE-MODE ANIMATION API //////////////////////////////////////////////////////////////////////
+#define ANIMATOR_MAX_ANIMS 100
+struct animation_ctx_t
+{
+    f32 timers[ANIMATOR_MAX_ANIMS]; // timer for individual animations
+                                    // TODO use a hashtable?
+    // ...
+};
+
+#define SPRITE_DURATION 0.16f
+void anim_update(animation_ctx_t* ctx, rect_t* sprite, animation_t anim, f32 dt, i32 id)
+{
+    ctx->timers[id] += dt;
+
+    // find the correct frame
+    u32 frame = 0;
+    while (ctx->timers[id] > ((frame+1) * SPRITE_DURATION))
+    {
+        frame++;
+    }
+
+    // wraparound
+    if (frame >= anim.count)
+    {
+        frame = 0;
+        ctx->timers[id] = 0;
+    }
+
+    sprite->left = anim.start_pos_x + (frame * anim.delta_x);
+}
+void anim_update(f32* timer, rect_t* sprite_box, animation_t anim, f32 dt)
+{
+    *timer += dt;
+
+    // find the correct frame
+    u32 frame = 0;
+    while (*timer > ((frame+1) * SPRITE_DURATION))
+    {
+        frame++;
+    }
+
+    // wraparound
+    if (frame >= anim.count)
+    {
+        frame = 0;
+        *timer = 0;
+    }
+
+    sprite_box->left = anim.start_pos_x + (frame * anim.delta_x);
+    sprite_box->top  = anim.start_pos_y;
+}
+animation_ctx_t anim_ctx = {};
+animation_t anim_skele     = {4, 0,     0, 16}; // skeleton animation
+animation_t anim_necro     = {4, 144, 128, 16}; // necromancer animation
+animation_t anim_hourglass = {6, 64,  208, 16};
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO pass in game_input_t too (?)
 extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
@@ -119,20 +177,24 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 //state->entity_to_place->position = {(f32) mouse_pos.x - 8, (f32) mouse_pos.y - 24, 1.0f};
             }
 
-            if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT]) && !ui_ctx.curr_focus)
+            if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT])
+                && !ui_ctx.window_focused) // TODO hack
             {
                 v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
                 v2i clickpoint  = {(i32) click.x, (i32) click.y};
 
                 // get 'clicked on' playable entity
+                b32 collided = false;
                 for (u32 i = 0; i < MAX_ENTITIES; i++)
                 {
                     auto ents = state->ents;
                     if (!ents[i].active) continue;
                     if (!(ents[i].flags & ENT_FLAG_CMD_CONTROLLED)) continue;
                     rect_t   coll       = ents[i].getColliderInWorld();
+
                     if (utils_point_in_rect(clickpoint, coll)) // TODO
                     {
+                        collided = true;
                         if (state->focusedEntity)
                         {
                             state->focusedEntity->flags ^= ENT_FLAG_PLAYER_CONTROLLED;
@@ -140,8 +202,21 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                         }
                         ents[i].flags |= ENT_FLAG_PLAYER_CONTROLLED;
                         ents[i].flags ^= ENT_FLAG_CMD_CONTROLLED;
-                        state->focusedEntity = &ents[i];
+
+                        state->focusedEntity    = &ents[i];
+                        state->focusedEntityIdx = i;
+                        break;
                     }
+                }
+                if (!collided) // unfocus
+                {
+                    if (state->focusedEntity)
+                    {
+                        state->focusedEntity->flags ^= ENT_FLAG_PLAYER_CONTROLLED;
+                        state->focusedEntity->flags |= ENT_FLAG_CMD_CONTROLLED;
+                    }
+                    state->focusedEntity    = nullptr;
+                    state->focusedEntityIdx = -1;
                 }
 
                 // try to place an entity if we have one selected
@@ -171,13 +246,14 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             if (state->game_input.keyboard.key_right.is_down) state->cam.rect.left += 5;
 
             // zoom in/out on mouse scroll
-            if (state->game_input.mouse.wheel < 0) state->cam.rect.w *= 0.5f;
-            if (state->game_input.mouse.wheel > 0) state->cam.rect.w *= 2.0f;
+            if (state->game_input.mouse.wheel < 0) camera_zoom(state->cam, 0.5f, {mouse_pos.x, mouse_pos.y});
+            if (state->game_input.mouse.wheel > 0) camera_zoom(state->cam, 2.0f, {mouse_pos.x, mouse_pos.y});
         }
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
         { // layer_game_update(dt);
             EntityMgr::freeTemporaryStorage(state);
+
             { // input_update();
                 state->actionState = 0;
 
@@ -194,94 +270,131 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             Reset::update(dt, &state->isRewinding, &state->loopTime, &state->cmdIdx, state->actionState);
 
             /* test our immediate mode ui */
-            ui_begin(&ui_ctx);
-
-            // ui input update
-            ui_ctx.mouse_pos      = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
-            ui_ctx.mouse_pressed  = input_pressed(state->game_input.mouse.buttons[0]);
-
-            char string_buf_1[256];
-            sprite_t sprite = { {256, 160, 16, 16}, ui_entities[0].sprite.tex }; // TODO hardcoded
-            sprintf(string_buf_1,"mouse x: %d\nmouse y: %d", ui_ctx.mouse_pos.x, ui_ctx.mouse_pos.y);
-            char string_buf_2[256];
-            sprintf(string_buf_2,"TICKS %d", platform.ticks());
-
-            ui_window_begin(&ui_ctx, 5, 5, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
-                ui_text(&ui_ctx, __COUNTER__, "Text here", 2);
-                ui_text(&ui_ctx, __COUNTER__, string_buf_1, 2);
-                ui_icon(&ui_ctx, __COUNTER__, sprite, 3);
-                ui_text(&ui_ctx, __COUNTER__, string_buf_2, 2);
-            ui_window_end(&ui_ctx);
-
-            i32 btn_size_x = 100;
-            i32 btn_size_y = 50;
-            local u32 window_style = WINDOW_LAYOUT_VERTICAL;
-            ui_window_begin(&ui_ctx, 50, 800, __COUNTER__, window_style);
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
-                {
-                    printf("pressed btn 1!\n");
-                    state->entity_to_place = &ui_entities[0];
-                }
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y,  &ui_entities[1].sprite, __COUNTER__))
-                {
-                    printf("pressed btn 2!\n");
-                    state->entity_to_place = &ui_entities[1];
-                }
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__,"stop"))
-                {
-                    state->entity_to_place = nullptr;
-                }
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__))
-                {
-                    printf("pressed btn 4!\n");
-                }
-
-                local f32 r_value = 0.5f;
-                local f32 g_value = 0.5f;
-                local f32 b_value = 0.5f;
-                ui_ctx.style.colors[UI_COLOR_BUTTON] = {r_value, g_value, b_value, 1.0f};
-                if (ui_slider_float(&ui_ctx, &r_value, __COUNTER__) | // bitwise or to avoid short circuit
-                    ui_slider_float(&ui_ctx, &g_value, __COUNTER__) | // evaluation
-                    ui_slider_float(&ui_ctx, &b_value, __COUNTER__))
-                {
-                    printf("new rgb: %.2f %.2f %.2f\n", r_value, g_value, b_value);
-                }
-
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text with\nnewline chars")) {}
-                local b32 show_btn = false;
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "add a button"))
-                {
-                    show_btn = !show_btn;
-                }
-                local b32 show_window = false;
-                if (show_btn && ui_button(&ui_ctx, btn_size_x+30, btn_size_y-20, NULL, __COUNTER__, "add a window"))
-                {
-                    show_window = !show_window;
-                }
-                if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "switch style"))
-                {
-                    if (window_style == WINDOW_LAYOUT_VERTICAL)
-                        window_style = WINDOW_LAYOUT_HORIZONTAL_UP;
-                    else if (window_style == WINDOW_LAYOUT_HORIZONTAL_UP)
-                        window_style = WINDOW_LAYOUT_VERTICAL;
-                }
-            ui_window_end(&ui_ctx);
-
-            if (show_window)
+            // NOTE break code hotloading right now, probably because the ui_context isn't in the game_state
             {
-                ui_window_begin(&ui_ctx, 100, 700, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
-                    if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[5420].sprite, __COUNTER__))
+                ui_begin(&ui_ctx);
+
+                // ui input update
+                ui_ctx.mouse_pos      = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
+                ui_ctx.mouse_pressed  = input_pressed(state->game_input.mouse.buttons[0]);
+
+                char string_buf_1[256];
+                local sprite_t sprite = { {64, 208, 16, 16}, ui_entities[0].sprite.tex }; // TODO hardcoded
+                sprintf(string_buf_1,"mouse x: %4d\nmouse y: %4d", ui_ctx.mouse_pos.x, ui_ctx.mouse_pos.y);
+                char string_buf_2[256];
+                sprintf(string_buf_2,"TICKS %d", platform.ticks());
+                anim_update(&anim_ctx, &sprite.box, anim_hourglass, dt, __COUNTER__);
+                char string_buf_3[20];
+                sprintf(string_buf_3,"Entity selected %d", state->focusedEntityIdx);
+                ui_window_begin(&ui_ctx, 5, 5, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
+                    if (ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "X")) state->game_running = false;
+                    ui_text(&ui_ctx, __COUNTER__, "Text here", 2);
+                    ui_text(&ui_ctx, __COUNTER__, string_buf_1, 2);
+                    ui_text(&ui_ctx, __COUNTER__, string_buf_2, 2);
+                    ui_text(&ui_ctx, __COUNTER__, string_buf_3, 2);
+                ui_window_end(&ui_ctx);
+                ui_window_begin(&ui_ctx, SCREEN_WIDTH-100, 5, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
+                    ui_icon(&ui_ctx, __COUNTER__, sprite, 3.0f);
+                ui_window_end(&ui_ctx);
+
+                if (state->focusedEntityIdx != -1)
+                {
+                    ui_window_begin(&ui_ctx, SCREEN_WIDTH-200, 200, __COUNTER__, WINDOW_LAYOUT_HORIZONTAL);
+                        ui_text(&ui_ctx, __COUNTER__, "ORIENTATION", 2);
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "DOWN"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_DOWN;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "RIGHT"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_RIGHT;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "UP"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_UP;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "LEFT"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_LEFT;
+
+                        ui_text(&ui_ctx, __COUNTER__, "STATE", 2);
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "MOVE"))
+                            state->ents[state->focusedEntityIdx].state = ENT_STATE_MOVE;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "HOLD"))
+                            state->ents[state->focusedEntityIdx].state = ENT_STATE_HOLD;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "ATTACK"))
+                            state->ents[state->focusedEntityIdx].state = ENT_STATE_ATTACK;
+                    ui_window_end(&ui_ctx);
+                }
+
+                i32 btn_size_x = 100;
+                i32 btn_size_y = 50;
+                local u32 window_style = WINDOW_LAYOUT_VERTICAL;
+
+                // animation test
+                anim_update(&anim_ctx, &ui_entities[0].sprite.box, anim_skele, dt, __COUNTER__);
+                anim_update(&anim_ctx, &ui_entities[1].sprite.box, anim_necro, dt, __COUNTER__);
+
+                ui_window_begin(&ui_ctx, 50, 800, __COUNTER__, window_style);
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
                     {
-                        printf("pressed button 1 in window 2!\n");
+                        printf("pressed btn 1!\n");
+                        state->entity_to_place = &ui_entities[0];
                     }
-                    if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[4899].sprite, __COUNTER__))
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y,  &ui_entities[1].sprite, __COUNTER__))
                     {
-                        printf("pressed button 2 in window 2!\n");
+                        printf("pressed btn 2!\n");
+                        state->entity_to_place = &ui_entities[1];
+                    }
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__,"stop"))
+                    {
+                        state->entity_to_place = nullptr;
+                    }
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__))
+                    {
+                        printf("pressed btn 4!\n");
+                    }
+
+                    local f32 r_value = 0.5f;
+                    local f32 g_value = 0.5f;
+                    local f32 b_value = 0.5f;
+                    ui_ctx.style.colors[UI_COLOR_BUTTON] = {r_value, g_value, b_value, 1.0f};
+                    if (ui_slider_float(&ui_ctx, &r_value, __COUNTER__) | // bitwise or to avoid short circuit
+                        ui_slider_float(&ui_ctx, &g_value, __COUNTER__) | // evaluation
+                        ui_slider_float(&ui_ctx, &b_value, __COUNTER__))
+                    {
+                        printf("new rgb: %.2f %.2f %.2f\n", r_value, g_value, b_value);
+                    }
+
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "text with\nnewline chars")) {}
+                    local b32 show_btn = false;
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "add a button"))
+                    {
+                        show_btn = !show_btn;
+                    }
+                    local b32 show_window = false;
+                    if (show_btn && ui_button(&ui_ctx, btn_size_x+30, btn_size_y-20, NULL, __COUNTER__, "add a window"))
+                    {
+                        show_window = !show_window;
+                    }
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "switch style"))
+                    {
+                        if (window_style == WINDOW_LAYOUT_VERTICAL)
+                            window_style = WINDOW_LAYOUT_HORIZONTAL_UP;
+                        else if (window_style == WINDOW_LAYOUT_HORIZONTAL_UP)
+                            window_style = WINDOW_LAYOUT_VERTICAL;
                     }
                 ui_window_end(&ui_ctx);
-            }
 
-            ui_end(&ui_ctx);
+                if (show_window)
+                {
+                    ui_window_begin(&ui_ctx, 100, 700, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
+                        if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[5420].sprite, __COUNTER__))
+                        {
+                            printf("pressed button 1 in window 2!\n");
+                        }
+                        if (ui_button(&ui_ctx, btn_size_x, btn_size_x, &state->tiles[4899].sprite, __COUNTER__))
+                        {
+                            printf("pressed button 2 in window 2!\n");
+                        }
+                    ui_window_end(&ui_ctx);
+                }
+
+                ui_end(&ui_ctx);
+            }
 
             // TODO find out if it matters if we do everything in one loop for one
             // entity vs. every "system" has its own loop
@@ -355,7 +468,9 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
                 if (ent.flags & ENT_FLAG_IS_ANIMATED)
                 {
-                    ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
+                    //ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
+                    anim_update(&ent.anim_timer, &ent.sprite.box,
+                                ent.anims[ent.orient + (ent.state * ENT_ORIENT_COUNT)], dt);
                 }
             }
 

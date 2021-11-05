@@ -92,6 +92,8 @@ struct ui_t
     ui_id curr_active;
     ui_id last_focus;
     ui_window_t curr_window;
+    b32 window_focused = false; // TODO just have one general "ui_focused" bool
+                                // that we can check to see if we should let an event through to the game
 
     /* rendering */
     render_entry_texture_t render_buf[UI_ELEMENTS_MAX];
@@ -119,6 +121,7 @@ inline void ui_begin(ui_t* ctx)
     /* TODO assert */
     ctx->render_elems_count = 0;
     ctx->curr_window.active = 0;
+    ctx->window_focused     = false;
     ctx->curr_focus         = __COUNTER__; // zero, TODO better id system
 }
 
@@ -126,6 +129,7 @@ inline void ui_begin(ui_t* ctx)
 inline void ui_end(ui_t* ctx)
 {
     //ASSERT(ctx->curr_window.active == false); // forgot to call ui_window_end?
+    //ctx->curr_window.active = 0; // NOTE also in ui_begin...
 }
 
 
@@ -143,6 +147,9 @@ inline void ui_window_end(ui_t* ctx)
         case WINDOW_LAYOUT_HORIZONTAL: { ctx->curr_window.rect.h += ctx->curr_window.padding; } break;
         case WINDOW_LAYOUT_VERTICAL:   { ctx->curr_window.rect.w += ctx->curr_window.padding; } break;
     }
+
+    if (utils_point_in_rect(ctx->mouse_pos, ctx->curr_window.rect))
+        ctx->window_focused = true;
 
     rect_t   dst   = ctx->curr_window.rect;
     i32      z_idx = ctx->curr_window.zindex;
@@ -437,6 +444,7 @@ inline void ui_icon(ui_t* ctx, ui_id id, sprite_t sprite, f32 size = 1)
     ctx->render_buf[ctx->render_elems_count++] = {sprite.tex, sprite.box, dst, -6};
 }
 
+// TODO support sprintf
 inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
 {
     ASSERT(ctx->curr_window.active);

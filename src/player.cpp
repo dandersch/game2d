@@ -4,7 +4,7 @@
 #include "input.h"
 #include "platform.h"
 
-static const f32 playerSpeed = 150.f; // NOTE not compatible with code hotloading
+static const f32 playerSpeed = 100.f;
 
 v3f getDirectionFrom(u32 orient)
 {
@@ -73,6 +73,8 @@ void player_try_move(v3f movement, Entity& ent)
     else if (movement.x > 0.0f) new_orient = ENT_ORIENT_RIGHT;
     else if (movement.x < 0.0f) new_orient = ENT_ORIENT_LEFT;
 
+#if 0
+    // state machine logic
     u32 new_state = ent.state;
     if (movement.x != 0 && movement.y != 0 && movement.z != 0)  new_state = ENT_STATE_MOVE;
     else new_state = ENT_STATE_IDLE;
@@ -85,6 +87,7 @@ void player_try_move(v3f movement, Entity& ent)
         ent.orient = new_orient;
         //ent.anim   = ent.anims[ent.orient]; // TODO support states
     }
+#endif
 
     ent.movement = movement;
 }

@@ -291,7 +291,7 @@ void platform_event_loop(game_input_t* input)
     input->mouse.wheel = 0;
 
     SDL_Event sdl_event;
-    while (SDL_PollEvent(&sdl_event))
+    while (SDL_PollEvent(&sdl_event)) // TODO use SDL_WaitEvent ?
     {
         switch (sdl_event.type)
         {

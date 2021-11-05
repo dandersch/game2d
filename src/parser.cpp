@@ -117,6 +117,7 @@ Entity create_entity_from_file(const char* asset_file_name, platform_api_t* plat
     entity.flags |= ENT_FLAG_IS_COLLIDER;
     entity.flags |= ENT_FLAG_CMD_CONTROLLED;
     entity.flags |= ENT_FLAG_IS_REWINDABLE;
+    entity.flags |= ENT_FLAG_IS_ANIMATED;
     Rewind::initializeFrames(entity);
     command_init(entity);
 
@@ -179,6 +180,27 @@ Entity create_entity_from_file(const char* asset_file_name, platform_api_t* plat
                 UNREACHABLE("Token type '%u' not implemented", node->type);
             } break;
         }
+    }
+
+    // TODO hardcoded
+    if (strcmp(entity.type, "skeleton") == 0)
+    {
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0,  0, 16}; // skeleton animation
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 32, 16}; // skeleton animation
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 64, 16}; // skeleton animation
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 96, 16}; // skeleton animation
+
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 0, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 32, 16};
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 64, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 96, 16};
+
+        entity.anims[ENT_ORIENT_LEFT   + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] =   {4, 0, 192, 16};
+        entity.anims[ENT_ORIENT_RIGHT  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 224, 16};
+    }
+    else if (strcmp(entity.type, "necromancer") == 0)
+    {
+        entity.anims[ENT_ORIENT_DOWN + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 144, 128, 16}; // necromancer animation
     }
 
     spritebox.left   *= tilewidth;

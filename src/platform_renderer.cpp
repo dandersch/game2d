@@ -30,6 +30,9 @@ u32 sort_entry_count                   = 0;
 
 internal_fn void renderer_sort_buffer()
 {
+    // TODO right now there is an issue with the y-sorting at the edge of a tile
+    // seems to be connected with the "1 in front of 2" case
+    // we could workaround this by using z_index...
     qsort(sort_buf, sort_entry_count, sizeof(sort_buf[0]),
           [](const void* elem1, const void* elem2)
           {
@@ -48,7 +51,7 @@ internal_fn void renderer_sort_buffer()
               if (a > c && a > d && b > c && b > d) { return  1; } // 1 is under 2
               if (a < c && a < d && b > c && b < d) { return -1; } // 1 is behind 2
               if (a > c && a < d && b > c && b > d) { return  1; } // 1 is in front of 2
-              //if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2
+              if (a > c && a < d && b > c && b < d) { return -1; } // 1 is between 2 NOTE doesn't seem to do anything
               return 0;
           });
 }
