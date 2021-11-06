@@ -337,8 +337,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
-                const u32 SCREEN_WIDTH = 1280; // TODO hardcoded
-                const u32 SCREEN_HEIGHT = 960; // TODO hardcoded
+                const u32 SCREEN_WIDTH  = window->width;
+                const u32 SCREEN_HEIGHT = window->height;
 
                 f32 TEXTURE_WIDTH  = 0;
                 f32 TEXTURE_HEIGHT = 0;

@@ -61,7 +61,7 @@ enum action_e
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
 const u32 SCREEN_WIDTH  = 1280;
-const u32 SCREEN_HEIGHT =  960;
+const u32 SCREEN_HEIGHT = 960;
 const char* GAME_LEVEL = "res/map_level01.json";
 const int MAX_RENDER_LAYERS = 100;
 
@@ -202,8 +202,6 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
         { // layer_game_update(dt);
-            EntityMgr::freeTemporaryStorage(state);
-
             { // input_update();
                 state->actionState = 0;
 

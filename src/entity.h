@@ -111,7 +111,6 @@ struct Tile
 // ENTITYMANAGER ///////////////////////////////////////////////////////////////////////////////////
 #define MAX_ENTITIES          1100
 #define MAX_TILES             15000
-#define MAX_ENTITIES_WO_TEMP  1000
 
 // TODO all allocations & deallocations of entities should go through here
 // NOTE maybe use implementation of pool w/ free lists:
@@ -119,7 +118,13 @@ struct Tile
 namespace EntityMgr
 {
     bool copyEntity(const Entity ent, game_state_t* state);
-    void freeTemporaryStorage(game_state_t* state);
-    bool copyTempEntity(const Entity ent, game_state_t* state);
     bool createTile(const Tile tile, game_state_t* state);
+
+    // typedef u32 entity_handle_t
+    // struct entity_handle_t
+    // {
+    // }
+    //
+    // entity_handle_t entity_get_handle();
+    // entity_t*       entity_get(entity_handle_t handle);
 };

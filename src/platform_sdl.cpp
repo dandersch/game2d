@@ -10,6 +10,8 @@ struct platform_window_t
 {
     SDL_Window*   handle;
     renderer_t*   renderer;
+    u32           width;
+    u32           height;
 };
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
@@ -199,6 +201,8 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     window->handle = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       screen_width, screen_height, window_flags);
     SDL_ERROR(window->handle);
+    window->width  = screen_width;
+    window->height = screen_height;
 
 #ifdef USE_OPENGL
     window->renderer = (renderer_t*) mem_arena_alloc(&memory.platform_arena, sizeof(renderer_t));
@@ -344,12 +348,30 @@ void platform_event_loop(game_input_t* input)
                     input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
             } break;
 
-            case SDL_QUIT: { /*input->quit_requested = true;*/ game_running = false; } break;
+            case SDL_QUIT: { game_running = false; } break;
+
             case SDL_WINDOWEVENT:
             {
-                if (sdl_event.window.type == SDL_WINDOWEVENT_CLOSE)
+                switch (sdl_event.window.type)
                 {
-                    game_running = false;
+                    case SDL_WINDOWEVENT_CLOSE:
+                    {
+                        game_running = false;
+                    }
+
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        // TODO
+                    } break;
+
+                    case SDL_WINDOWEVENT_HIDDEN:         /**< Window has been hidden */
+                    case SDL_WINDOWEVENT_ENTER:          /**< Window has gained mouse focus */
+                    case SDL_WINDOWEVENT_LEAVE:          /**< Window has lost mouse focus */
+                    case SDL_WINDOWEVENT_FOCUS_GAINED:   /**< Window has gained keyboard focus */
+                    case SDL_WINDOWEVENT_FOCUS_LOST:     /**< Window has lost keyboard focus */
+                    {
+                        // TODO
+                    } break;
                 }
             } break;
         }

@@ -61,15 +61,18 @@ enum
 {
     WINDOW_LAYOUT_HORIZONTAL,
     WINDOW_LAYOUT_VERTICAL,
-    WINDOW_LAYOUT_HORIZONTAL_UP,
+
+    WINDOW_LAYOUT_HORIZONTAL_UP, // not working
+    WINDOW_LAYOUT_VERTICAL_LEFT, // not working
+
+    // WINDOW_LAYOUT_CENTERED_HORIZONTAL
+    // WINDOW_LAYOUT_CENTERED_VERTICALLY
+    // WINDOW_LAYOUT_CENTERED
+
     WINDOW_LAYOUT_COUNT
 };
 struct ui_window_t
 {
-    // top
-    // left
-    // width
-    // height
     b32 active;
     rect_t rect;
     ui_id  id;
@@ -142,6 +145,16 @@ inline void ui_window_begin(ui_t* ctx, i32 left, i32 top, ui_id id, u32 style = 
 
 inline void ui_window_end(ui_t* ctx)
 {
+    // TODO for centering: we could calculate an offset
+    //   centered_x = (SCREEN_WIDTH  - window.width)  / 2
+    //   centered_y = (SCREEN_HEIGHT - window.height) / 2
+    //   offset_x   = window.left - centered_x;
+    //   offset_y   = window.top - centered_y;
+    // and apply it to all vertices here
+    //
+    // in fact, if we do this, we can just let the user supply a position on the
+    // screen that describes the center of the window
+
     switch (ctx->curr_window.style) // add last bit of padding
     {
         case WINDOW_LAYOUT_HORIZONTAL: { ctx->curr_window.rect.h += ctx->curr_window.padding; } break;
