@@ -185,22 +185,38 @@ Entity create_entity_from_file(const char* asset_file_name, platform_api_t* plat
     // TODO hardcoded
     if (strcmp(entity.type, "skeleton") == 0)
     {
-        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0,  0, 16}; // skeleton animation
-        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 32, 16}; // skeleton animation
-        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 64, 16}; // skeleton animation
-        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 96, 16}; // skeleton animation
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 0 +  0, 16};
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 0 + 32, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 0 + 64, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 0, 0 + 96, 16};
 
-        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 0, 16};
-        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 32, 16};
-        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 64, 16};
-        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 144, 96, 16};
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 128 +  0, 16};
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 128 + 32, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 128 + 64, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 128 + 96, 16};
 
-        entity.anims[ENT_ORIENT_LEFT   + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] =   {4, 0, 192, 16};
-        entity.anims[ENT_ORIENT_RIGHT  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 0, 224, 16};
+        //entity.anims[ENT_ORIENT_UP    + (ENT_STATE_PICKUP * ENT_ORIENT_COUNT)] = {4, 0, 64, 16};
+        //entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_PICKUP * ENT_ORIENT_COUNT)] = {4, 0, 0,  16};
+        //entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_PICKUP * ENT_ORIENT_COUNT)] = {4, 0, 96, 16};
+        //entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_PICKUP * ENT_ORIENT_COUNT)] = {4, 0, 32, 16};
+
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 0, 384 +  0, 16};
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 0, 384 + 32, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 0, 384 + 64, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_HOLD * ENT_ORIENT_COUNT)] = {4, 0, 384 + 96, 16};
+
     }
     else if (strcmp(entity.type, "necromancer") == 0)
     {
-        entity.anims[ENT_ORIENT_DOWN + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 144, 128, 16}; // necromancer animation
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 64, 0 +  0, 16};
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 64, 0 + 32, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 64, 0 + 64, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_MOVE * ENT_ORIENT_COUNT)] = {4, 64, 0 + 96, 16};
+
+        entity.anims[ENT_ORIENT_UP    + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 64, 128 +  0, 16};
+        entity.anims[ENT_ORIENT_DOWN  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 64, 128 + 32, 16};
+        entity.anims[ENT_ORIENT_LEFT  + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 64, 128 + 64, 16};
+        entity.anims[ENT_ORIENT_RIGHT + (ENT_STATE_ATTACK * ENT_ORIENT_COUNT)] = {4, 64, 128 + 96, 16};
     }
 
     spritebox.left   *= tilewidth;

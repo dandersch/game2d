@@ -29,7 +29,7 @@ struct game_state_t
 
     Entity* focusedEntity;             // used by layer
     i32     focusedEntityIdx = -1;
-    rect_t focusArrow = {64,32,16,32}; // used by layer TODO hardcoded
+    rect_t focusArrow = {224,96,16,32}; // used by layer TODO hardcoded
     Entity* entity_to_place = nullptr;
 };
 enum action_e
@@ -70,60 +70,10 @@ ui_t ui_ctx = {};
 Entity ui_entities[9] = {};
 
 // TESTING AN IMMEDIATE-MODE ANIMATION API //////////////////////////////////////////////////////////////////////
-#define ANIMATOR_MAX_ANIMS 100
-struct animation_ctx_t
-{
-    f32 timers[ANIMATOR_MAX_ANIMS]; // timer for individual animations
-                                    // TODO use a hashtable?
-    // ...
-};
-
-#define SPRITE_DURATION 0.16f
-void anim_update(animation_ctx_t* ctx, rect_t* sprite, animation_t anim, f32 dt, i32 id)
-{
-    ctx->timers[id] += dt;
-
-    // find the correct frame
-    u32 frame = 0;
-    while (ctx->timers[id] > ((frame+1) * SPRITE_DURATION))
-    {
-        frame++;
-    }
-
-    // wraparound
-    if (frame >= anim.count)
-    {
-        frame = 0;
-        ctx->timers[id] = 0;
-    }
-
-    sprite->left = anim.start_pos_x + (frame * anim.delta_x);
-}
-void anim_update(f32* timer, rect_t* sprite_box, animation_t anim, f32 dt)
-{
-    *timer += dt;
-
-    // find the correct frame
-    u32 frame = 0;
-    while (*timer > ((frame+1) * SPRITE_DURATION))
-    {
-        frame++;
-    }
-
-    // wraparound
-    if (frame >= anim.count)
-    {
-        frame = 0;
-        *timer = 0;
-    }
-
-    sprite_box->left = anim.start_pos_x + (frame * anim.delta_x);
-    sprite_box->top  = anim.start_pos_y;
-}
-animation_ctx_t anim_ctx = {};
-animation_t anim_skele     = {4, 0,     0, 16}; // skeleton animation
-animation_t anim_necro     = {4, 144, 128, 16}; // necromancer animation
-animation_t anim_hourglass = {6, 64,  208, 16};
+struct animated_icon { f32 timer; animation_t anim; };
+animated_icon icon_skele     = {0, {4, 0,   32, 16}}; // skeleton animation
+animated_icon icon_necro     = {0, {4, 64,  32, 16}}; // necromancer animation
+animated_icon icon_hourglass = {0, {6, 64, 208, 16}};
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO pass in game_input_t too (?)
@@ -283,7 +233,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 sprintf(string_buf_1,"mouse x: %4d\nmouse y: %4d", ui_ctx.mouse_pos.x, ui_ctx.mouse_pos.y);
                 char string_buf_2[256];
                 sprintf(string_buf_2,"TICKS %d", platform.ticks());
-                anim_update(&anim_ctx, &sprite.box, anim_hourglass, dt, __COUNTER__);
+                anim_update(&icon_hourglass.timer, &sprite.box, icon_hourglass.anim, dt);
                 char string_buf_3[20];
                 sprintf(string_buf_3,"Entity selected %d", state->focusedEntityIdx);
                 ui_window_begin(&ui_ctx, 5, 5, __COUNTER__, WINDOW_LAYOUT_VERTICAL);
@@ -300,15 +250,15 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 if (state->focusedEntityIdx != -1)
                 {
                     ui_window_begin(&ui_ctx, SCREEN_WIDTH-200, 200, __COUNTER__, WINDOW_LAYOUT_HORIZONTAL);
-                        ui_text(&ui_ctx, __COUNTER__, "ORIENTATION", 2);
-                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "DOWN"))
-                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_DOWN;
-                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "RIGHT"))
-                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_RIGHT;
+                        ui_text(&ui_ctx, __COUNTER__, "ORIENT", 2);
                         if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "UP"))
                             state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_UP;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "DOWN"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_DOWN;
                         if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "LEFT"))
                             state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_LEFT;
+                        if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "RIGHT"))
+                            state->ents[state->focusedEntityIdx].orient = ENT_ORIENT_RIGHT;
 
                         ui_text(&ui_ctx, __COUNTER__, "STATE", 2);
                         if (ui_button(&ui_ctx, 100, 20, nullptr, __COUNTER__, "MOVE"))
@@ -325,27 +275,62 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 local u32 window_style = WINDOW_LAYOUT_VERTICAL;
 
                 // animation test
-                anim_update(&anim_ctx, &ui_entities[0].sprite.box, anim_skele, dt, __COUNTER__);
-                anim_update(&anim_ctx, &ui_entities[1].sprite.box, anim_necro, dt, __COUNTER__);
+                anim_update(&icon_skele.timer, &ui_entities[0].sprite.box, icon_skele.anim, dt);
+                anim_update(&icon_necro.timer, &ui_entities[1].sprite.box, icon_necro.anim, dt);
+
+                // proof-of-concept "scrolling"
+                local const int NR_OF_BUTTONS = 6;
+                local const int  nr_of_buttons_visible_at_a_time = 3;
+                local bool button_visible[NR_OF_BUTTONS] = {false, true, true, true, false, false};
+                local bool scroll_window = true;
+                ui_window_begin(&ui_ctx, 850, 10, __COUNTER__);
+                    if (ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "<")) // scroll left button
+                    {
+                        int btn_idx = 0;
+                        while (!button_visible[btn_idx]) btn_idx++;
+
+                        if (btn_idx != 0) // no wraparound
+                        {
+                            button_visible[btn_idx - 1] = true;
+                            button_visible[(btn_idx-1) + nr_of_buttons_visible_at_a_time] = false;
+                        }
+                    }
+                    if (button_visible[0] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "0")) {}
+                    if (button_visible[1] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "1")) {}
+                    if (button_visible[2] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "2")) {}
+                    if (button_visible[3] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "3")) {}
+                    if (button_visible[4] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "4")) {}
+                    if (button_visible[5] && ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, "5")) {}
+                    if (ui_button(&ui_ctx, 30, 30, nullptr, __COUNTER__, ">")) // scroll right button
+                    {
+                        int btn_idx = NR_OF_BUTTONS-1;
+                        while (!button_visible[btn_idx]) btn_idx--;
+
+                        if (btn_idx != (NR_OF_BUTTONS-1)) // no wraparound
+                        {
+                            button_visible[btn_idx+1] = true;
+                            button_visible[(btn_idx+1) - nr_of_buttons_visible_at_a_time] = false;
+                        }
+                    }
+                ui_window_end(&ui_ctx);
 
                 ui_window_begin(&ui_ctx, 50, 800, __COUNTER__, window_style);
                     if (ui_button(&ui_ctx, btn_size_x, btn_size_y, &ui_entities[0].sprite, __COUNTER__))
                     {
-                        printf("pressed btn 1!\n");
                         state->entity_to_place = &ui_entities[0];
                     }
                     if (ui_button(&ui_ctx, btn_size_x, btn_size_y,  &ui_entities[1].sprite, __COUNTER__))
                     {
-                        printf("pressed btn 2!\n");
                         state->entity_to_place = &ui_entities[1];
                     }
                     if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__,"stop"))
                     {
                         state->entity_to_place = nullptr;
                     }
-                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__))
+                    if (ui_button(&ui_ctx, btn_size_x, btn_size_y, NULL, __COUNTER__, "state machine"))
                     {
-                        printf("pressed btn 4!\n");
+                        extern bool apply_state_machine;
+                        apply_state_machine = !apply_state_machine;
                     }
 
                     local f32 r_value = 0.5f;
@@ -468,9 +453,11 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 // TODO animation can crash if IS_ANIMATED entities don't have filled arrays..
                 if (ent.flags & ENT_FLAG_IS_ANIMATED)
                 {
-                    //ent.sprite.box = animation_update(&ent.anim, ent.clips, ent.clip_count, dt);
-                    anim_update(&ent.anim_timer, &ent.sprite.box,
-                                ent.anims[ent.orient + (ent.state * ENT_ORIENT_COUNT)], dt);
+                    if (ent.state != ENT_STATE_IDLE) // TODO workaround because rn we don't have idle anims
+                    {
+                        anim_update(&ent.anim_timer, &ent.sprite.box,
+                                    ent.anims[ent.orient + (ent.state * ENT_ORIENT_COUNT)], dt);
+                    }
                 }
             }
 

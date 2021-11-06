@@ -45,15 +45,6 @@ enum entity_orientation_e
     ENT_ORIENT_COUNT
 };
 
-// TODO move
-struct animation_t
-{
-    u32 count;         // how many sprites are in the animation (NOTE starts at 0)
-    i32 start_pos_x;   // where the sprite animation starts on x-axis
-    i32 start_pos_y;   // ... on y-axis
-    i32 delta_x;       // dist. to next sprite on x-axis
-};
-
 // TODO default values
 struct Entity
 {
@@ -71,14 +62,8 @@ struct Entity
 
     char type[20]; // TODO
 
-    // ANIMATION TODO
-    AnimationClip clips[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
-    Animator      anim                              = {nullptr, 0, 0};
-    u32           clip_count                        = 0;
     f32 anim_timer = 0.0f;
     animation_t anims[ENT_STATE_COUNT * ENT_ORIENT_COUNT] = {};
-    //Animation anim;    // TODO use an index that accesses into anims instead
-    //Animation anims[STATE_COUNT * ORIENT_COUNT];
 
     // TODO fill up with nullcommands at start?
     //Command* cmds[MAX_CMD_COUNT]; // command array for replay
