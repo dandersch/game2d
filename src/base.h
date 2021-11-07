@@ -18,7 +18,7 @@
 #endif
 
 #if !defined(PLATFORM_LINUX) && !defined(PLATFORM_WIN32) && !defined(PLATFORM_WEB)
-    #error "no platform detected"
+    #error "no supported platform detected"
 #endif
 
 // NOTE we use SDL on linux & web builds
@@ -112,7 +112,7 @@ typedef double   f64;
 #define internal_fn static // for 'static' functions
 #define local       static // for 'static' variables inside a function
 #define global_var  static // 'static' variables in global scope can be considered global variables when
-                        // compiling only one translation unit (unity build)
+                           // compiling only one translation unit (unity build)
 
 // numerical limits
 #include <float.h>  // for FLT_MAX/MIN
@@ -222,6 +222,13 @@ union v3f
 // TODO common operations on vectors
 // dot product
 // cross product
+// length/magnitude
+
+// common math operations
+#define LERP(min, max, interpolant) (min + interpolant * (max - min))
+// NOTE might cause problems when mixing e.g. floats & integers, maybe use a function instead
+#define MAP_VALUE_IN_RANGE1_TO_RANGE2(value, range1_min, range1_max, range2_min, range2_max) \
+        ((value - range1_min) / (range1_max - range1_min) * (range2_max - range2_min) + range2_min)
 
 // some other useful types
 struct rect_t

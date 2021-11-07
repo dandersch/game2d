@@ -499,6 +499,12 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
             auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
             platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
+
+            // testing drawing colliders
+            auto collider      = state->focusedEntity->getColliderInWorld();
+            auto pos_on_screen = camera_world_to_screen(state->cam, {(f32)collider.left, (f32)collider.top, 0});
+            rect_t collider_on_screen = { (i32)pos_on_screen.x, (i32)pos_on_screen.y, collider.w, collider.h };
+            platform.renderer.push_rect_outline({ collider_on_screen, -10, {1,1,1,1} }, 1);
         }
 
         if (state->entity_to_place)

@@ -99,8 +99,10 @@ struct ui_t
                                 // that we can check to see if we should let an event through to the game
 
     /* rendering */
-    render_entry_texture_t render_buf[UI_ELEMENTS_MAX];
-    u32 render_elems_count;
+    render_entry_texture_t texture_buf[UI_ELEMENTS_MAX]; // used by icons & text glyphs
+    render_entry_rect_t    rect_buf[UI_ELEMENTS_MAX];    // windows,buttons, etc.
+    u32 texture_count;
+    u32 rect_count;
 
     /* unused */
     ui_id id_stack[UI_ELEMENTS_MAX]; // TODO per frame to check for id collisions
@@ -122,7 +124,8 @@ inline void ui_init(ui_t* ctx, platform_api_t* platform, platform_window_t* wind
 inline void ui_begin(ui_t* ctx)
 {
     /* TODO assert */
-    ctx->render_elems_count = 0;
+    ctx->texture_count = 0;
+    ctx->rect_count    = 0;
     ctx->curr_window.active = 0;
     ctx->window_focused     = false;
     ctx->curr_focus         = __COUNTER__; // zero, TODO better id system
@@ -167,7 +170,7 @@ inline void ui_window_end(ui_t* ctx)
     rect_t   dst   = ctx->curr_window.rect;
     i32      z_idx = ctx->curr_window.zindex;
     colorf_t color = ctx->style.colors[UI_COLOR_WINDOW];
-    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, dst, z_idx, color};
+    ctx->rect_buf[ctx->rect_count++] = { dst, z_idx, color };
 
     // if (skeuomorphic) {
         rect_t   dst_bg   = dst;
@@ -178,7 +181,7 @@ inline void ui_window_end(ui_t* ctx)
         color_bg.g -= 0.1f;
         color_bg.b -= 0.1f;
         color_bg.a += 0.2f;
-        ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, dst_bg, z_idx+1, color_bg};
+        ctx->rect_buf[ctx->rect_count++] = { dst_bg, z_idx+1, color_bg };
     // }
 
     //ctx->curr_window.active = false;
@@ -274,7 +277,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
 
     const i32 BTN_Z_INDEX = -5;
     /* push elements to render */
-    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, btn_rect, BTN_Z_INDEX, btn_color};
+    ctx->rect_buf[ctx->rect_count++] = { btn_rect, BTN_Z_INDEX, btn_color };
     if (sprite)
     {
         // try to center the sprite in the button
@@ -284,7 +287,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
         i32 sprite_start_y  = btn_rect.top  + sprite_offset_y;
         rect_t dst = {sprite_start_x, sprite_start_y, sprite->box.w, sprite->box.h};
 
-        ctx->render_buf[ctx->render_elems_count++] = {sprite->tex, sprite->box, dst, BTN_Z_INDEX-1};
+        ctx->texture_buf[ctx->texture_count++] = {sprite->tex, sprite->box, dst, BTN_Z_INDEX-1};
     }
 
     /* push font chars to render */
@@ -352,7 +355,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
 
             rect_t char_box = ui_font_get_box_for_char(ctx->font, text[i]);
             //rect_t char_box = {12,12, ctx->font.FONT_CHAR_WIDTH, ctx->font.FONT_CHAR_HEIGHT};
-            ctx->render_buf[ctx->render_elems_count++] = {ctx->font.bitmap, char_box, char_dst, BTN_Z_INDEX-2};
+            ctx->texture_buf[ctx->texture_count++] = {ctx->font.bitmap, char_box, char_dst, BTN_Z_INDEX-2};
             char_dst.left += char_box.w;
         }
     }
@@ -417,7 +420,7 @@ inline b32 ui_slider_float(ui_t* ctx, f32* value, ui_id id, f32 min = 0.0f, f32 
         // slider "click" logic
         i32 delta_px = ctx->mouse_pos.x - widget_rect.left;
         f32 interpolant = (f32) delta_px / (f32) widget_rect.w;
-        new_value_if_pressed = min + interpolant * (max - min); // lerp
+        new_value_if_pressed = LERP(min, max, interpolant);
     }
 
     b32 pressed = false;
@@ -436,9 +439,9 @@ inline b32 ui_slider_float(ui_t* ctx, f32* value, ui_id id, f32 min = 0.0f, f32 
 
     const i32 BTN_Z_INDEX = -5;
     /* push elements to render */
-    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, widget_rect, BTN_Z_INDEX, widget_color};
-    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, left_rect,   BTN_Z_INDEX, left_color};
-    ctx->render_buf[ctx->render_elems_count++] = {nullptr, {0}, slider_rect, BTN_Z_INDEX - 1, slider_color};
+    ctx->rect_buf[ctx->rect_count++] = { widget_rect, BTN_Z_INDEX, widget_color };
+    ctx->rect_buf[ctx->rect_count++] = { left_rect,   BTN_Z_INDEX, left_color };
+    ctx->rect_buf[ctx->rect_count++] = { slider_rect, BTN_Z_INDEX - 1, slider_color };
 
     return pressed;
 }
@@ -454,7 +457,7 @@ inline void ui_icon(ui_t* ctx, ui_id id, sprite_t sprite, f32 size = 1)
     i32 sprite_start_y  = sprite_rect.top  ;
     rect_t dst = {sprite_start_x, sprite_start_y, sprite_rect.w, sprite_rect.h};
 
-    ctx->render_buf[ctx->render_elems_count++] = {sprite.tex, sprite.box, dst, -6};
+    ctx->texture_buf[ctx->texture_count++] = {sprite.tex, sprite.box, dst, -6};
 }
 
 // TODO support sprintf
@@ -505,16 +508,21 @@ inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
         }
 
         rect_t char_box = ui_font_get_box_for_char(ctx->font, text[i]);
-        ctx->render_buf[ctx->render_elems_count++] = {ctx->font.bitmap, char_box, char_dst, -10};
+        ctx->texture_buf[ctx->texture_count++] = {ctx->font.bitmap, char_box, char_dst, -10};
         char_dst.left += width_per_char;
     }
 }
 
 inline void ui_render(ui_t* ctx, platform_api_t* platform)
 {
-    ASSERT(ctx->render_elems_count < UI_ELEMENTS_MAX);
-    for (u32 i = 0; i < ctx->render_elems_count; i++)
-        platform->renderer.push_texture(ctx->render_buf[i]);
+    ASSERT(ctx->rect_count    < UI_ELEMENTS_MAX);
+    ASSERT(ctx->texture_count < UI_ELEMENTS_MAX);
+
+    for (u32 i = 0; i < ctx->rect_count; i++)
+        platform->renderer.push_rect(ctx->rect_buf[i]);
+
+    for (u32 i = 0; i < ctx->texture_count; i++)
+        platform->renderer.push_texture(ctx->texture_buf[i]);
 }
 
 #endif // INTERFACE_H_

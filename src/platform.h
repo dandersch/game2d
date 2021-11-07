@@ -63,19 +63,21 @@ typedef void (*renderer_push_sprite_fn)(texture_t*, rect_t, v3f, f32);
 typedef void (*renderer_push_texture_fn)(render_entry_texture_t);
 typedef void (*renderer_push_texture_mod_fn)(render_entry_texture_mod_t);
 typedef void (*renderer_push_rect_fn)(render_entry_rect_t);
+typedef void (*renderer_push_rect_outline_fn)(render_entry_rect_t, i32);
 typedef void (*renderer_push_clear_fn)(render_entry_clear_t);
 typedef void (*renderer_push_present_fn)(render_entry_present_t);
 typedef texture_t*  (*renderer_load_texture_fn)(platform_window_t*, const char*);
 typedef texture_t*  (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
-typedef i32        (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
+typedef i32         (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
 struct renderer_api_t
 {
-    renderer_push_sprite_fn      push_sprite;
-    renderer_push_texture_fn     push_texture;
-    renderer_push_texture_mod_fn push_texture_mod;
-    renderer_push_rect_fn        push_rect;
-    renderer_push_clear_fn       push_clear;
-    renderer_push_present_fn     push_present; // TODO should the game layer have access to this?
+    renderer_push_sprite_fn       push_sprite;
+    renderer_push_texture_fn      push_texture;
+    renderer_push_texture_mod_fn  push_texture_mod;
+    renderer_push_rect_fn         push_rect;
+    renderer_push_rect_outline_fn push_rect_outline;
+    renderer_push_clear_fn        push_clear;
+    renderer_push_present_fn      push_present; // TODO should the game layer have access to this?
 
     renderer_load_texture_fn                load_texture;
     renderer_create_texture_from_surface_fn create_texture_from_surface;

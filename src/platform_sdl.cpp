@@ -395,7 +395,7 @@ void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos
     // TODO maybe put this into the renderer
     if (!SDL_RectEmpty((SDL_Rect*) &dst)) // == if (!(dst.h <= 0.f && dst.w <= 0.f))
     {
-        renderer_push_rect({dst, color});
+        //renderer_push_rect({dst, color});
     }
 
     //SDL_RenderDrawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2)
@@ -476,6 +476,7 @@ platform_api_t platform_api =
     &renderer_push_texture,
     &renderer_push_texture_mod,
     &renderer_push_rect,
+    &renderer_push_rect_outline,
     &renderer_push_clear,
     &renderer_push_present,
 

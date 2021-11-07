@@ -37,7 +37,7 @@ const char* vertex_shader_src =
     "out vec4 o_color;\n"
     "void main()\n"
     "{\n"
-        "gl_Position  = vec4(pos.x, -pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
+        "gl_Position  = vec4(pos.x, pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
         "o_tex_coords = tex_coords;\n"
         "o_tex_index  = tex_index;\n"
         "o_color      = color;\n"
@@ -207,7 +207,7 @@ internal_fn texture_t* create_and_upload_texture(i32 width, i32 height, i32 mode
 
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
-    //stbi_set_flip_vertically_on_load(true); TODO doesn't work as expected
+    //stbi_set_flip_vertically_on_load(true); // TODO doesn't work as expected
 
     i32 width, height, nrChannels;
     u8* data = stbi_load(filename, &width, &height, &nrChannels, 0);
@@ -337,56 +337,36 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_texture_t* draw_tex = (render_entry_texture_t*) curr_entry;
 
+                ASSERT(draw_tex->tex);
+                ASSERT(!utils_rect_empty(draw_tex->dst));
+                ASSERT(!utils_rect_empty(draw_tex->src));
+
                 const u32 SCREEN_WIDTH  = window->width;
                 const u32 SCREEN_HEIGHT = window->height;
 
                 f32 TEXTURE_WIDTH  = 0;
                 f32 TEXTURE_HEIGHT = 0;
-                GLuint tex_id      = 0;
-                colorf_t color     = draw_tex->color;
+                f32 tex_id         = 0;
+                colorf_t color     = {1,1,1,1};
 
-                if (draw_tex->tex)
-                {
-                    TEXTURE_WIDTH  = draw_tex->tex->width;
-                    TEXTURE_HEIGHT = draw_tex->tex->height;
-                    tex_id      = draw_tex->tex->id;
-                }
-
-                // TODO we need to do this here because right now the game layer can push empty src/dst rectangles,
-                // which is supposed to mean to use the entire texture/entire screen.
-                // Maybe we should just disallow this, but then the game layer has to query for texture attributes
-                SDL_Rect* src = (SDL_Rect*) &draw_tex->src;
-                SDL_Rect* dst = (SDL_Rect*) &draw_tex->dst;
-                if (utils_rect_empty(draw_tex->src))
-                {
-                    src->x = 0;
-                    src->y = 0;
-                    src->w = TEXTURE_WIDTH;
-                    src->h = TEXTURE_HEIGHT;
-                }
-                if (utils_rect_empty(draw_tex->dst))
-                {
-                    dst->x = 0;
-                    dst->y = 0;
-                    dst->w = SCREEN_WIDTH;
-                    dst->h = SCREEN_HEIGHT;
-                }
+                TEXTURE_WIDTH  = draw_tex->tex->width;
+                TEXTURE_HEIGHT = draw_tex->tex->height;
+                tex_id         = (f32) draw_tex->tex->id;
 
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280, y,h:0-960),
                 // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
                 f32 screen_x = (draw_tex->dst.left / (SCREEN_WIDTH/2.f))  - 1.f;
-                f32 screen_y = (draw_tex->dst.top  / (SCREEN_HEIGHT/2.f)) - 1.f;
+                f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(draw_tex->dst.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
                 f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
-                f32 screen_h = (draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
+                f32 screen_h = -(draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
 
                 // NOTE draw_tex->src is in pixel coordinates
                 // (x,w:0-texture_width y,h:0-texture_height with origin in top left corner),
                 // but opengl needs texture coordinates from 0 to 1 (origin is bottom left corner)
-                // TODO change origin
-                f32 tex_x = (draw_tex->src.left / TEXTURE_WIDTH);
-                f32 tex_y = (draw_tex->src.top  / TEXTURE_HEIGHT);
-                f32 tex_w = (draw_tex->src.w / TEXTURE_WIDTH);
-                f32 tex_h = (draw_tex->src.h / TEXTURE_HEIGHT);
+                f32 tex_x = (draw_tex->src.left / TEXTURE_WIDTH) ;
+                f32 tex_y = (draw_tex->src.top  / TEXTURE_HEIGHT) - 1.0f;
+                f32 tex_w = (draw_tex->src.w    / TEXTURE_WIDTH);
+                f32 tex_h = (draw_tex->src.h    / TEXTURE_HEIGHT);
 
                 // flush the batch if we don't have any room left for another quad
                 if (vertex_count + 6 >= BATCHED_VERTICES_MAX)
@@ -394,22 +374,22 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 { // add to batch
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 1
+                        screen_x,            screen_y,            tex_x,         tex_y,          tex_id, color // vertex 1
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,          (f32) tex_id, color // vertex 2
+                        screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,          tex_id, color // vertex 2
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 3
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  tex_id, color // vertex 3
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y,            tex_x,         tex_y,          (f32) tex_id, color // vertex 1
+                        screen_x,            screen_y,            tex_x,         tex_y,          tex_id, color // vertex 1
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  (f32) tex_id, color // vertex 3
+                        screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  tex_id, color // vertex 3
                     };
                     vbo_batch[vertex_count++] = {
-                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  (f32) tex_id, color // vertex 4
+                        screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  tex_id, color // vertex 4
                     };
                 }
 
@@ -423,8 +403,42 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
 
-                // TODO opengl code here
-                // ...
+                const u32 SCREEN_WIDTH  = window->width;
+                const u32 SCREEN_HEIGHT = window->height;
+                colorf_t color = rect->color;
+
+                // NOTE rect is in pixel coordinates (x,w:0-1280, y,h:0-960),
+                // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
+                // TODO duplicated
+                f32 screen_x = (rect->rect.left / (SCREEN_WIDTH/2.f))  - 1.f;
+                f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(rect->rect.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
+                f32 screen_w = (rect->rect.w / (SCREEN_WIDTH/2.f));
+                f32 screen_h = -(rect->rect.h / (SCREEN_HEIGHT/2.f));
+
+                // flush the batch if we don't have any room left for another quad
+                if (vertex_count + 6 >= BATCHED_VERTICES_MAX)
+                    flush_batch();
+
+                { // add to batch
+                    vbo_batch[vertex_count++] = {
+                        screen_x,            screen_y,            0, 0,  0, color // vertex 1
+                    };
+                    vbo_batch[vertex_count++] = {
+                        screen_x + screen_w, screen_y,            0, 0,  0, color // vertex 2
+                    };
+                    vbo_batch[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, 0, 0,  0, color // vertex 3
+                    };
+                    vbo_batch[vertex_count++] = {
+                        screen_x,            screen_y,            0, 0,  0, color // vertex 1
+                    };
+                    vbo_batch[vertex_count++] = {
+                        screen_x + screen_w, screen_y + screen_h, 0, 0,  0, color // vertex 3
+                    };
+                    vbo_batch[vertex_count++] = {
+                        screen_x,            screen_y + screen_h, 0, 0,  0, color // vertex 4
+                    };
+                }
 
                 curr_entry += sizeof(render_entry_rect_t);
             } break;
@@ -450,12 +464,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_PRESENT:
             {
-                flush_batch(); // TODO find a better place to call this ?
+                flush_batch();
 
-                /* TODO opengl code here */
-                // NOTE maybe this shouldn't be a renderer command after all and
-                // instead the platform layer just calls this after processing
-                // cmds is done
                 SDL_GL_SwapWindow(window->handle);
 
                 curr_entry += sizeof(render_entry_present_t);

@@ -26,19 +26,19 @@ struct render_entry_header_t { u32 type; }; // put in its own struct for casting
 struct render_entry_clear_t   { /* maybe color ? */ };
 struct render_entry_present_t { /* placeholder */ };
 
-struct render_entry_texture_t // all data needed for this render command
+struct render_entry_texture_t
 {
     texture_t* tex;
     rect_t     src;
     rect_t     dst;
     i32        z_idx = 0;
-    colorf_t   color = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
-struct render_entry_rect_t // debug
+struct render_entry_rect_t
 {
-    rect_t  rect;
-    color_t color;
+    rect_t   rect;
+    i32      z_idx = -1;
+    colorf_t color = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 enum texture_blend_mode_e // mirrors SDL_BlendMode for now
@@ -80,6 +80,7 @@ void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position
 void renderer_push_texture(render_entry_texture_t draw_tex);
 void renderer_push_texture_mod(render_entry_texture_mod_t mod);
 void renderer_push_rect(render_entry_rect_t rect);
+void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness);
 void renderer_push_clear(render_entry_clear_t clear);
 void renderer_push_present(render_entry_present_t present);
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename);

@@ -103,7 +103,6 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 SDL_Texture* tex_id = nullptr;
                 if (draw_tex->tex) tex_id = draw_tex->tex->id;
 
-
                 // NOTE we need to do this here because SDL_RenderCopy expects
                 // pointers & NULL has special meaning (and a nullptr doesn't do
                 // the same things as an empty rectangle)
@@ -112,19 +111,10 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 if (utils_rect_empty(draw_tex->src)) src = NULL;
                 if (utils_rect_empty(draw_tex->dst)) dst = NULL;
 
-                SDL_SetRenderDrawColor(renderer, (u8) (draw_tex->color.r * 255),
-                                                 (u8) (draw_tex->color.g * 255),
-                                                 (u8) (draw_tex->color.b * 255),
-                                                 (u8) (draw_tex->color.a * 255));
                 if (tex_id)
                 {
                     SDL_RenderCopy(renderer, tex_id, src, dst);
                 }
-                else
-                {
-                    SDL_RenderFillRect(renderer, dst);
-                }
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
@@ -133,8 +123,11 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_rect_t* rect = (render_entry_rect_t*) curr_entry;
 
-                SDL_SetRenderDrawColor(renderer, rect->color.r, rect->color.g, rect->color.b, rect->color.a);
-                SDL_RenderDrawRect(renderer, (SDL_Rect*) &rect->rect);
+                SDL_SetRenderDrawColor(renderer, (u8) (rect->color.r * 255),
+                                                 (u8) (rect->color.g * 255),
+                                                 (u8) (rect->color.b * 255),
+                                                 (u8) (rect->color.a * 255));
+                SDL_RenderFillRect(renderer, (SDL_Rect*) &rect->rect);
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
                 curr_entry += sizeof(render_entry_rect_t);

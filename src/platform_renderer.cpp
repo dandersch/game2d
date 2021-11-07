@@ -57,7 +57,6 @@ internal_fn void renderer_sort_buffer()
 }
 
 
-// TODO pass in a color
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
 {
     rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
@@ -74,18 +73,37 @@ void renderer_push_texture(render_entry_texture_t draw_tex)
 }
 
 
+void renderer_push_rect(render_entry_rect_t rect)
+{
+    sort_buf[sort_entry_count].key1  = rect.rect.top;
+    sort_buf[sort_entry_count].key2  = rect.rect.top + rect.rect.h;
+    sort_buf[sort_entry_count].z_key = rect.z_idx;
+    PUSH_CMD(RENDER_ENTRY_TYPE_RECT, rect);
+}
+
+
+// constructs the outline of a rectangle using 4 rectangles, used for debugging
+void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness)
+{
+    render_entry_rect_t top    = { { rect.rect.left, rect.rect.top, rect.rect.w, thickness}, -1, rect.color };
+    render_entry_rect_t left   = { { rect.rect.left, rect.rect.top, thickness, rect.rect.h}, -1, rect.color };
+    render_entry_rect_t right  = { { rect.rect.left + rect.rect.w - thickness, rect.rect.top, thickness, rect.rect.h},
+                                   -1, rect.color };
+    render_entry_rect_t bottom = { { rect.rect.left, rect.rect.top + rect.rect.h - thickness, rect.rect.w, thickness },
+                                   -1, rect.color };
+    renderer_push_rect(top);
+    renderer_push_rect(bottom);
+    renderer_push_rect(left);
+    renderer_push_rect(right);
+}
+
+
 // NOTE doesn't get called
 void renderer_push_texture_mod(render_entry_texture_mod_t mod)
 {
     PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE_MOD, mod);
 }
 
-
-// NOTE doesn't get called for now
-void renderer_push_rect(render_entry_rect_t rect)
-{
-    PUSH_CMD(RENDER_ENTRY_TYPE_RECT, rect);
-}
 
 
 void renderer_push_clear(render_entry_clear_t clear)
