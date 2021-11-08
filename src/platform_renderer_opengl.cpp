@@ -28,6 +28,7 @@ struct texture_t
 
 const char* vertex_shader_src =
     "#version 330 core\n"
+    "uniform mat4 u_camera;\n"
     "layout (location = 0) in vec2 pos;\n"
     "layout (location = 1) in vec2 tex_coords;\n"
     "layout (location = 2) in float tex_index;\n"
@@ -37,7 +38,7 @@ const char* vertex_shader_src =
     "out vec4 o_color;\n"
     "void main()\n"
     "{\n"
-        "gl_Position  = vec4(pos.x, pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
+        "gl_Position  = u_camera * vec4(pos.x, pos.y, 1.0, 1.0);\n" // NOTE -y seems to fix orientation
         "o_tex_coords = tex_coords;\n"
         "o_tex_index  = tex_index;\n"
         "o_color      = color;\n"
@@ -86,6 +87,7 @@ global_var u32 vertex_count = 0;
 global_var u32 prog_id;
 #define MAX_TEX_UNITS 16 // NOTE also needs to be changed in fragment shader if changed!
 global_var i32 uni_loc_tex_units;
+global_var i32 uni_loc_camera;
 global_var u32 vao;
 
 // GLEW_OK = 0
@@ -152,10 +154,20 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     }
 
     // cache uniform location
+    uni_loc_camera = glGetUniformLocation(prog_id, "u_camera");
+    if (uni_loc_camera == -1) { UNREACHABLE("uniform '%s' not found\n", "u_camera"); }
+
     uni_loc_tex_units = glGetUniformLocation(prog_id, "u_tex_units");
     if (uni_loc_tex_units == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
     i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
     glUseProgram(prog_id); // NOTE needs to be set before uploading uniforms
+
+    // upload uniforms
+    f32 cam_mtx[4][4] = {{1,0,0,0},
+                         {0,1,0,0},
+                         {0,0,1,0},
+                         {0,0,0,1}};
+    glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &cam_mtx[0][0]);
     glUniform1iv(uni_loc_tex_units, 16, samplers);
 
     vbo_batch = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
@@ -166,6 +178,13 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 
     auto err = glGetError();
     if (err != GL_NO_ERROR) printf("%s\n", glewGetErrorString(err));
+}
+
+
+void renderer_upload_camera(cam_mtx_t mtx)
+{
+    glUseProgram(prog_id);
+    glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &mtx.mtx[0][0]);
 }
 
 
@@ -313,10 +332,10 @@ void flush_batch()
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
     // unbind & delete buffers afterwards NOTE doesn't seem to make a difference
-    glUseProgram(NULL);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &vbo);
-    glDeleteVertexArrays(1, &vao);
+    //glUseProgram(NULL);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glDeleteBuffers(1, &vbo);
+    //glDeleteVertexArrays(1, &vao);
 
     vertex_count = 0;
 }
@@ -355,10 +374,14 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280, y,h:0-960),
                 // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
-                f32 screen_x = (draw_tex->dst.left / (SCREEN_WIDTH/2.f))  - 1.f;
-                f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(draw_tex->dst.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
-                f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
-                f32 screen_h = -(draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
+                //f32 screen_x = (draw_tex->dst.left / (SCREEN_WIDTH/2.f))  - 1.f;
+                //f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(draw_tex->dst.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
+                //f32 screen_w = (draw_tex->dst.w / (SCREEN_WIDTH/2.f));
+                //f32 screen_h = -(draw_tex->dst.h / (SCREEN_HEIGHT/2.f));
+                f32 screen_x = draw_tex->dst.left;
+                f32 screen_y = draw_tex->dst.top; // map to -1 to 1
+                f32 screen_w = draw_tex->dst.w;
+                f32 screen_h = draw_tex->dst.h;
 
                 // NOTE draw_tex->src is in pixel coordinates
                 // (x,w:0-texture_width y,h:0-texture_height with origin in top left corner),

@@ -513,10 +513,22 @@ inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
     }
 }
 
-inline void ui_render(ui_t* ctx, platform_api_t* platform)
+inline void ui_render(ui_t* ctx, platform_api_t* platform, Camera cam)
 {
     ASSERT(ctx->rect_count    < UI_ELEMENTS_MAX);
     ASSERT(ctx->texture_count < UI_ELEMENTS_MAX);
+
+    // TODO workaround bc of orthographic cam
+    for (u32 i = 0; i < ctx->rect_count; i++)
+    {
+        ctx->rect_buf[i].rect.left += cam.rect.left;
+        ctx->rect_buf[i].rect.top  += cam.rect.top;
+    }
+    for (u32 i = 0; i < ctx->texture_count; i++)
+    {
+        ctx->texture_buf[i].dst.left += cam.rect.left;
+        ctx->texture_buf[i].dst.top  += cam.rect.top;
+    }
 
     for (u32 i = 0; i < ctx->rect_count; i++)
         platform->renderer.push_rect(ctx->rect_buf[i]);

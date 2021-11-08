@@ -482,7 +482,9 @@ platform_api_t platform_api =
 
     &renderer_load_texture,
     &renderer_create_texture_from_surface,
-    &renderer_texture_query
+    &renderer_texture_query,
+
+    &renderer_upload_camera,
   },
 };
 

@@ -196,8 +196,10 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             if (state->game_input.keyboard.key_right.is_down) state->cam.rect.left += 5;
 
             // zoom in/out on mouse scroll
-            if (state->game_input.mouse.wheel < 0) camera_zoom(state->cam, 0.5f, {mouse_pos.x, mouse_pos.y});
-            if (state->game_input.mouse.wheel > 0) camera_zoom(state->cam, 2.0f, {mouse_pos.x, mouse_pos.y});
+            //if (state->game_input.mouse.wheel < 0) camera_zoom(state->cam, 0.5f, {mouse_pos.x, mouse_pos.y});
+            //if (state->game_input.mouse.wheel > 0) camera_zoom(state->cam, 2.0f, {mouse_pos.x, mouse_pos.y});
+            if (state->game_input.mouse.wheel < 0) { state->cam.rect.w *= 0.5f; state->cam.rect.h *= 0.5f; }
+            if (state->game_input.mouse.wheel > 0) { state->cam.rect.h *= 2.0f; state->cam.rect.h *= 2.0f; }
         }
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
@@ -219,7 +221,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
             /* test our immediate mode ui */
             // NOTE break code hotloading right now, probably because the ui_context isn't in the game_state
-            {
+            if(1){
                 ui_begin(&ui_ctx);
 
                 // ui input update
@@ -473,11 +475,39 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
         Entity* ents = state->ents;
         Tile* tiles  = state->tiles;
 
+        // orthographic camera matrix 6 tuple:
+        // (left,          right,                      bottom,                    top,          near, far)
+        // (cam.rect.left, cam.rect.left + cam.rect.w, cam.rect.top + cam.rect.h, cam.rect.top,  -50,  50)
+        f32 left   = (f32) state->cam.rect.left;
+        f32 right  = (f32) state->cam.rect.left + state->cam.rect.w;
+        f32 bottom = (f32) state->cam.rect.top  + state->cam.rect.h;
+        f32 top    = (f32) state->cam.rect.top;
+        f32 near   = -50;
+        f32 far    = 50;
+        cam_mtx_t cam_mtx = {0};
+        //f32 matrix[4][4] = {{1,0,0,0},
+        //                    {0,1,0,0},
+        //                    {0,0,1,0},
+        //                    {0,0,0,1}};
+        //f32 matrix[4][4] = { {2/(right-left),              0,               0, -((right+left)/(right-left))},
+        //                     {             0, 2/(top-bottom),               0, -((top+bottom)/(top-bottom))},
+        //                     {             0,              0, (-2)/(far-near),     -((far+near)/(far-near))},
+        //                     {             0,              0,               0,                            1}};
+        f32 matrix[4][4] = { {2/(right-left),              0,               0, 0},
+                             {             0, 2/(top-bottom),               0, 0},
+                             {             0,              0, (2)/(far-near), 0},
+                             {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}};
+        //cam_mtx.mtx = matrix;
+        memcpy(&cam_mtx.mtx, matrix, sizeof(f32) * 4 * 4);
+        platform.renderer.upload_camera(cam_mtx);
+
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         for (u32 i = 0; i < state->tile_count; i++) // TODO tilemap culling
         {
+
             platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
-                                          camera_world_to_screen(state->cam, tiles[i].position),
+                                          //camera_world_to_screen(state->cam,tiles[i].position),
+                                          tiles[i].position,
                                           state->cam.scale);
         }
 
@@ -489,7 +519,8 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                                                // TODO instead we should maybe just have an ENT_FLAG_RENDERED
                                                // that we check here
                 platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
-                                              camera_world_to_screen(state->cam, ents[i].position),
+                                              //camera_world_to_screen(state->cam, ents[i].position),
+                                              ents[i].position,
                                               state->cam.scale);
         }
 
@@ -497,7 +528,8 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
         if (state->focusedEntity)
         {
             sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
-            auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
+            //auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
+            auto pos = state->focusedEntity->position;
             platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
 
             // testing drawing colliders
@@ -514,7 +546,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
         }
     }
 
-    ui_render(&ui_ctx, &platform);
+    ui_render(&ui_ctx, &platform, state->cam);
 
     platform.renderer.push_present({});
     platform.render(state->window);

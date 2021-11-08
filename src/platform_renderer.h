@@ -75,6 +75,10 @@ struct renderer_cmd_buf_t
     u32 entry_count;
 };
 
+// testing camera matrix uploading
+struct cam_mtx_t { f32 mtx[4][4]; };
+void renderer_upload_camera(cam_mtx_t mtx);
+
 /* called by game layer */
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale);
 void renderer_push_texture(render_entry_texture_t draw_tex);

@@ -69,6 +69,9 @@ typedef void (*renderer_push_present_fn)(render_entry_present_t);
 typedef texture_t*  (*renderer_load_texture_fn)(platform_window_t*, const char*);
 typedef texture_t*  (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
 typedef i32         (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
+
+typedef void (*renderer_upload_camera_fn)(cam_mtx_t);
+
 struct renderer_api_t
 {
     renderer_push_sprite_fn       push_sprite;
@@ -82,6 +85,8 @@ struct renderer_api_t
     renderer_load_texture_fn                load_texture;
     renderer_create_texture_from_surface_fn create_texture_from_surface;
     renderer_texture_query_fn               texture_query;
+
+    renderer_upload_camera_fn               upload_camera;
 };
 
 struct platform_api_t
