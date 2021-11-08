@@ -10,8 +10,14 @@ struct Camera
     // TODO use instead:
     // v2f topleft;
     // v2i size;
-    rect_t rect  = {200, 320, (i32) SCREEN_WIDTH, (i32) SCREEN_HEIGHT};
+    rect_t rect    = {200, 320, (i32) SCREEN_WIDTH, (i32) SCREEN_HEIGHT};
     f32    scale = 1.f;
+
+    // for lerping
+    rect_t target = rect; // TODO this needs to set for lerping right now
+    rect_t source;
+    f32 timer        = 0.0f;
+    f32 TIME_TO_LERP = 0.5f;
 };
 
 v3f camera_screen_to_world(Camera& cam, const v3f& cam_pos);

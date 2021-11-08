@@ -77,7 +77,7 @@ struct renderer_cmd_buf_t
 
 // testing camera matrix uploading
 struct cam_mtx_t { f32 mtx[4][4]; };
-void renderer_upload_camera(cam_mtx_t mtx);
+void renderer_upload_camera(cam_mtx_t mtx, f32 zoom);
 
 /* called by game layer */
 void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale);

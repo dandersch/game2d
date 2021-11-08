@@ -8,6 +8,22 @@ typedef i32 ui_id;
 // TODO embed a bitmap font
 //#include "bitmap_font.h"
 
+#define PUSH_TEXTURE(tex, src, dst, z)                                          \
+        {                                                                       \
+            rect_t offset_dst = dst;                                            \
+            offset_dst.left += ctx->cam.rect.left;                              \
+            offset_dst.top  += ctx->cam.rect.top;                               \
+            ctx->texture_buf[ctx->texture_count++] = {tex, src, offset_dst, z}; \
+        }
+
+#define PUSH_RECT(dst, z, color)                                       \
+        {                                                              \
+            rect_t offset_dst = dst;                                   \
+            offset_dst.left += ctx->cam.rect.left;                     \
+            offset_dst.top  += ctx->cam.rect.top;                      \
+            ctx->rect_buf[ctx->rect_count++] = {offset_dst, z, color}; \
+        }
+
 #define UI_ELEMENTS_MAX 1000 // NOTE right now every character is an 'element'
 enum ui_color_e
 {
@@ -104,6 +120,8 @@ struct ui_t
     u32 texture_count;
     u32 rect_count;
 
+    Camera cam; // TODO workaround bc of orthographic cam
+
     /* unused */
     ui_id id_stack[UI_ELEMENTS_MAX]; // TODO per frame to check for id collisions
 };
@@ -170,7 +188,7 @@ inline void ui_window_end(ui_t* ctx)
     rect_t   dst   = ctx->curr_window.rect;
     i32      z_idx = ctx->curr_window.zindex;
     colorf_t color = ctx->style.colors[UI_COLOR_WINDOW];
-    ctx->rect_buf[ctx->rect_count++] = { dst, z_idx, color };
+    PUSH_RECT(dst, z_idx, color);
 
     // if (skeuomorphic) {
         rect_t   dst_bg   = dst;
@@ -181,7 +199,7 @@ inline void ui_window_end(ui_t* ctx)
         color_bg.g -= 0.1f;
         color_bg.b -= 0.1f;
         color_bg.a += 0.2f;
-        ctx->rect_buf[ctx->rect_count++] = { dst_bg, z_idx+1, color_bg };
+        PUSH_RECT(dst_bg, z_idx+1, color_bg);
     // }
 
     //ctx->curr_window.active = false;
@@ -277,7 +295,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
 
     const i32 BTN_Z_INDEX = -5;
     /* push elements to render */
-    ctx->rect_buf[ctx->rect_count++] = { btn_rect, BTN_Z_INDEX, btn_color };
+    PUSH_RECT(btn_rect, BTN_Z_INDEX, btn_color);
     if (sprite)
     {
         // try to center the sprite in the button
@@ -287,7 +305,7 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
         i32 sprite_start_y  = btn_rect.top  + sprite_offset_y;
         rect_t dst = {sprite_start_x, sprite_start_y, sprite->box.w, sprite->box.h};
 
-        ctx->texture_buf[ctx->texture_count++] = {sprite->tex, sprite->box, dst, BTN_Z_INDEX-1};
+        PUSH_TEXTURE(sprite->tex, sprite->box, dst, BTN_Z_INDEX-1);
     }
 
     /* push font chars to render */
@@ -354,8 +372,8 @@ inline b32 ui_button(ui_t* ctx, i32 width, i32 height, sprite_t* sprite, ui_id i
             }
 
             rect_t char_box = ui_font_get_box_for_char(ctx->font, text[i]);
-            //rect_t char_box = {12,12, ctx->font.FONT_CHAR_WIDTH, ctx->font.FONT_CHAR_HEIGHT};
-            ctx->texture_buf[ctx->texture_count++] = {ctx->font.bitmap, char_box, char_dst, BTN_Z_INDEX-2};
+            PUSH_TEXTURE(ctx->font.bitmap, char_box, char_dst, BTN_Z_INDEX-2);
+
             char_dst.left += char_box.w;
         }
     }
@@ -439,9 +457,9 @@ inline b32 ui_slider_float(ui_t* ctx, f32* value, ui_id id, f32 min = 0.0f, f32 
 
     const i32 BTN_Z_INDEX = -5;
     /* push elements to render */
-    ctx->rect_buf[ctx->rect_count++] = { widget_rect, BTN_Z_INDEX, widget_color };
-    ctx->rect_buf[ctx->rect_count++] = { left_rect,   BTN_Z_INDEX, left_color };
-    ctx->rect_buf[ctx->rect_count++] = { slider_rect, BTN_Z_INDEX - 1, slider_color };
+    PUSH_RECT(widget_rect, BTN_Z_INDEX, widget_color);
+    PUSH_RECT(left_rect,   BTN_Z_INDEX, left_color);
+    PUSH_RECT(slider_rect, BTN_Z_INDEX - 1, slider_color);
 
     return pressed;
 }
@@ -457,7 +475,7 @@ inline void ui_icon(ui_t* ctx, ui_id id, sprite_t sprite, f32 size = 1)
     i32 sprite_start_y  = sprite_rect.top  ;
     rect_t dst = {sprite_start_x, sprite_start_y, sprite_rect.w, sprite_rect.h};
 
-    ctx->texture_buf[ctx->texture_count++] = {sprite.tex, sprite.box, dst, -6};
+    PUSH_TEXTURE(sprite.tex, sprite.box, dst, -6);
 }
 
 // TODO support sprintf
@@ -508,7 +526,7 @@ inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
         }
 
         rect_t char_box = ui_font_get_box_for_char(ctx->font, text[i]);
-        ctx->texture_buf[ctx->texture_count++] = {ctx->font.bitmap, char_box, char_dst, -10};
+        PUSH_TEXTURE(ctx->font.bitmap, char_box, char_dst, -10);
         char_dst.left += width_per_char;
     }
 }
@@ -518,23 +536,17 @@ inline void ui_render(ui_t* ctx, platform_api_t* platform, Camera cam)
     ASSERT(ctx->rect_count    < UI_ELEMENTS_MAX);
     ASSERT(ctx->texture_count < UI_ELEMENTS_MAX);
 
-    // TODO workaround bc of orthographic cam
     for (u32 i = 0; i < ctx->rect_count; i++)
     {
-        ctx->rect_buf[i].rect.left += cam.rect.left;
-        ctx->rect_buf[i].rect.top  += cam.rect.top;
-    }
-    for (u32 i = 0; i < ctx->texture_count; i++)
-    {
-        ctx->texture_buf[i].dst.left += cam.rect.left;
-        ctx->texture_buf[i].dst.top  += cam.rect.top;
-    }
-
-    for (u32 i = 0; i < ctx->rect_count; i++)
         platform->renderer.push_rect(ctx->rect_buf[i]);
+    }
 
     for (u32 i = 0; i < ctx->texture_count; i++)
+    {
         platform->renderer.push_texture(ctx->texture_buf[i]);
+    }
 }
 
+#undef PUSH_TEXTURE
+#undef PUSH_RECT
 #endif // INTERFACE_H_

@@ -26,9 +26,36 @@ struct texture_t
     f32 unit_idx; // NOTE unused
 };
 
+#if 0 // SMOOTH PIXEL ZOOM see https://www.shadertoy.com/view/MlB3D3
+const float pixelSize =    4.00; // "fat pixel" size
+const float zoom      =    8.00; // max zoom factor
+const float radius    =  128.00; // planar movement radius
+const float speed     =    0.25; // speed
+void mainImage( out vec4 color, in vec2 pixel )
+{
+    // zoom & scroll
+    float time   = iTime * speed;
+    float scale  = pixelSize + ((cos((time + 8.0) / 3.7) + 1.0) / 2.0) * (zoom - 1.0) * pixelSize;
+    vec2  center = vec2(-4.0, 16.0) + iResolution.xy / 2.0;
+    vec2  offset = vec2(cos(time), sin(time)) * radius;
+
+    pixel = ((pixel + offset) - center) / scale + center;
+
+    // emulate point sampling
+    vec2 uv = floor(pixel) + 0.5;
+
+    // subpixel aa algorithm (COMMENT OUT TO COMPARE WITH POINT SAMPLING)
+    uv += 1.0 - clamp((1.0 - fract(pixel)) * scale, 0.0, 1.0);
+
+    // output
+    color = texture(iChannel0, uv / iChannelResolution[0].xy);
+}
+#endif
+
+// TODO pass in or calculate a zoom factor
 const char* vertex_shader_src =
     "#version 330 core\n"
-    "uniform mat4 u_camera;\n"
+    "uniform mat4  u_camera;\n"
     "layout (location = 0) in vec2 pos;\n"
     "layout (location = 1) in vec2 tex_coords;\n"
     "layout (location = 2) in float tex_index;\n"
@@ -50,8 +77,17 @@ const char* fragment_shader_src =
     "in float o_tex_index;\n"
     "in vec4 o_color;\n"
     "uniform sampler2D u_tex_units[16];\n"
+    "uniform float u_zoom;\n"
     "void main()\n"
     "{\n"
+
+        //"const float pixelSize =    4.00; // 'fat pixel' size\n"
+        //"float scale  = pixelSize + (zoom - 1.0) * pixelSize;\n"
+        //"vec2  center = vec2(-4.0, 16.0) + iResolution.xy / 2.0;\n"
+        //"vec2  pixel  = (pixel - center) / scale + center;\n"
+        //"vec2 uv = floor(pixel) + 0.5;\n"
+        //"uv += 1.0 - clamp((1.0 - fract(pixel)) * scale, 0.0, 1.0);"
+
         "FragColor = o_color;\n"
         "switch(int(o_tex_index))\n"
         "{\n"
@@ -83,11 +119,13 @@ struct vertex_t
 };
 #define BATCHED_VERTICES_MAX 50000 // batch gets flushed if it exceeds this max
 global_var vertex_t* vbo_batch;    // TODO put this in a frame_arena (?)
+global_var u32 vbo;
 global_var u32 vertex_count = 0;
 global_var u32 prog_id;
 #define MAX_TEX_UNITS 16 // NOTE also needs to be changed in fragment shader if changed!
 global_var i32 uni_loc_tex_units;
 global_var i32 uni_loc_camera;
+global_var i32 uni_loc_zoom;
 global_var u32 vao;
 
 // GLEW_OK = 0
@@ -157,6 +195,9 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     uni_loc_camera = glGetUniformLocation(prog_id, "u_camera");
     if (uni_loc_camera == -1) { UNREACHABLE("uniform '%s' not found\n", "u_camera"); }
 
+    //uni_loc_zoom = glGetUniformLocation(prog_id, "u_zoom");
+    //if (uni_loc_zoom == -1) { UNREACHABLE("uniform '%s' not found\n", "u_zoom"); }
+
     uni_loc_tex_units = glGetUniformLocation(prog_id, "u_tex_units");
     if (uni_loc_tex_units == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
     i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -170,21 +211,35 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &cam_mtx[0][0]);
     glUniform1iv(uni_loc_tex_units, 16, samplers);
 
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_t) * BATCHED_VERTICES_MAX, nullptr, GL_DYNAMIC_DRAW);
+    // TODO use different draw:
+    // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
+    // GL_STATIC_DRAW: the data is set only once and used many times.
+    // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
+
     vbo_batch = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
 
     //glEnable(GL_TEXTURE_2D); // NOTE causes unknown error
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // TODO maybe bind a 'missing' texture on texture unit 0 for debug purposes
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, missing_tex_id);
+
     auto err = glGetError();
     if (err != GL_NO_ERROR) printf("%s\n", glewGetErrorString(err));
 }
 
 
-void renderer_upload_camera(cam_mtx_t mtx)
+void renderer_upload_camera(cam_mtx_t mtx, f32 zoom)
 {
     glUseProgram(prog_id);
     glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &mtx.mtx[0][0]);
+
+    //glUniform1fv(uni_loc_camera, 1, &zoom);
 }
 
 
@@ -303,15 +358,9 @@ void flush_batch()
     //glGenVertexArrays(1, &ibo);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
-    // create a vbo & bind & upload
-    u32 vbo;
-    glGenBuffers(1, &vbo);
+    // upload to already allocated vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_t) * vertex_count, vbo_batch, GL_STATIC_DRAW);
-    // TODO use different draw:
-    // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
-    // GL_STATIC_DRAW: the data is set only once and used many times.
-    // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * vertex_count, vbo_batch);
 
     // create vao & bind (required by core opengl)
     u32 vao;
@@ -331,11 +380,12 @@ void flush_batch()
 
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
-    // unbind & delete buffers afterwards NOTE doesn't seem to make a difference
-    //glUseProgram(NULL);
+    // unbind & delete buffers afterwards
+    // NOTE causes a crash if we don't do this
+    glUseProgram(NULL);
     //glBindBuffer(GL_ARRAY_BUFFER, 0);
     //glDeleteBuffers(1, &vbo);
-    //glDeleteVertexArrays(1, &vao);
+    glDeleteVertexArrays(1, &vao);
 
     vertex_count = 0;
 }
@@ -363,14 +413,10 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 const u32 SCREEN_WIDTH  = window->width;
                 const u32 SCREEN_HEIGHT = window->height;
 
-                f32 TEXTURE_WIDTH  = 0;
-                f32 TEXTURE_HEIGHT = 0;
-                f32 tex_id         = 0;
+                const f32 TEXTURE_WIDTH  = draw_tex->tex->width;
+                const f32 TEXTURE_HEIGHT = draw_tex->tex->height;
+                f32 tex_id         = (f32) draw_tex->tex->id;
                 colorf_t color     = {1,1,1,1};
-
-                TEXTURE_WIDTH  = draw_tex->tex->width;
-                TEXTURE_HEIGHT = draw_tex->tex->height;
-                tex_id         = (f32) draw_tex->tex->id;
 
                 // NOTE draw_tex->dst is in pixel coordinates (x,w:0-1280, y,h:0-960),
                 // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
@@ -392,8 +438,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 f32 tex_h = (draw_tex->src.h    / TEXTURE_HEIGHT);
 
                 // flush the batch if we don't have any room left for another quad
-                if (vertex_count + 6 >= BATCHED_VERTICES_MAX)
-                    flush_batch();
+                if (vertex_count + 6 >= BATCHED_VERTICES_MAX) flush_batch();
 
                 { // add to batch
                     vbo_batch[vertex_count++] = {
@@ -433,14 +478,18 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // NOTE rect is in pixel coordinates (x,w:0-1280, y,h:0-960),
                 // but opengl needs screen coordinates from -1 to 1 (origin is in the center of the screen)
                 // TODO duplicated
-                f32 screen_x = (rect->rect.left / (SCREEN_WIDTH/2.f))  - 1.f;
-                f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(rect->rect.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
-                f32 screen_w = (rect->rect.w / (SCREEN_WIDTH/2.f));
-                f32 screen_h = -(rect->rect.h / (SCREEN_HEIGHT/2.f));
+                // f32 screen_x = (rect->rect.left / (SCREEN_WIDTH/2.f))  - 1.f;
+                // f32 screen_y = MAP_VALUE_IN_RANGE1_TO_RANGE2(rect->rect.top, 0.0f, SCREEN_HEIGHT, 1.0f, -1.0f); // map to -1 to 1
+                // f32 screen_w = (rect->rect.w / (SCREEN_WIDTH/2.f));
+                // f32 screen_h = -(rect->rect.h / (SCREEN_HEIGHT/2.f));
+                f32 screen_x = rect->rect.left;
+                f32 screen_y = rect->rect.top; // map to -1 to 1
+                f32 screen_w = rect->rect.w;
+                f32 screen_h = rect->rect.h;
+
 
                 // flush the batch if we don't have any room left for another quad
-                if (vertex_count + 6 >= BATCHED_VERTICES_MAX)
-                    flush_batch();
+                if (vertex_count + 6 >= BATCHED_VERTICES_MAX) flush_batch();
 
                 { // add to batch
                     vbo_batch[vertex_count++] = {

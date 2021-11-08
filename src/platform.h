@@ -70,7 +70,7 @@ typedef texture_t*  (*renderer_load_texture_fn)(platform_window_t*, const char*)
 typedef texture_t*  (*renderer_create_texture_from_surface_fn)(platform_window_t*, surface_t*);
 typedef i32         (*renderer_texture_query_fn)(texture_t*, u32*, i32*, i32*, i32*);
 
-typedef void (*renderer_upload_camera_fn)(cam_mtx_t);
+typedef void (*renderer_upload_camera_fn)(cam_mtx_t, f32);
 
 struct renderer_api_t
 {

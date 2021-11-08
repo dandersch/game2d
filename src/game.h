@@ -12,3 +12,5 @@
 #include "physics.h"
 #include "animation.h"
 #include "rewind.h"
+
+#include "debug.h"

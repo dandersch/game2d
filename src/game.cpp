@@ -76,6 +76,8 @@ animated_icon icon_necro     = {0, {4, 64,  32, 16}}; // necromancer animation
 animated_icon icon_hourglass = {0, {6, 64, 208, 16}};
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+global_var f32 zoom = 1.0f;;
+
 // TODO pass in game_input_t too (?)
 extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 {
@@ -116,6 +118,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
         { // game event handling
             v3i mouse_pos   = state->game_input.mouse.pos;
             v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
+            v2i clickpoint  = {(i32) click.x, (i32) click.y};
             //printf("mouse: %f, %f \n", (f32) mouse_pos.x, (f32) mouse_pos.y);
             //printf("click: %f, %f \n", click.x, click.y);
             if (state->entity_to_place)
@@ -130,8 +133,6 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             if (input_pressed(state->game_input.mouse.buttons[MOUSE_BUTTON_LEFT])
                 && !ui_ctx.window_focused) // TODO hack
             {
-                v3f click       = camera_screen_to_world(state->cam, { (f32) mouse_pos.x, (f32) mouse_pos.y, 0 });
-                v2i clickpoint  = {(i32) click.x, (i32) click.y};
 
                 // get 'clicked on' playable entity
                 b32 collided = false;
@@ -196,10 +197,37 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
             if (state->game_input.keyboard.key_right.is_down) state->cam.rect.left += 5;
 
             // zoom in/out on mouse scroll
-            //if (state->game_input.mouse.wheel < 0) camera_zoom(state->cam, 0.5f, {mouse_pos.x, mouse_pos.y});
-            //if (state->game_input.mouse.wheel > 0) camera_zoom(state->cam, 2.0f, {mouse_pos.x, mouse_pos.y});
-            if (state->game_input.mouse.wheel < 0) { state->cam.rect.w *= 0.5f; state->cam.rect.h *= 0.5f; }
-            if (state->game_input.mouse.wheel > 0) { state->cam.rect.h *= 2.0f; state->cam.rect.h *= 2.0f; }
+            // TODO lock zooming while lerping
+            if (state->game_input.mouse.wheel > 0 || input_pressed(state->game_input.keyboard.keys['z']))
+            {
+                camera_zoom(state->cam, 0.5f, clickpoint);
+            }
+            if (state->game_input.mouse.wheel < 0 || input_pressed(state->game_input.keyboard.keys['x']))
+            {
+                camera_zoom(state->cam, 2.0f, clickpoint);
+            }
+        }
+
+        { // camera zoom lerp
+            Camera* cam = &state->cam;
+            if (cam->rect.w != cam->target.w && cam->rect.h != cam->target.h)
+            {
+                cam->timer += dt;
+                if (cam->timer > cam->TIME_TO_LERP)
+                {
+                    cam->timer = cam->TIME_TO_LERP;
+                }
+                cam->rect.w    = LERP(cam->source.w, cam->target.w, cam->timer/cam->TIME_TO_LERP);
+                cam->rect.h    = LERP(cam->source.h, cam->target.h, cam->timer/cam->TIME_TO_LERP);
+                cam->rect.left = LERP(cam->source.left, cam->target.left, cam->timer/cam->TIME_TO_LERP);
+                cam->rect.top  = LERP(cam->source.top, cam->target.top, cam->timer/cam->TIME_TO_LERP);
+
+                zoom = ( ((f32) cam->rect.w) / ((f32) SCREEN_WIDTH) );
+            }
+            else
+            {
+                cam->timer = 0;
+            }
         }
 
         // UPDATE LOOP /////////////////////////////////////////////////////////////////////////////
@@ -227,6 +255,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                 // ui input update
                 ui_ctx.mouse_pos      = {state->game_input.mouse.pos.x,state->game_input.mouse.pos.y};
                 ui_ctx.mouse_pressed  = input_pressed(state->game_input.mouse.buttons[0]);
+                ui_ctx.cam            = state->cam;
 
                 char string_buf_1[256];
                 local sprite_t sprite = { {64, 208, 16, 16}, ui_entities[0].sprite.tex }; // TODO hardcoded
@@ -470,6 +499,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
     state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////////////////////////////
+    { //TIMED_BLOCK(2, platform);
     platform.renderer.push_clear({});
     { // layer_game_render();
         Entity* ents = state->ents;
@@ -499,7 +529,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
                              {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}};
         //cam_mtx.mtx = matrix;
         memcpy(&cam_mtx.mtx, matrix, sizeof(f32) * 4 * 4);
-        platform.renderer.upload_camera(cam_mtx);
+        platform.renderer.upload_camera(cam_mtx, zoom);
 
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         for (u32 i = 0; i < state->tile_count; i++) // TODO tilemap culling
@@ -534,7 +564,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
             // testing drawing colliders
             auto collider      = state->focusedEntity->getColliderInWorld();
-            auto pos_on_screen = camera_world_to_screen(state->cam, {(f32)collider.left, (f32)collider.top, 0});
+            v3i pos_on_screen = {collider.left, collider.top, 0};
             rect_t collider_on_screen = { (i32)pos_on_screen.x, (i32)pos_on_screen.y, collider.w, collider.h };
             platform.renderer.push_rect_outline({ collider_on_screen, -10, {1,1,1,1} }, 1);
         }
@@ -550,6 +580,7 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
 
     platform.renderer.push_present({});
     platform.render(state->window);
+    }
 
     // game_quit:
     if (!state->game_running)
