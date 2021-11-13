@@ -184,6 +184,7 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     window_flags |= SDL_WINDOW_OPENGL;
+    window_flags |= SDL_WINDOW_RESIZABLE;
 
     /*
      SDL can load OpenGL function pointers with
@@ -279,7 +280,7 @@ void input_event_process(game_input_state_t* new_state, b32 is_down)
 }
 
 
-void platform_event_loop(game_input_t* input)
+void platform_event_loop(game_input_t* input, platform_window_t* window)
 {
     // TODO remove hardcoded resetting of halftransitioncount
     for(int key_idx = 0; key_idx < 128; /* TODO hardcoded */ ++key_idx)
@@ -352,16 +353,20 @@ void platform_event_loop(game_input_t* input)
 
             case SDL_WINDOWEVENT:
             {
-                switch (sdl_event.window.type)
+                switch (sdl_event.window.event) // TODO why do we need to switch on event and not on type?
                 {
                     case SDL_WINDOWEVENT_CLOSE:
                     {
                         game_running = false;
-                    }
+                    } break;
 
                     case SDL_WINDOWEVENT_RESIZED:
                     {
-                        // TODO
+                        // TODO duplicated data
+                        input->window_width  = sdl_event.window.data1;
+                        input->window_height = sdl_event.window.data2;
+                        window->width        = sdl_event.window.data1;
+                        window->height       = sdl_event.window.data2;
                     } break;
 
                     case SDL_WINDOWEVENT_HIDDEN:         /**< Window has been hidden */

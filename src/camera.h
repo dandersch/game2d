@@ -2,8 +2,8 @@
 
 // TODO center camera position around center of rect
 
-extern const u32 SCREEN_WIDTH;
-extern const u32 SCREEN_HEIGHT;
+extern u32 SCREEN_WIDTH;
+extern u32 SCREEN_HEIGHT;
 
 struct Camera
 {

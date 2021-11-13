@@ -42,7 +42,7 @@ typedef file_t (*platform_file_load_fn)(const char* file_name);
 typedef b32    (*platform_file_save_fn)(u8* file_name, u8* buffer);
 typedef void   (*platform_file_close_fn)(file_t file);
 
-typedef void (*platform_event_loop_fn)(game_input_t*);
+typedef void (*platform_event_loop_fn)(game_input_t*, platform_window_t*);
 typedef u32  (*platform_ticks_fn)();
 typedef void (*platform_quit_fn)();
 

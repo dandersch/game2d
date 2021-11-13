@@ -87,13 +87,16 @@ struct game_input_t
     game_mouse_input_t      mouse;
 
     b32 quit_requested; // NOTE signals back to the platform layer
+
+    // TODO put in a 'struct platform_event_t' or similar:
+    u32 window_width;
+    u32 window_height;
 };
 
 
 inline b32 input_pressed(game_input_state_t state)
 {
-    return ((state.up_down_count > 1)
-            || ((state.up_down_count == 1) && (state.is_down)));
+    return ((state.up_down_count > 1) || ((state.up_down_count == 1) && (state.is_down)));
 }
 
 inline b32 input_down(game_input_state_t state) { return (state.is_down); }

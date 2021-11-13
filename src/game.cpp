@@ -60,8 +60,8 @@ enum action_e
 #define UPDATE_INTERVAL (1.0 / MAXIMUM_FRAME_RATE)
 #define MAX_CYCLES_PER_FRAME (MAXIMUM_FRAME_RATE / MINIMUM_FRAME_RATE)
 
-const u32 SCREEN_WIDTH  = 1280;
-const u32 SCREEN_HEIGHT = 960;
+u32 SCREEN_WIDTH  = 1280;
+u32 SCREEN_HEIGHT = 960;
 const char* GAME_LEVEL = "res/map_level01.json";
 const int MAX_RENDER_LAYERS = 100;
 
@@ -86,6 +86,8 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
     {
         state = new (state) game_state_t();
         state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
+        state->game_input.window_width  = SCREEN_WIDTH;
+        state->game_input.window_height = SCREEN_HEIGHT;
         { // layer_game_init:
             if (!levelgen_level_load(GAME_LEVEL, MAX_ENTITIES, &platform, state)) exit(1);
             physics_init();
@@ -110,7 +112,9 @@ extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
         update_iterations -= UPDATE_INTERVAL;
 
         // EVENT HANDLING //////////////////////////////////////////////////////////////////////////
-        platform.event_loop(&state->game_input);
+        platform.event_loop(&state->game_input, state->window);
+        SCREEN_WIDTH  = state->game_input.window_width;
+        SCREEN_HEIGHT = state->game_input.window_height;
 
         // quit game on escape
         if (input_pressed(state->game_input.keyboard.keys['\e'])) state->game_running = false;

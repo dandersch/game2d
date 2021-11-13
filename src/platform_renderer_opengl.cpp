@@ -410,6 +410,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 ASSERT(!utils_rect_empty(draw_tex->dst));
                 ASSERT(!utils_rect_empty(draw_tex->src));
 
+                // TODO resolution is still tied to window size
                 const u32 SCREEN_WIDTH  = window->width;
                 const u32 SCREEN_HEIGHT = window->height;
 
@@ -462,7 +463,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 }
 
                 /* opengl code here */
-                //glViewport(0,0,1280,960); // TODO hardcoded, doesn't seem to do anything in core profile
+                glViewport(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
                 curr_entry += sizeof(render_entry_texture_t);
             } break;
