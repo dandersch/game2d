@@ -80,33 +80,53 @@ const char* fragment_shader_src =
     "uniform float u_zoom;\n"
     "void main()\n"
     "{\n"
-
-        //"const float pixelSize =    4.00; // 'fat pixel' size\n"
-        //"float scale  = pixelSize + (zoom - 1.0) * pixelSize;\n"
-        //"vec2  center = vec2(-4.0, 16.0) + iResolution.xy / 2.0;\n"
-        //"vec2  pixel  = (pixel - center) / scale + center;\n"
-        //"vec2 uv = floor(pixel) + 0.5;\n"
-        //"uv += 1.0 - clamp((1.0 - fract(pixel)) * scale, 0.0, 1.0);"
-
+        /* SUBPIXEL FILTERING **************************************************************/
+        "vec2 size = vec2(textureSize(u_tex_units[0], 0));\n"
+        "switch(int(o_tex_index))\n" // TODO can we do this w/o a switch?
+        "{\n"
+            "case  0:                                       ; break;\n"
+            "case  1: size = textureSize(u_tex_units[ 1], 0); break;\n"
+            "case  2: size = textureSize(u_tex_units[ 2], 0); break;\n"
+            "case  3: size = textureSize(u_tex_units[ 3], 0); break;\n"
+            "case  4: size = textureSize(u_tex_units[ 4], 0); break;\n"
+            "case  5: size = textureSize(u_tex_units[ 5], 0); break;\n"
+            "case  6: size = textureSize(u_tex_units[ 6], 0); break;\n"
+            "case  7: size = textureSize(u_tex_units[ 7], 0); break;\n"
+            "case  8: size = textureSize(u_tex_units[ 8], 0); break;\n"
+            "case  9: size = textureSize(u_tex_units[ 9], 0); break;\n"
+            "case 10: size = textureSize(u_tex_units[10], 0); break;\n"
+            "case 11: size = textureSize(u_tex_units[11], 0); break;\n"
+            "case 12: size = textureSize(u_tex_units[12], 0); break;\n"
+            "case 13: size = textureSize(u_tex_units[13], 0); break;\n"
+            "case 14: size = textureSize(u_tex_units[14], 0); break;\n"
+            "case 15: size = textureSize(u_tex_units[15], 0); break;\n"
+        "}\n"
+        "vec2 uv = o_tex_coords;\n"
+        "uv = uv * size;\n"
+        "vec2 duv = fwidth(uv);\n"
+        "uv = floor(uv) + vec2(0.5) + clamp((fract(uv) - vec2(0.5) + duv)/duv, 0, 1);\n"
+        "uv /= size;\n"
+        // TODO clamp to nearest multiple of 16 ?
+        /***********************************************************************************/
         "FragColor = o_color;\n"
         "switch(int(o_tex_index))\n"
         "{\n"
-            "case  0:                                                    ; break;\n"
-            "case  1: FragColor *= texture(u_tex_units[ 1], o_tex_coords); break;\n"
-            "case  2: FragColor *= texture(u_tex_units[ 2], o_tex_coords); break;\n"
-            "case  3: FragColor *= texture(u_tex_units[ 3], o_tex_coords); break;\n"
-            "case  4: FragColor *= texture(u_tex_units[ 4], o_tex_coords); break;\n"
-            "case  5: FragColor *= texture(u_tex_units[ 5], o_tex_coords); break;\n"
-            "case  6: FragColor *= texture(u_tex_units[ 6], o_tex_coords); break;\n"
-            "case  7: FragColor *= texture(u_tex_units[ 7], o_tex_coords); break;\n"
-            "case  8: FragColor *= texture(u_tex_units[ 8], o_tex_coords); break;\n"
-            "case  9: FragColor *= texture(u_tex_units[ 9], o_tex_coords); break;\n"
-            "case 10: FragColor *= texture(u_tex_units[10], o_tex_coords); break;\n"
-            "case 11: FragColor *= texture(u_tex_units[11], o_tex_coords); break;\n"
-            "case 12: FragColor *= texture(u_tex_units[12], o_tex_coords); break;\n"
-            "case 13: FragColor *= texture(u_tex_units[13], o_tex_coords); break;\n"
-            "case 14: FragColor *= texture(u_tex_units[14], o_tex_coords); break;\n"
-            "case 15: FragColor *= texture(u_tex_units[15], o_tex_coords); break;\n"
+            "case  0:                                          ; break;\n"
+            "case  1: FragColor *= texture(u_tex_units[ 1], uv); break;\n"
+            "case  2: FragColor *= texture(u_tex_units[ 2], uv); break;\n"
+            "case  3: FragColor *= texture(u_tex_units[ 3], uv); break;\n"
+            "case  4: FragColor *= texture(u_tex_units[ 4], uv); break;\n"
+            "case  5: FragColor *= texture(u_tex_units[ 5], uv); break;\n"
+            "case  6: FragColor *= texture(u_tex_units[ 6], uv); break;\n"
+            "case  7: FragColor *= texture(u_tex_units[ 7], uv); break;\n"
+            "case  8: FragColor *= texture(u_tex_units[ 8], uv); break;\n"
+            "case  9: FragColor *= texture(u_tex_units[ 9], uv); break;\n"
+            "case 10: FragColor *= texture(u_tex_units[10], uv); break;\n"
+            "case 11: FragColor *= texture(u_tex_units[11], uv); break;\n"
+            "case 12: FragColor *= texture(u_tex_units[12], uv); break;\n"
+            "case 13: FragColor *= texture(u_tex_units[13], uv); break;\n"
+            "case 14: FragColor *= texture(u_tex_units[14], uv); break;\n"
+            "case 15: FragColor *= texture(u_tex_units[15], uv); break;\n"
         "}\n"
     "}\0";
 
@@ -224,6 +244,7 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     //glEnable(GL_TEXTURE_2D); // NOTE causes unknown error
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     // TODO maybe bind a 'missing' texture on texture unit 0 for debug purposes
     //glActiveTexture(GL_TEXTURE0);
@@ -252,16 +273,16 @@ internal_fn texture_t* create_and_upload_texture(i32 width, i32 height, i32 mode
     glBindTexture(GL_TEXTURE_2D, tex_id);
 
     // how to sample the texture when its larger or smaller
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // mipmapping stuff, all turned off
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, GL_LINEAR);
 
     // wrap/clamp uv coords
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -433,10 +454,13 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 // NOTE draw_tex->src is in pixel coordinates
                 // (x,w:0-texture_width y,h:0-texture_height with origin in top left corner),
                 // but opengl needs texture coordinates from 0 to 1 (origin is bottom left corner)
-                f32 tex_x = (draw_tex->src.left / TEXTURE_WIDTH) ;
-                f32 tex_y = (draw_tex->src.top  / TEXTURE_HEIGHT) - 1.0f;
-                f32 tex_w = (draw_tex->src.w    / TEXTURE_WIDTH);
-                f32 tex_h = (draw_tex->src.h    / TEXTURE_HEIGHT);
+                f32 tex_x = ((draw_tex->src.left) / TEXTURE_WIDTH) ;
+                f32 tex_y = ((draw_tex->src.top )/ TEXTURE_HEIGHT) - 1.0f;
+                // TODO temp: subtracting 1 because of linear filtering (remove to see the problem)
+                // we can either add 1px padding to the spritesheet(s) or add do clamping in the shader
+                // this workaround also causes small text to be uglier right now
+                f32 tex_w = ((draw_tex->src.w   -1)  / TEXTURE_WIDTH);
+                f32 tex_h = ((draw_tex->src.h   -1)  / TEXTURE_HEIGHT);
 
                 // flush the batch if we don't have any room left for another quad
                 if (vertex_count + 6 >= BATCHED_VERTICES_MAX) flush_batch();
