@@ -2,6 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+// NOTE: why is windows like this
+#ifdef PLATFORM_WIN32
+  #define strtok_r strtok_s
+#endif
+
 enum token_type_e
 {
     TOKEN_TYPE_STRING,

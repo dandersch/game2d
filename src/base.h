@@ -21,8 +21,8 @@
     #error "no supported platform detected"
 #endif
 
-// NOTE we use SDL on linux & web builds
-#if defined(PLATFORM_LINUX) || defined(PLATFORM_WEB)
+// NOTE we use SDL on linux & web builds (and windows for now)
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_WEB) || defined(PLATFORM_WIN32)
     #define PLATFORM_SDL
 #endif
 
@@ -55,10 +55,12 @@
 #endif
 
 // export declarations for .dll/.so
-// TODO define EXPORT for COMPILER_CLANG
 #ifdef COMPILER_GCC
     // NOTE GCC exports every symbol to the ELF by default (so no keyword would be needed), unless
     // -fvisibility=hidden is specified, then below keyword is needed for exporting
+    #define EXPORT __attribute__((visibility("default")))
+#endif
+#ifdef COMPILER_CLANG
     #define EXPORT __attribute__((visibility("default")))
 #endif
 #ifdef COMPILER_MSVC
@@ -261,7 +263,7 @@ struct colorf_t // TODO add some implicit conversion functions
 
     // TODO make platform independent
     #ifdef COMPILER_MSVC
-        #define DEBUG_BREAK() DebugBreak()
+        #define DEBUG_BREAK() __debugbreak()
     #else
         #ifdef COMPILER_MINGW
             #define DEBUG_BREAK() raise(SIGABRT) // NOTE mingw doesn't define SIGTRAP (?)

@@ -1,3 +1,5 @@
+#include "platform_sdl.hpp" // TODO needs to be included when not compiling with pch's (?)
+
 #if defined(PLATFORM_SDL)
 
 // NOTE SDL headers come from pch
@@ -36,7 +38,7 @@ global_var game_api_t game;
 extern platform_api_t platform_api;
 global_var b32 game_running = true;
 
-#include <dlfcn.h>    // for opening shared objects (needs to be linked with -ldl)
+//#include <dlfcn.h>    // for opening shared objects (needs to be linked with -ldl)
 #include <sys/stat.h> // for checking if dll changed on disk (TODO does it work crossplatform?)
 global_var void* dll_handle = nullptr;
 #ifdef PLATFORM_WIN32
@@ -45,8 +47,6 @@ global_var void* dll_handle = nullptr;
   const char* GAME_DLL = "./dep/libgame.so";
 #endif
 
-// NOTE sdl also offers functions for dll loading, which might be crossplatform
-// SDL_UnloadObject(), SDL_LoadObject(), SDL_LoadFunction()
 // TODO use a (custom ?) error function and not printf
 b32 platform_load_code()
 {
@@ -56,7 +56,8 @@ b32 platform_load_code()
         game.main_loop    = nullptr;
         game.id           = 0;
 
-        if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
+        //if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
+        SDL_UnloadObject(dll_handle);
         dll_handle = nullptr;
     }
 
@@ -70,7 +71,8 @@ b32 platform_load_code()
     // NOTE try opening until it works, otherwise we need to sleep() for a moment to avoid a crash
     while (dll_handle == nullptr)
     {
-        dll_handle = dlopen(GAME_DLL, RTLD_NOW);
+        //dll_handle = dlopen(GAME_DLL, RTLD_NOW);
+        dll_handle = SDL_LoadObject(GAME_DLL);
         if (dll_handle == nullptr) printf("OPENING GAME DLL FAILED. TRYING AGAIN.\n");
     }
 
@@ -80,7 +82,8 @@ b32 platform_load_code()
         return false;
     }
 
-    game.main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
+    //game.main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
+    game.main_loop    = (game_main_loop_fn)    SDL_LoadFunction(dll_handle, "game_main_loop");
 
     if (!game.main_loop)
     {
@@ -126,7 +129,8 @@ int main(int argc, char* args[])
         stat(GAME_DLL, &attr);
         game.id = attr.st_ino;
     }
-    platform_load_code(); // initial loading of the game dll
+    b32 code_loaded = platform_load_code(); // initial loading of the game dll
+    if (!code_loaded) { exit(-1); }
     game_running = true;
 
 #if defined(PLATFORM_WEB)
@@ -425,15 +429,16 @@ void platform_surface_destroy(surface_t* surface)
 // SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
 font_t* platform_font_load(const char* filename, i32 ptsize)
 {
-    TTF_Font* font = TTF_OpenFont(filename, ptsize);
-    SDL_ERROR(font);
-    return font;
+    //TTF_Font* font = TTF_OpenFont(filename, ptsize);
+    //SDL_ERROR(font);
+    //return font;
+    return nullptr;
 }
 
 
 void platform_font_init()
 {
-    TTF_Init();
+    //TTF_Init();
 }
 
 
@@ -441,10 +446,11 @@ void platform_font_init()
 // NOTE this is not (as of now) an SDL Renderer specific function
 surface_t* platform_text_render(font_t* font, const char* text, color_t color, u32 wrap_len)
 {
-    SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,
-                                                            *((SDL_Color*) &color), wrap_len);
-    SDL_ERROR(text_surf);
-    return text_surf;
+    //SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,
+    //                                                        *((SDL_Color*) &color), wrap_len);
+    //SDL_ERROR(text_surf);
+    //return text_surf;
+    return nullptr;
 }
 
 
@@ -453,8 +459,8 @@ u32  platform_ticks() { return SDL_GetTicks(); }
 
 void platform_quit()
 {
-    TTF_Quit();
-    IMG_Quit();
+    //TTF_Quit();
+    //IMG_Quit(); // NOTE: commented out for now to avoid SDL2_image dependency when compiling ogl version
     SDL_Quit();
 }
 

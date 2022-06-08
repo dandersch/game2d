@@ -3,9 +3,13 @@
 # NOTE as of right now the build relies on clang features (pch's & generation of
 # compile database json)
 
+set -e # stop execution on first fail
+#set -x # echo commands
+
 start_timer=$(date +%s.%N)
 
 mkdir -p bin
+mkdir -p dep
 rm -f compile_commands.json
 
 # TODO compiler warning for integer division that's assigned to a float
@@ -20,6 +24,10 @@ CmnIncludes="-I./src/ "
 CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ "
 
 # precompiled header for game layer
+# TODO get rid of the pch for the game layer - even if it's a bit slower: just to simplify compilation
+# TODO here's how to do it in a way that is compatible with gcc/clang:
+# $ gcc -x c-header test.h -o test.h.gch
+# $ clang -x c-header test.h -o test.h.pch
 clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch &&
 
 # build game as dll
@@ -28,7 +36,7 @@ clang++ -MJ json.b ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${C
 
 # add platform specific flags
 CmnFlags+=$(sdl2-config --cflags)
-SDL2Libs="$(sdl2-config --libs) -lSDL2_image -lSDL2_ttf "
+SDL2Libs="$(sdl2-config --libs) -lSDL2_image " # -lSDL2_ttf
 
 # add opengl flags (comment out to use SDL renderer)
 CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "

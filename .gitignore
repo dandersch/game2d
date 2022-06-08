@@ -3,6 +3,8 @@ build_linux/
 build_web/
 build_win32/
 bin/
+res/
+dep/
 .cache/
 .dir-local
 imgui.ini

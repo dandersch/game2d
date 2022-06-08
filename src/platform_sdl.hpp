@@ -14,11 +14,11 @@
 #include <SDL_keycode.h>
 #include <SDL_mouse.h>
 #include <SDL_timer.h>
-#include <SDL_ttf.h>
+//#include <SDL_ttf.h>
 #include <SDL_surface.h>
 #include <SDL_pixels.h>
 #include <SDL_keyboard.h>
-#include <SDL_image.h>
+//#include <SDL_image.h> // NOTE: commented out for now to avoid SDL2_image dependency when compiling ogl version
 #include <SDL_video.h>
 #include <SDL_thread.h>
 #include <SDL_blendmode.h>
@@ -28,6 +28,7 @@
 #include <SDL_loadso.h>
 
 #ifdef USE_OPENGL
+  #define GLEW_STATIC
   #include "glew.h"
   #include <SDL_opengl.h>
   #include <GL/glu.h>

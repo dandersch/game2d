@@ -1,9 +1,10 @@
 #pragma once
 
+#include "base.h"
+
 #include "platform.h"
 #include "input.h"
 
-#include "base.h"
 #include "utils.h"
 #include "memory.h"
 #include "entity.h"

@@ -1,3 +1,4 @@
+#include "game.hpp" // TODO needs to be included when not compiling with pch's (?)
 #include "game.h"
 
 #include "memory.h"
@@ -79,7 +80,7 @@ animated_icon icon_hourglass = {0, {6, 64, 208, 16}};
 global_var f32 zoom = 1.0f;;
 
 // TODO pass in game_input_t too (?)
-extern "C" void game_main_loop(game_state_t* state, platform_api_t platform)
+extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platform)
 {
     // INIT ///////////////////////////////////////////////////////////////////////////////
     if (!state->initialized)
