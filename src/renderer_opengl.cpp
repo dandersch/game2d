@@ -1,4 +1,4 @@
-#include "platform_renderer.h"
+#include "renderer.h"
 #include "utils.h"
 #include "memory.h"
 
@@ -13,13 +13,7 @@
  *  [ ] use instancing
  */
 
-// The renderer should have a UI matrix and a Camera Matrix
-
-struct renderer_t
-{
-    void* gl_context;
-};
-
+struct renderer_t { void* gl_context; };
 struct texture_t
 {
     u32 id;
@@ -56,8 +50,7 @@ const char* fragment_shader_src =
     "{\n"
         /* SUBPIXEL FILTERING **************************************************************/
         "vec2 size = vec2(textureSize(u_tex_units[0], 0));\n"
-        "switch(int(o_tex_index))\n" // NOTE: we use a switch instead of directly indexing into
-                                     // the array b/c indexing w/ a uniform apparently is UB
+        "switch(int(o_tex_index))\n" // TODO can we get rid of this switch
         "{\n"
             "case  0:                                       ; break;\n"
             "case  1: size = textureSize(u_tex_units[ 1], 0); break;\n"
@@ -84,7 +77,8 @@ const char* fragment_shader_src =
         // TODO clamp to nearest multiple of 16 ?
         /***********************************************************************************/
         "FragColor = o_color;\n"
-        "switch(int(o_tex_index))\n"
+        "switch(int(o_tex_index))\n" // NOTE: we use a switch instead of directly indexing into
+                                     // the array b/c indexing w/ a uniform apparently is UB
         "{\n"
             "case  0:                                          ; break;\n"
             "case  1: FragColor *= texture(u_tex_units[ 1], uv); break;\n"
@@ -112,10 +106,16 @@ struct vertex_t
     f32 tex_idx;
     colorf_t color;
 };
-#define BATCHED_VERTICES_MAX 50000 // batch gets flushed if it exceeds this max
-global_var vertex_t* vbo_batch;    // TODO put this in a frame_arena (?)
+#define BATCHED_VERTICES_MAX (5000*6) // multiple of 6, batch gets flushed if it exceeds this max
+// TODO put this in a frame_arena (?)
+global_var vertex_t* vbo_batch_game;  // NOTE: batch for game rendering
+global_var u32 vertex_count_game = 0;
+m4f cam_mtx = {0};
+global_var vertex_t* vbo_batch_ui;    // NOTE: batch for ui rendering
+global_var u32 vertex_count_ui = 0;
+m4f ui_mtx  = {0};
+
 global_var u32 vbo;
-global_var u32 vertex_count = 0;
 global_var u32 prog_id;
 #define MAX_TEX_UNITS 16 // NOTE also needs to be changed in fragment shader if changed!
 global_var i32 uni_loc_tex_units;
@@ -207,13 +207,14 @@ void renderer_init(mem_arena_t* platform_mem_arena, renderer_api_t* renderer)
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_t) * BATCHED_VERTICES_MAX, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_t) * BATCHED_VERTICES_MAX * 2 /* TODO separate between ui and game batched vertices */, nullptr, GL_DYNAMIC_DRAW);
     // TODO use different draw:
     // GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
     // GL_STATIC_DRAW: the data is set only once and used many times.
     // GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
 
-    vbo_batch = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
+    vbo_batch_game = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
+    vbo_batch_ui   = (vertex_t*) malloc(BATCHED_VERTICES_MAX * sizeof(vertex_t));
 
     //glEnable(GL_TEXTURE_2D); // NOTE causes unknown error
     glEnable(GL_BLEND);
@@ -305,9 +306,11 @@ texture_t* renderer_load_texture(const char* filename)
 }
 
 
-void flush_batch()
+void flush_batch(vertex_t* vbo_batch, u32* vertex_count, m4f mtx)
 {
     glUseProgram(prog_id);
+
+    glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &mtx.e[0][0]); // upload matrix
 
     // create empty ibo & bind NOTE not needed right now
     //u32 ibo;
@@ -316,7 +319,7 @@ void flush_batch()
 
     // upload to already allocated vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * vertex_count, vbo_batch);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * (*vertex_count), vbo_batch);
 
     // create vao & bind (required by core opengl)
     u32 vao;
@@ -334,7 +337,7 @@ void flush_batch()
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*) offsetof(vertex_t, color));
     glEnableVertexAttribArray(3);
 
-    glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+    glDrawArrays(GL_TRIANGLES, 0, *vertex_count);
 
     // unbind & delete buffers afterwards
     // NOTE causes a crash if we don't do this
@@ -343,7 +346,7 @@ void flush_batch()
     //glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
 
-    vertex_count = 0;
+    *vertex_count = 0;
 }
 
 
@@ -400,25 +403,30 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 f32 tex_h = ((draw_tex->src.h   -1)  / TEXTURE_HEIGHT);
 
                 // flush the batch if we don't have any room left for another quad
-                if (vertex_count + 6 >= BATCHED_VERTICES_MAX) flush_batch();
+                if (vertex_count_game + 6 >= BATCHED_VERTICES_MAX) { flush_batch(vbo_batch_game, &vertex_count_game, cam_mtx); }
+                if (vertex_count_ui   + 6 >= BATCHED_VERTICES_MAX) { flush_batch(vbo_batch_ui, &vertex_count_ui, ui_mtx);   }
+
+                vertex_t* vbo_batch = vbo_batch_game;
+                u32* vertex_count   = &vertex_count_game;
+                if (draw_tex->flags == RENDER_ENTRY_FLAG_UI) { vbo_batch = vbo_batch_ui; vertex_count = &vertex_count_ui; }
 
                 { // add to batch
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y,            tex_x,         tex_y,          tex_id, color // vertex 1
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y,            tex_x + tex_w, tex_y,          tex_id, color // vertex 2
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  tex_id, color // vertex 3
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y,            tex_x,         tex_y,          tex_id, color // vertex 1
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y + screen_h, tex_x + tex_w, tex_y + tex_h,  tex_id, color // vertex 3
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y + screen_h, tex_x,         tex_y + tex_h,  tex_id, color // vertex 4
                     };
                 }
@@ -449,27 +457,31 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 f32 screen_w = rect->rect.w;
                 f32 screen_h = rect->rect.h;
 
-
                 // flush the batch if we don't have any room left for another quad
-                if (vertex_count + 6 >= BATCHED_VERTICES_MAX) flush_batch();
+                if (vertex_count_game + 6 >= BATCHED_VERTICES_MAX) { flush_batch(vbo_batch_game, &vertex_count_game, cam_mtx); }
+                if (vertex_count_ui   + 6 >= BATCHED_VERTICES_MAX) { flush_batch(vbo_batch_ui, &vertex_count_ui, ui_mtx);      }
+
+                vertex_t* vbo_batch = vbo_batch_game;
+                u32* vertex_count   = &vertex_count_game;
+                if (rect->flags == RENDER_ENTRY_FLAG_UI) { vbo_batch = vbo_batch_ui; vertex_count = &vertex_count_ui; }
 
                 { // add to batch
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y,            0, 0,  0, color // vertex 1
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y,            0, 0,  0, color // vertex 2
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y + screen_h, 0, 0,  0, color // vertex 3
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y,            0, 0,  0, color // vertex 1
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x + screen_w, screen_y + screen_h, 0, 0,  0, color // vertex 3
                     };
-                    vbo_batch[vertex_count++] = {
+                    vbo_batch[(*vertex_count)++] = {
                         screen_x,            screen_y + screen_h, 0, 0,  0, color // vertex 4
                     };
                 }
@@ -481,8 +493,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
             {
                 render_entry_transform_t* transform = (render_entry_transform_t*) curr_entry;
 
-                glUseProgram(prog_id);
-                glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &transform->mat.e[0][0]);
+                if (transform->ui) { ui_mtx  = transform->mat; }
+                else               { cam_mtx = transform->mat; }
 
                 curr_entry += sizeof(render_entry_rect_t);
             } break;
@@ -498,7 +510,8 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
             case RENDER_ENTRY_TYPE_PRESENT:
             {
-                flush_batch();
+                flush_batch(vbo_batch_game, &vertex_count_game, cam_mtx);
+                flush_batch(vbo_batch_ui, &vertex_count_ui, ui_mtx);
                 SDL_GL_SwapWindow(window->handle);
                 curr_entry += sizeof(render_entry_present_t);
             } break;

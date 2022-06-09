@@ -8,21 +8,20 @@ typedef i32 ui_id;
 // TODO embed a bitmap font
 //#include "bitmap_font.h"
 
-#define PUSH_TEXTURE(tex, src, dst, z)                                          \
-        {                                                                       \
-            rect_t offset_dst = dst;                                            \
-            offset_dst.left += ctx->cam.rect.left;                              \
-            offset_dst.top  += ctx->cam.rect.top;                               \
-            ctx->texture_buf[ctx->texture_count++] = {tex, src, offset_dst, z}; \
-        }
+/* common operations */
+inline static f32 lerp(f32 min, f32 interpolant, f32 max) { return (min + interpolant * (max - min)); }
+inline static f32 unlerp(f32 min, f32 value, f32 max) { return (min != max) ? (value - min)/(max - min) : 0.0f; }
+inline static f32 linear_remap(f32 val, f32 a_min, f32 a_max, f32 b_min, f32 b_max) { return lerp(b_min, unlerp(a_min, val, a_max), b_max);}
 
-#define PUSH_RECT(dst, z, color)                                       \
-        {                                                              \
-            rect_t offset_dst = dst;                                   \
-            offset_dst.left += ctx->cam.rect.left;                     \
-            offset_dst.top  += ctx->cam.rect.top;                      \
-            ctx->rect_buf[ctx->rect_count++] = {offset_dst, z, color}; \
-        }
+#define PUSH_TEXTURE(tex, src, dst, z)                                                    \
+{                                                                                         \
+    ctx->texture_buf[ctx->texture_count++] = {tex, src, dst, z, {RENDER_ENTRY_FLAG_UI}};  \
+}
+
+#define PUSH_RECT(dst, z, color)                                                \
+{                                                                               \
+    ctx->rect_buf[ctx->rect_count++] = {dst, z, color, {RENDER_ENTRY_FLAG_UI}}; \
+}
 
 #define UI_ELEMENTS_MAX 1000 // NOTE right now every character is an 'element'
 enum ui_color_e
@@ -531,20 +530,31 @@ inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
     }
 }
 
-inline void ui_render(ui_t* ctx, renderer_api_t* renderer, Camera cam)
+inline void ui_render(ui_t* ctx, renderer_api_t renderer, Camera cam)
 {
     ASSERT(ctx->rect_count    < UI_ELEMENTS_MAX);
     ASSERT(ctx->texture_count < UI_ELEMENTS_MAX);
 
     for (u32 i = 0; i < ctx->rect_count; i++)
     {
-        renderer->push_rect(ctx->rect_buf[i]);
+        renderer.push_rect(ctx->rect_buf[i]);
     }
 
     for (u32 i = 0; i < ctx->texture_count; i++)
     {
-        renderer->push_texture(ctx->texture_buf[i]);
+        renderer.push_texture(ctx->texture_buf[i]);
     }
+
+    f32 left   = 0; f32 top    = 0;
+    f32 right  = SCREEN_WIDTH; f32 bottom = SCREEN_HEIGHT;
+    f32 near   = -50; f32 far    = 50;
+
+    // TODO add an m4f_orthographic() function
+    m4f ui_mtx = {{ {2/(right-left),              0,               0, 0},
+                  {             0, 2/(top-bottom),               0, 0},
+                  {             0,              0, (2)/(far-near), 0},
+                  {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}}};
+    RENDERER_PUSH_UI_MTX(ui_mtx);
 }
 
 #undef PUSH_TEXTURE

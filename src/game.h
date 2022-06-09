@@ -3,7 +3,7 @@
 #include "base.h"
 
 #include "platform.h"
-#include "platform_renderer.h"
+#include "renderer.h"
 
 #include "input.h"
 

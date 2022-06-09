@@ -522,10 +522,7 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
         //                    {0,1,0,0},
         //                    {0,0,1,0},
         //                    {0,0,0,1}};
-        //f32 matrix[4][4] = { {2/(right-left),              0,               0, -((right+left)/(right-left))},
-        //                     {             0, 2/(top-bottom),               0, -((top+bottom)/(top-bottom))},
-        //                     {             0,              0, (-2)/(far-near),     -((far+near)/(far-near))},
-        //                     {             0,              0,               0,                            1}};
+        // NOTE: column-major
         m4f cam_mtx = {{ {2/(right-left),              0,               0, 0},
                          {             0, 2/(top-bottom),               0, 0},
                          {             0,              0, (2)/(far-near), 0},
@@ -578,7 +575,7 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
         }
     }
 
-    ui_render(&ui_ctx, &renderer, state->cam);
+    ui_render(&ui_ctx, renderer, state->cam);
 
     renderer.render(state->window);
 

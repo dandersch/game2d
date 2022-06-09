@@ -3,7 +3,7 @@
 #if defined(PLATFORM_SDL)
 
 #include "platform.h"
-#include "platform_renderer.h"
+#include "renderer.h"
 #include "input.h"
 
 struct platform_window_t
@@ -17,7 +17,7 @@ struct platform_window_t
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
 /* UNITY BUILD */
-#include "platform_renderer.cpp"
+#include "renderer.cpp"
 
 // game functions
 global_var void (*game_main_loop)(game_state_t*, platform_api_t) = nullptr;

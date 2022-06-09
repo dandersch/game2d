@@ -23,7 +23,7 @@ CmnCompilerFlags="$(sdl2-config --cflags) ${CmnCompilerFlags}"
 CmnLinkerFlags="$(sdl2-config --libs) -ldl ${CmnLinkerFlags}"
 
 # precompiled header for platform layer (saves 1.5 seconds w/ clang)
-${DB} ${CC} -c -pthread ${CmnCompilerFlags} -DUSE_OPENGL -x c++-header ./src/platform_sdl.hpp -o platform_sdl.pch
+${DB} ${CC} -c  ${CmnCompilerFlags} -DUSE_OPENGL -x c++-header ./src/platform_sdl.hpp -o platform_sdl.pch
 
 if [ $CC == "clang++" ]; then
   CmnCompilerFlags+=" -include-pch platform_sdl.pch "

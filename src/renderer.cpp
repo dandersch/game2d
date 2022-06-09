@@ -1,4 +1,4 @@
-#include "platform_renderer.h"
+#include "renderer.h"
 
 /* This file has all the code for pushing commands onto the renderer command
  * buffer (or push buffer) and the buffer itself. No rendering backend specific
@@ -112,7 +112,7 @@ internal_fn void renderer_push_present(render_entry_present_t present)
 }
 
 #ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
-  #include "platform_renderer_opengl.cpp"
+  #include "renderer_opengl.cpp"
 #else
-  #include "platform_renderer_sdl.cpp"
+  #include "renderer_sdl.cpp"
 #endif
