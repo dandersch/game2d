@@ -112,37 +112,26 @@ void* hash_table_get_value(const char* key)
         strcat(filepath, filename)
 
 
-texture_t* resourcemgr_texture_load(const char* filename, platform_api_t* platform, platform_window_t* window)
+texture_t* resourcemgr_texture_load(const char* filename, renderer_api_t* renderer)
 {
-    CONSTRUCT_FILEPATH(filepath, filename);
+    //CONSTRUCT_FILEPATH(filepath, filename);
+
+    char* filepath = nullptr;
+    u32 char_count = strlen(RESOURCE_FOLDER) + strlen(filename) + 1;
+    filepath = (char*) malloc(char_count);
+    snprintf(filepath, char_count,"res/%s", filename);
 
     texture_t* tex = (texture_t*) hash_table_get_value(filename);
     if (tex) return tex;
     else // not found
     {
-        tex = platform->renderer.load_texture(window, filepath);
+        tex = renderer->load_texture(filepath);
         hash_table_add_entry(filename, tex);
         if (!tex) return (texture_t*) hash_table_get_value("missing"); // TODO handle if this fails
     }
 
+    free(filepath);
     return tex;
-}
-
-
-font_t* resourcemgr_font_load(const char* filename, platform_api_t* platform, i32 ptsize)
-{
-    CONSTRUCT_FILEPATH(filepath, filename);
-
-    font_t* font = hash_table_get_value(filename);
-    if (font) return font;
-    else // not found
-    {
-        font = platform->font_load(filepath, ptsize);
-        hash_table_add_entry(filename, font);
-        if (!font) return hash_table_get_value("missing"); // TODO handle if this fails
-    }
-
-    return font;
 }
 
 

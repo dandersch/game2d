@@ -1,20 +1,20 @@
 #pragma once
 
-struct renderer_t; // SDL_Renderer, ...
+/* opaque pointers */
+struct renderer_t; // SDL_Renderer, OpenGL context, ...
 struct texture_t;
 
+/* forward declarations */
 struct mem_arena_t;
+struct platform_window_t;
 
 enum render_entry_type_e
 {
-    //RENDER_ENTRY_TYPE_RECT,
-    //RENDER_ENTRY_TYPE_DRAW_SPRITE,
-    RENDER_ENTRY_TYPE_LOAD_TEXTURE, // TODO should this be a renderer cmd?
+    RENDER_ENTRY_TYPE_NONE,
 
+    RENDER_ENTRY_TYPE_LOAD_TEXTURE,
     RENDER_ENTRY_TYPE_TEXTURE,
-    RENDER_ENTRY_TYPE_TEXTURE_MOD,
-
-    RENDER_ENTRY_TYPE_RECT,         // debug
+    RENDER_ENTRY_TYPE_RECT,
 
     RENDER_ENTRY_TYPE_CLEAR,
     RENDER_ENTRY_TYPE_PRESENT,
@@ -25,7 +25,6 @@ struct render_entry_header_t { u32 type; }; // put in its own struct for casting
 
 struct render_entry_clear_t   { /* maybe color ? */ };
 struct render_entry_present_t { /* placeholder */ };
-
 struct render_entry_texture_t
 {
     texture_t* tex;
@@ -33,36 +32,11 @@ struct render_entry_texture_t
     rect_t     dst;
     i32        z_idx = 0;
 };
-
 struct render_entry_rect_t
 {
     rect_t   rect;
     i32      z_idx = -1;
     colorf_t color = {1.0f, 1.0f, 1.0f, 1.0f};
-};
-
-enum texture_blend_mode_e // mirrors SDL_BlendMode for now
-{
-    TEXTURE_BLEND_MODE_NONE  = 0,
-    TEXTURE_BLEND_MODE_BLEND = 1,
-    TEXTURE_BLEND_MODE_ADD   = 2,
-    TEXTURE_BLEND_MODE_MOD   = 4,
-    TEXTURE_BLEND_MODE_MUL   = 8,
-    TEXTURE_BLEND_MODE_NO_CHANGE   = 1000, // ours
-};
-enum texture_scale_mode_e // mirrors SDL_ScaleMode for now TODO use lookup table
-{
-    TEXTURE_SCALE_MODE_NEAREST,          // == SDL_ScaleModeNearest & GL_NEAREST
-    TEXTURE_SCALE_MODE_LINEAR,           // == SDL_ScaleModeLinear & GL_LINEAR.
-    TEXTURE_SCALE_MODE_BEST,             // == SDL_ScaleModeBest (anisotropic filtering)
-    TEXTURE_SCALE_MODE_NO_CHANGE = 1000, // ours
-};
-struct render_entry_texture_mod_t
-{
-    texture_t*           tex;
-    texture_blend_mode_e blend;  // SDL_SetTextureBlendMode
-    texture_scale_mode_e scale;  // SDL_SetTextureScaleMode
-    color_t              rgba;   // SDL_SetTextureColorMod, SDL_SetTextureAlphaMod
 };
 
 // TODO what should happen if buffer is full?
@@ -75,23 +49,47 @@ struct renderer_cmd_buf_t
     u32 entry_count;
 };
 
+/* called by game layer */
+void       renderer_cmd_buf_process(platform_window_t*);
+void       renderer_push_texture(render_entry_texture_t draw_tex);
+void       renderer_push_rect(render_entry_rect_t rect);
+texture_t* renderer_load_texture(const char* filename);
+
 // testing camera matrix uploading
 struct cam_mtx_t { f32 mtx[4][4]; };
 void renderer_upload_camera(cam_mtx_t mtx, f32 zoom);
 
-/* called by game layer */
-void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale);
-void renderer_push_texture(render_entry_texture_t draw_tex);
-void renderer_push_texture_mod(render_entry_texture_mod_t mod);
-void renderer_push_rect(render_entry_rect_t rect);
-void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness);
-void renderer_push_clear(render_entry_clear_t clear);
-void renderer_push_present(render_entry_present_t present);
-texture_t* renderer_load_texture(platform_window_t* window, const char* filename);
-texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface);
-i32        renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h);
+/* convenience macros for the user */
+#define RENDERER_PUSH_SPRITE(sprite_tex, sprite_box, position, scale) do {   \
+      rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)}; \
+      renderer.push_texture({sprite_tex, sprite_box, dst}); \
+    } while (0);
+
+// constructs the outline of a rectangle using 4 rectangles, used for debugging
+#define RENDERER_PUSH_RECT_OUTLINE(rect,thickness) do {   \
+       render_entry_rect_t top    = { { rect.rect.left, rect.rect.top, rect.rect.w, thickness}, -1, rect.color };          \
+       render_entry_rect_t left   = { { rect.rect.left, rect.rect.top, thickness, rect.rect.h}, -1, rect.color };          \
+       render_entry_rect_t right  = { { rect.rect.left + rect.rect.w - thickness, rect.rect.top, thickness, rect.rect.h},  \
+                                      -1, rect.color };                                                                    \
+       render_entry_rect_t bottom = { { rect.rect.left, rect.rect.top + rect.rect.h - thickness, rect.rect.w, thickness }, \
+                                      -1, rect.color };                                                                    \
+       renderer.push_rect(top);                                                                                            \
+       renderer.push_rect(bottom);                                                                                         \
+       renderer.push_rect(left);                                                                                           \
+       renderer.push_rect(right);                                                                                          \
+    } while (0)
 
 /* called by platform layer */
-void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena);
+void renderer_init(mem_arena_t* platform_mem_arena);
 void renderer_destroy(renderer_t* renderer);
-void renderer_cmd_buf_process();
+
+
+struct renderer_api_t
+{
+    void        (*render)(platform_window_t*);
+
+    void        (*push_texture)(render_entry_texture_t);
+    void        (*push_rect)(render_entry_rect_t);
+    texture_t*  (*load_texture)(const char*);             // NOTE: used once
+    void        (*upload_camera)(cam_mtx_t, f32);         // NOTE: temporary
+};

@@ -1,14 +1,13 @@
-#include "game.hpp" // TODO needs to be included when not compiling with pch's (?)
+#include "game.hpp"
 #include "game.h"
 
-#include "memory.h"
 // TODO move this somewhere else ///////////////////////////////////////////////////////////////////
 struct platform_window_t;
 struct game_state_t
 {
+    b32 game_running = true;           // used by game NOTE: needs to be first
     b32 initialized = true;            // used by game
-    platform_window_t* window;         // used by game, layer, resourcemgr
-    b32 game_running = true;           // used by game
+    platform_window_t* window;         // used by game, layer
 
     game_input_t game_input;           // used by input, layer
     u32 actionState;                   // used by input, rewind, player
@@ -79,6 +78,8 @@ animated_icon icon_hourglass = {0, {6, 64, 208, 16}};
 
 global_var f32 zoom = 1.0f;;
 
+global_var renderer_api_t renderer;
+
 // TODO pass in game_input_t too (?)
 extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platform)
 {
@@ -86,17 +87,17 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
     if (!state->initialized)
     {
         state = new (state) game_state_t();
-        state->window = platform.window_open("hello game", SCREEN_WIDTH, SCREEN_HEIGHT);
+        platform.init("hello game", SCREEN_WIDTH, SCREEN_HEIGHT, &state->window, &renderer);
         state->game_input.window_width  = SCREEN_WIDTH;
         state->game_input.window_height = SCREEN_HEIGHT;
         { // layer_game_init:
-            if (!levelgen_level_load(GAME_LEVEL, MAX_ENTITIES, &platform, state)) exit(1);
+            if (!levelgen_level_load(GAME_LEVEL, MAX_ENTITIES, &platform, &renderer, state)) exit(1);
             physics_init();
         }
 
-        ui_init(&ui_ctx, &platform, state->window);
-        ui_entities[0] = create_entity_from_file("skeleton.ent", &platform, state->window);
-        ui_entities[1] = create_entity_from_file("necromancer.ent", &platform, state->window);
+        ui_init(&ui_ctx, &renderer);
+        ui_entities[0] = create_entity_from_file("skeleton.ent", &renderer);
+        ui_entities[1] = create_entity_from_file("necromancer.ent", &renderer);
     }
 
     // TIMESTEP ////////////////////////////////////////////////////////////
@@ -504,8 +505,6 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
     state->last_frame_time  = curr_time;
 
     // RENDERING ///////////////////////////////////////////////////////////////////////////////////
-    { //TIMED_BLOCK(2, platform);
-    platform.renderer.push_clear({});
     { // layer_game_render();
         Entity* ents = state->ents;
         Tile* tiles  = state->tiles;
@@ -534,13 +533,13 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
                              {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}};
         //cam_mtx.mtx = matrix;
         memcpy(&cam_mtx.mtx, matrix, sizeof(f32) * 4 * 4);
-        platform.renderer.upload_camera(cam_mtx, zoom);
+        renderer.upload_camera(cam_mtx, zoom); // TODO should be Push... command
 
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         for (u32 i = 0; i < state->tile_count; i++) // TODO tilemap culling
         {
 
-            platform.renderer.push_sprite(tiles[i].sprite.tex, tiles[i].sprite.box,
+            RENDERER_PUSH_SPRITE(tiles[i].sprite.tex, tiles[i].sprite.box,
                                           //camera_world_to_screen(state->cam,tiles[i].position),
                                           tiles[i].position,
                                           state->cam.scale);
@@ -553,10 +552,10 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
             if (ents[i].sprite.tex != nullptr) // workaround for temporary invisible entities,
                                                // TODO instead we should maybe just have an ENT_FLAG_RENDERED
                                                // that we check here
-                platform.renderer.push_sprite(ents[i].sprite.tex, ents[i].sprite.box,
-                                              //camera_world_to_screen(state->cam, ents[i].position),
-                                              ents[i].position,
-                                              state->cam.scale);
+                RENDERER_PUSH_SPRITE(ents[i].sprite.tex, ents[i].sprite.box,
+                                     //camera_world_to_screen(state->cam, ents[i].position),
+                                     ents[i].position,
+                                     state->cam.scale);
         }
 
         // draw focusarrow on focused entity TODO hardcoded & very hacky
@@ -565,33 +564,31 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
             sprite_t arrow_sprite = { state->focusArrow, ents[0].sprite.tex };
             //auto pos = camera_world_to_screen(state->cam, state->focusedEntity->position);
             auto pos = state->focusedEntity->position;
-            platform.renderer.push_sprite(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
+            RENDERER_PUSH_SPRITE(arrow_sprite.tex, arrow_sprite.box, pos, state->cam.scale);
 
             // testing drawing colliders
             auto collider      = state->focusedEntity->getColliderInWorld();
             v3i pos_on_screen = {collider.left, collider.top, 0};
             rect_t collider_on_screen = { (i32)pos_on_screen.x, (i32)pos_on_screen.y, collider.w, collider.h };
-            platform.renderer.push_rect_outline({ collider_on_screen, -10, {1,1,1,1} }, 1);
+            render_entry_rect_t rect = { collider_on_screen, -10, {1,1,1,1} };
+            RENDERER_PUSH_RECT_OUTLINE(rect, 1);
         }
 
         if (state->entity_to_place)
         {
-            platform.renderer.push_sprite(state->entity_to_place->sprite.tex, state->entity_to_place->sprite.box,
-                                          state->entity_to_place->position, state->entity_to_place->scale);
+            RENDERER_PUSH_SPRITE(state->entity_to_place->sprite.tex, state->entity_to_place->sprite.box,
+                                 state->entity_to_place->position, state->entity_to_place->scale);
         }
     }
 
-    ui_render(&ui_ctx, &platform, state->cam);
+    ui_render(&ui_ctx, &renderer, state->cam);
 
-    platform.renderer.push_present({});
-    platform.render(state->window);
-    }
+    renderer.render(state->window);
 
     // game_quit:
     if (!state->game_running)
     {
-        platform.window_close(state->window);
-        platform.quit();
+        platform.quit(state->window);
         exit(0);
     }
 }

@@ -127,7 +127,7 @@ struct ui_t
 };
 
 
-inline void ui_init(ui_t* ctx, platform_api_t* platform, platform_window_t* window)
+inline void ui_init(ui_t* ctx, renderer_api_t* renderer)
 {
     ctx->style.colors[UI_COLOR_BUTTON]       = {0.6f, 0.2f, 0.2f, 1.0f};
     ctx->style.colors[UI_COLOR_BUTTONHOVER]  = {0.8f, 0.2f, 0.2f, 1.0f};
@@ -135,7 +135,7 @@ inline void ui_init(ui_t* ctx, platform_api_t* platform, platform_window_t* wind
     ctx->style.colors[UI_COLOR_SLIDER]       = {0.1,0.8,1.0,1.0};
     ctx->style.colors[UI_COLOR_SLIDER_LEFT]  = {0.4,0.1,1.0,0.9};
     ctx->style.colors[UI_COLOR_SLIDER_RIGHT] = {0.1,0.1,0.5,0.9};
-    ctx->font.bitmap = resourcemgr_texture_load("charmap-cellphone_white-transparent.png", platform, window);
+    ctx->font.bitmap = resourcemgr_texture_load("charmap-cellphone_white-transparent.png", renderer);
 }
 
 
@@ -531,19 +531,19 @@ inline void ui_text(ui_t* ctx, ui_id id, const char* text, u32 font_size = 1)
     }
 }
 
-inline void ui_render(ui_t* ctx, platform_api_t* platform, Camera cam)
+inline void ui_render(ui_t* ctx, renderer_api_t* renderer, Camera cam)
 {
     ASSERT(ctx->rect_count    < UI_ELEMENTS_MAX);
     ASSERT(ctx->texture_count < UI_ELEMENTS_MAX);
 
     for (u32 i = 0; i < ctx->rect_count; i++)
     {
-        platform->renderer.push_rect(ctx->rect_buf[i]);
+        renderer->push_rect(ctx->rect_buf[i]);
     }
 
     for (u32 i = 0; i < ctx->texture_count; i++)
     {
-        platform->renderer.push_texture(ctx->texture_buf[i]);
+        renderer->push_texture(ctx->texture_buf[i]);
     }
 }
 

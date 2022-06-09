@@ -1,9 +1,7 @@
-#include "platform_sdl.hpp" // TODO needs to be included when not compiling with pch's (?)
+#include "platform_sdl.hpp"
 
 #if defined(PLATFORM_SDL)
 
-// NOTE SDL headers come from pch
-#include "base.h"
 #include "platform.h"
 #include "platform_renderer.h"
 #include "input.h"
@@ -18,25 +16,14 @@ struct platform_window_t
 
 #define SDL_ERROR(x) if (!x) { printf("SDL ERROR: %s\n", SDL_GetError()); }
 
-// UNITY BUILD
-#include "platform_renderer.cpp" // NOTE needs to above opengl/sdl implementation
-#ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
-  #include "platform_renderer_opengl.cpp"
-#else
-  #include "platform_renderer_sdl.cpp"
-#endif
+/* UNITY BUILD */
+#include "platform_renderer.cpp"
 
 // game functions
-typedef void (*game_main_loop_fn)(game_state_t*, platform_api_t);
-struct game_api_t
-{
-    game_main_loop_fn      main_loop;
-    int                    id;
-};
-global_var game_api_t game;
+global_var void (*game_main_loop)(game_state_t*, platform_api_t) = nullptr;
+global_var u32 game_dll_id;
 
 extern platform_api_t platform_api;
-global_var b32 game_running = true;
 
 //#include <dlfcn.h>    // for opening shared objects (needs to be linked with -ldl)
 #include <sys/stat.h> // for checking if dll changed on disk (TODO does it work crossplatform?)
@@ -53,8 +40,8 @@ b32 platform_load_code()
     // unload old dll
     if (dll_handle)
     {
-        game.main_loop    = nullptr;
-        game.id           = 0;
+        game_main_loop    = nullptr;
+        game_dll_id           = 0;
 
         //if (dlclose(dll_handle) != 0) printf("FAILED TO CLOSE DLL\n");
         SDL_UnloadObject(dll_handle);
@@ -82,10 +69,10 @@ b32 platform_load_code()
         return false;
     }
 
-    //game.main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
-    game.main_loop    = (game_main_loop_fn)    SDL_LoadFunction(dll_handle, "game_main_loop");
+    //game_main_loop    = (game_main_loop_fn)    dlsym(dll_handle, "game_main_loop");
+    game_main_loop    = (decltype(game_main_loop)) SDL_LoadFunction(dll_handle, "game_main_loop");
 
-    if (!game.main_loop)
+    if (!game_main_loop)
     {
         printf("FINDING GAME_MAIN FAILED\n");
         return false;
@@ -108,7 +95,8 @@ struct game_memory_t
 game_memory_t memory = {};
 
 struct game_state_t;
-game_state_t* game_state = nullptr;
+game_state_t* game_state     = nullptr;
+global_var b32* game_running = nullptr;
 
 // TODO define TOTAL_MEMORY_SIZE
 #define GAME_MEMORY_SIZE 67108864 // 2^26
@@ -122,43 +110,43 @@ int main(int argc, char* args[])
     mem_arena_nested_init(&memory.total_arena, &memory.game_arena, GAME_MEMORY_SIZE);
 
     game_state = (game_state_t*) mem_arena_alloc(&memory.game_arena, GAME_MEMORY_SIZE);
+    game_running = (b32*) game_state; // HACK: so that the platform layer has a way to set game_running
+
     memset(game_state, 0, GAME_MEMORY_SIZE);
     {
         // get the game.id (inode) so we don't perform a code reload when first entering the main loop
         struct stat attr;
         stat(GAME_DLL, &attr);
-        game.id = attr.st_ino;
+        game_dll_id = attr.st_ino;
     }
     b32 code_loaded = platform_load_code(); // initial loading of the game dll
     if (!code_loaded) { exit(-1); }
-    game_running = true;
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(game_main_loop, -1, 1); // NOTE no code reloading, outdated
 #else
-    while (game_running)
-    {
-        game.main_loop(game_state, platform_api);
+
+    do {
+        game_main_loop(game_state, platform_api);
 
         // check if dll/so changed on disk
         // NOTE: should only happen in debug builds
         struct stat attr;
-        if ((stat(GAME_DLL, &attr) == 0) && (game.id != attr.st_ino))
+        if ((stat(GAME_DLL, &attr) == 0) && (game_dll_id != attr.st_ino))
         {
             printf("Attempting code reload\n");
             platform_load_code();
-            game.id = attr.st_ino;
+            game_dll_id = attr.st_ino;
         }
-    }
+    } while (*game_running);
 
-    // we can register that the game was quit in an 'invalid' way here, i.e. not
-    // by e.g. pressing the quit button in the menu, but by forcing the window to close etc.
-    exit(1);
+    UNREACHABLE("The game should quit, not the platform.");
 #endif
 }
 
 
-platform_window_t* platform_window_open(const char* title, u32 screen_width, u32 screen_height)
+b32 platform_init(const char* title, u32 screen_width, u32 screen_height,
+                  platform_window_t** window_out, /* TODO use this: */ renderer_api_t* renderer_out)
 {
     if (SDL_Init(SDL_INIT_TIMER
                  | SDL_INIT_AUDIO
@@ -173,6 +161,7 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
                  ) != 0)
     {
         printf("SDL init failed: %s\n", SDL_GetError());
+        return 0;
     }
 
     u32 window_flags = 0;
@@ -217,20 +206,14 @@ platform_window_t* platform_window_open(const char* title, u32 screen_width, u32
     window->renderer->gl_context = gl_context;
 #endif
 
-    renderer_init(window, &memory.platform_arena);
+    renderer_init(&memory.platform_arena, renderer_out);
 
     SDL_version version;
     SDL_GetVersion(&version);
     printf("SDL VERSION: %u, %u, %u\n", version.major, version.minor, version.patch);
 
-    return window;
-}
-
-
-void platform_window_close(platform_window_t* window)
-{
-    renderer_destroy(window->renderer);
-    SDL_DestroyWindow(window->handle);
+    *window_out = window;
+    return 1;
 }
 
 
@@ -259,13 +242,6 @@ void platform_file_close(file_t file)
     i32 success = SDL_RWclose((SDL_RWops*) file.handle);
     free(file.buffer);
     SDL_ERROR(!success);
-}
-
-
-b32 platform_file_save(u8* file_name, u8* buffer)
-{
-    UNREACHABLE("function not implementd");
-    return false;
 }
 
 
@@ -353,7 +329,7 @@ void platform_event_loop(game_input_t* input, platform_window_t* window)
                     input_event_process(&input->mouse.buttons[MOUSE_BUTTON_LEFT], is_down);
             } break;
 
-            case SDL_QUIT: { game_running = false; } break;
+            case SDL_QUIT: { *game_running = false; } break;
 
             case SDL_WINDOWEVENT:
             {
@@ -361,7 +337,7 @@ void platform_event_loop(game_input_t* input, platform_window_t* window)
                 {
                     case SDL_WINDOWEVENT_CLOSE:
                     {
-                        game_running = false;
+                        *game_running = false;
                     } break;
 
                     case SDL_WINDOWEVENT_RESIZED:
@@ -388,115 +364,32 @@ void platform_event_loop(game_input_t* input, platform_window_t* window)
 }
 
 
-void platform_render(platform_window_t* window)
-{
-    renderer_cmd_buf_process(window); // TODO this draws over imgui
-}
-
-// only draws colored rects (colliders) for now
-// TODO move into renderer
-void platform_debug_draw(platform_window_t* window, rect_t collider_box, v3f pos, color_t color, u32 scale)
-{
-    rect_t dst = {(int) pos.x + collider_box.left, (int) pos.y + collider_box.top,
-                  (i32) (scale * collider_box.w), (i32) (scale * collider_box.h)};
-
-    // don't draw 'empty' colliders (otherwise it will draw points & lines)
-    // TODO maybe put this into the renderer
-    if (!SDL_RectEmpty((SDL_Rect*) &dst)) // == if (!(dst.h <= 0.f && dst.w <= 0.f))
-    {
-        //renderer_push_rect({dst, color});
-    }
-
-    //SDL_RenderDrawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2)
-    // TODO isn't where it's expected
-    // Draw pivot point
-    // SDL_RenderDrawPointF(window->renderer, pos.x, pos.y);
-}
-
-
 u64 platform_debug_performance_counter()
 {
     return SDL_GetPerformanceCounter();
 }
 
 
-void platform_surface_destroy(surface_t* surface)
-{
-    SDL_FreeSurface((SDL_Surface*) surface);
-}
-
-
-// SDL TTF extension ///////////////////////////////////////////////////////////////////////////////
-font_t* platform_font_load(const char* filename, i32 ptsize)
-{
-    //TTF_Font* font = TTF_OpenFont(filename, ptsize);
-    //SDL_ERROR(font);
-    //return font;
-    return nullptr;
-}
-
-
-void platform_font_init()
-{
-    //TTF_Init();
-}
-
-
-// TODO pass options to render blended/wrapped
-// NOTE this is not (as of now) an SDL Renderer specific function
-surface_t* platform_text_render(font_t* font, const char* text, color_t color, u32 wrap_len)
-{
-    //SDL_Surface* text_surf = TTF_RenderText_Blended_Wrapped((TTF_Font*) font, text,
-    //                                                        *((SDL_Color*) &color), wrap_len);
-    //SDL_ERROR(text_surf);
-    //return text_surf;
-    return nullptr;
-}
-
-
 u32  platform_ticks() { return SDL_GetTicks(); }
 
 
-void platform_quit()
+void platform_quit(platform_window_t* window)
 {
-    //TTF_Quit();
-    //IMG_Quit(); // NOTE: commented out for now to avoid SDL2_image dependency when compiling ogl version
+    renderer_destroy(window->renderer);
+    SDL_DestroyWindow(window->handle);
     SDL_Quit();
 }
 
 
 platform_api_t platform_api =
 {
+  &platform_init,
   &platform_file_load,
-  &platform_file_save,
   &platform_file_close,
-  &platform_window_open,
-  &platform_window_close,
   &platform_event_loop,
   &platform_ticks,
   &platform_quit,
-  &platform_render,
-  &platform_surface_destroy,
-  &platform_font_init,
-  &platform_font_load,
-  &platform_text_render,
-  &platform_debug_draw,
   &platform_debug_performance_counter,
-  { // renderer api
-    &renderer_push_sprite,
-    &renderer_push_texture,
-    &renderer_push_texture_mod,
-    &renderer_push_rect,
-    &renderer_push_rect_outline,
-    &renderer_push_clear,
-    &renderer_push_present,
-
-    &renderer_load_texture,
-    &renderer_create_texture_from_surface,
-    &renderer_texture_query,
-
-    &renderer_upload_camera,
-  },
 };
 
 #endif // PLATFORM_SDL

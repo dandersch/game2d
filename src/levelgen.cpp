@@ -50,7 +50,7 @@ void fill_objects_array(struct json_value_s* value, tiled_layer_t* layer)
     }
 }
 
-b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform, game_state_t* state)
+b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform, renderer_api_t* renderer, game_state_t* state)
 {
     platform_window_t* window = state->window;
 
@@ -368,13 +368,13 @@ b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform
                 // TODO charID
                 if (strcmp(type, "skeleton") == 0)
                 {
-                    newEnt = create_entity_from_file("skeleton.ent", platform, window);
+                    newEnt = create_entity_from_file("skeleton.ent", renderer);
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.collider     = collider;
                 }
                 else if (strcmp(type, "necromancer") == 0)
                 {
-                    newEnt = create_entity_from_file("necromancer.ent", platform, window);
+                    newEnt = create_entity_from_file("necromancer.ent", renderer);
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
                     newEnt.collider     = collider;
                 }
@@ -392,7 +392,7 @@ b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform
                     newEnt.sprite.box   = spritebox;
                     newEnt.sprite.pivot = {0.5f, 0.75f};
                     newEnt.setPivPos( { (f32) o->x, (f32) o->y - 24, 0}); // TODO why -24
-                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, platform, window);
+                    newEnt.sprite.tex   = resourcemgr_texture_load(ts->image, renderer);
                     newEnt.collider     = collider;
                     newEnt.flags       |= ENT_FLAG_IS_COLLIDER;
                     newEnt.flags       |= ENT_FLAG_IS_ITEM;
@@ -469,7 +469,7 @@ b32 levelgen_level_load(const char* file, u32 max_ents, platform_api_t* platform
 
                 newTile.sprite.box   = bb;
                 newTile.sprite.pivot = {0.5f, 0.5f};
-                newTile.sprite.tex   = resourcemgr_texture_load(ts->image, platform, window);
+                newTile.sprite.tex   = resourcemgr_texture_load(ts->image, renderer);
                 newTile.setPivPos({x * 16.f, y * 16.f, 0}); // TODO hardcoded
 
                 EntityMgr::createTile(newTile, state); // copy new tile into array TODO slow

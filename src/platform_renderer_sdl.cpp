@@ -45,26 +45,49 @@ i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32
 }
 
 
-texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
-{
-    SDL_Texture* sdl_tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
-    SDL_ERROR(sdl_tex);
-
-    texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
-    tex->id = sdl_tex;
-
-    return tex;
-}
+// texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
+// {
+//     SDL_Texture* sdl_tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, (SDL_Surface*) surface);
+//     SDL_ERROR(sdl_tex);
+//
+//     texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
+//     tex->id = sdl_tex;
+//
+//     return tex;
+// }
 
 
 texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
 {
-    SDL_Texture* sdl_tex = IMG_LoadTexture((SDL_Renderer*) window->renderer, filename);
+    //stbi_set_flip_vertically_on_load(true); // TODO doesn't work as expected
+
+    i32 width, height, nrChannels, req_format = STBI_rgb_alpha;
+    u8* data = stbi_load(filename, &width, &height, &nrChannels, req_format);
+    if (!data) UNREACHABLE("image '%s' couldn't be loaded\n", filename);
+
+    i32 depth = 0, pitch = 0;
+    u32 pixel_format = 0;
+    switch (nrChannels)
+    {
+        /* 1 (grey) to 4 (rgb_alpha) */
+        case STBI_grey:       { } break; // see down below
+        case STBI_grey_alpha: { } break; // see down below
+        case STBI_rgb:        { depth = 24; pitch = 3 * width; pixel_format = SDL_PIXELFORMAT_RGB24;  } break;
+        case STBI_rgb_alpha:  { depth = 32; pitch = 4 * width; pixel_format = SDL_PIXELFORMAT_RGBA32; } break;
+        default: { UNREACHABLE("Unknown nr of channels '%i' for image '%s'\n", nrChannels, filename); break; }
+    }
+
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void*) data, width, height, depth, pitch, pixel_format);
+    SDL_ERROR(surf);
+
+    SDL_Texture* sdl_tex = SDL_CreateTextureFromSurface((SDL_Renderer*) window->renderer, surf);
     SDL_ERROR(sdl_tex);
 
     texture_t* tex = (texture_t*) malloc(sizeof(texture_t));
     tex->id = sdl_tex;
 
+    SDL_FreeSurface(surf);
+    stbi_image_free(data);
     return tex;
 }
 

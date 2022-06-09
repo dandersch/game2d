@@ -36,7 +36,7 @@ clang++ -MJ json.b ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${C
 
 # add platform specific flags
 CmnFlags+=$(sdl2-config --cflags)
-SDL2Libs="$(sdl2-config --libs) -lSDL2_image " # -lSDL2_ttf
+SDL2Libs="$(sdl2-config --libs) "
 
 # add opengl flags (comment out to use SDL renderer)
 CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "

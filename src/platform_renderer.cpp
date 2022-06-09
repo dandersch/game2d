@@ -6,7 +6,7 @@
 
 renderer_cmd_buf_t* cmds;
 
-#define PUSH_CMD(type, entry)                                                      \
+#define PUSH_CMD(type, entry) do {                                                 \
     ASSERT(cmds->buf_offset < &cmds->buf[MAX_CMD_BUF_SIZE]);                       \
     *((render_entry_header_t*) cmds->buf_offset)  = {type};                        \
     ASSERT(sort_entry_count < MAX_SORT_BUF_SIZE);                                  \
@@ -14,7 +14,7 @@ renderer_cmd_buf_t* cmds;
     cmds->buf_offset                             += sizeof(render_entry_header_t); \
     *((decltype(entry)*) cmds->buf_offset)        = entry;                         \
     cmds->buf_offset                             += sizeof(entry);                 \
-    cmds->entry_count++;
+    cmds->entry_count++; } while (0)
 
 // SORTING
 struct sort_entry
@@ -57,13 +57,6 @@ internal_fn void renderer_sort_buffer()
 }
 
 
-void renderer_push_sprite(texture_t* sprite_tex, rect_t sprite_box, v3f position, f32 scale)
-{
-    rect_t dst = {(int) position.x, (int) position.y, (i32) (scale * sprite_box.w), (i32) (scale * sprite_box.h)};
-    renderer_push_texture({sprite_tex, sprite_box, dst});
-}
-
-
 void renderer_push_texture(render_entry_texture_t draw_tex)
 {
     sort_buf[sort_entry_count].key1  = draw_tex.dst.top;
@@ -81,8 +74,6 @@ void renderer_push_rect(render_entry_rect_t rect)
     PUSH_CMD(RENDER_ENTRY_TYPE_RECT, rect);
 }
 
-
-// constructs the outline of a rectangle using 4 rectangles, used for debugging
 void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness)
 {
     render_entry_rect_t top    = { { rect.rect.left, rect.rect.top, rect.rect.w, thickness}, -1, rect.color };
@@ -98,15 +89,7 @@ void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness)
 }
 
 
-// NOTE doesn't get called
-void renderer_push_texture_mod(render_entry_texture_mod_t mod)
-{
-    PUSH_CMD(RENDER_ENTRY_TYPE_TEXTURE_MOD, mod);
-}
-
-
-
-void renderer_push_clear(render_entry_clear_t clear)
+internal_fn void renderer_push_clear(render_entry_clear_t clear)
 {
     sort_buf[sort_entry_count].key1  = I32_MIN;
     sort_buf[sort_entry_count].key2  = I32_MIN;
@@ -115,10 +98,26 @@ void renderer_push_clear(render_entry_clear_t clear)
 }
 
 
-void renderer_push_present(render_entry_present_t present)
+internal_fn void renderer_push_present(render_entry_present_t present)
 {
     sort_buf[sort_entry_count].key1  = I32_MAX;
     sort_buf[sort_entry_count].key2  = I32_MAX;
     sort_buf[sort_entry_count].z_key = I32_MIN;
     PUSH_CMD(RENDER_ENTRY_TYPE_PRESENT, present);
 }
+
+renderer_api_t renderer_api =
+{
+  &renderer_cmd_buf_process,
+  &renderer_push_texture,
+  &renderer_push_rect,
+  &renderer_load_texture,
+
+  &renderer_upload_camera,
+};
+
+#ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
+  #include "platform_renderer_opengl.cpp"
+#else
+  #include "platform_renderer_sdl.cpp"
+#endif

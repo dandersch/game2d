@@ -13,6 +13,8 @@
  *  [ ] use instancing
  */
 
+// The renderer should have a UI matrix and a Camera Matrix
+
 struct renderer_t
 {
     void* gl_context;
@@ -56,7 +58,8 @@ const char* fragment_shader_src =
     "{\n"
         /* SUBPIXEL FILTERING **************************************************************/
         "vec2 size = vec2(textureSize(u_tex_units[0], 0));\n"
-        "switch(int(o_tex_index))\n" // TODO can we do this w/o a switch?
+        "switch(int(o_tex_index))\n" // NOTE: we use a switch instead of directly indexing into
+                                     // the array b/c indexing w/ a uniform apparently is UB
         "{\n"
             "case  0:                                       ; break;\n"
             "case  1: size = textureSize(u_tex_units[ 1], 0); break;\n"
@@ -125,7 +128,7 @@ global_var u32 vao;
 // GLEW_OK = 0
 #define GLEW_ERROR(x) if(x) printf("Error initializing GLEW! %s\n", glewGetErrorString(x));
 
-void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
+void renderer_init(mem_arena_t* platform_mem_arena, renderer_api_t* renderer)
 {
     // TODO use a COMMON_RENDERER_INIT macro for this
     sort_entry_count  = 0;
@@ -134,6 +137,9 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
     cmds->entry_count = 0;
 
     /* opengl code here */
+
+    // TODO platform could pass a "load_ogl_functions" function pointer, then we
+    //      could load all functions here ourselves
 
     // init GLEW
     glewExperimental = GL_TRUE;
@@ -226,6 +232,8 @@ void renderer_init(platform_window_t* window, mem_arena_t* platform_mem_arena)
 
     auto err = glGetError();
     if (err != GL_NO_ERROR) printf("%s\n", glewGetErrorString(err));
+
+    *renderer = renderer_api;
 }
 
 
@@ -274,7 +282,7 @@ internal_fn texture_t* create_and_upload_texture(i32 width, i32 height, i32 mode
 }
 
 
-texture_t* renderer_load_texture(platform_window_t* window, const char* filename)
+texture_t* renderer_load_texture(const char* filename)
 {
     //stbi_set_flip_vertically_on_load(true); // TODO doesn't work as expected
 
@@ -282,6 +290,7 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
     u8* data = stbi_load(filename, &width, &height, &nrChannels, 0);
     if (!data) UNREACHABLE("image '%s' couldn't be loaded\n", filename);
 
+    // TODO look at load_texture in sdl_renderer on how to write this properly
     i32 Mode = GL_RGB;
     switch (nrChannels)
     {
@@ -305,30 +314,6 @@ texture_t* renderer_load_texture(platform_window_t* window, const char* filename
 
     // cleanup
     stbi_image_free(data);
-    //glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
-
-    return tex;
-}
-
-
-// TODO SDL specific, we could instead have our own definition of surface_t
-// inside the renderer, which could contain e.g. the data from stbi_load
-// NOTE hasn't been tested for a while
-texture_t* renderer_create_texture_from_surface(platform_window_t* window, surface_t* surface)
-{
-    SDL_Surface* surf = (SDL_Surface*) surface;
-
-    i32 Mode = -1;
-    switch (surf->format->BytesPerPixel)
-    {
-        case 3: { Mode = GL_RGB; } break;
-        case 4: { Mode = GL_RGBA; } break;
-        default: { UNREACHABLE("Unknown nr of bytes per pixel '%i'\n", surf->format->BytesPerPixel); break; }
-    }
-
-    texture_t* tex = create_and_upload_texture(surf->w, surf->h, Mode, surf->pixels);
-
-    // cleanup
     //glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
 
     return tex;
@@ -388,6 +373,8 @@ void flush_batch()
 
 void renderer_cmd_buf_process(platform_window_t* window)
 {
+    renderer_push_present({}); // NOTE: used to be called by the game
+
     renderer_sort_buffer();
 
     for (u32 i = 0; i < sort_entry_count; i++)
@@ -514,6 +501,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_rect_t);
             } break;
 
+            /*
             case RENDER_ENTRY_TYPE_TEXTURE_MOD:
             {
                 render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
@@ -523,6 +511,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
 
                 curr_entry += sizeof(render_entry_texture_mod_t);
             } break;
+            */
 
             case RENDER_ENTRY_TYPE_CLEAR:
             {
@@ -536,9 +525,7 @@ void renderer_cmd_buf_process(platform_window_t* window)
             case RENDER_ENTRY_TYPE_PRESENT:
             {
                 flush_batch();
-
                 SDL_GL_SwapWindow(window->handle);
-
                 curr_entry += sizeof(render_entry_present_t);
             } break;
 
@@ -548,10 +535,13 @@ void renderer_cmd_buf_process(platform_window_t* window)
             }
         }
     }
+
     // reset cmd buffer
     sort_entry_count  = 0;
     cmds->entry_count = 0;
     cmds->buf_offset  = cmds->buf;
+
+    renderer_push_clear({}); // NOTE: used to be called by the game
 }
 
 // stubs
