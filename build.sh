@@ -1,59 +1,37 @@
 #!/bin/bash
-#
-# NOTE as of right now the build relies on clang features (pch's & generation of
-# compile database json)
+
+CC=clang++
 
 set -e # stop execution on first fail
-#set -x # echo commands
-
-start_timer=$(date +%s.%N)
 
 mkdir -p bin
 mkdir -p dep
 rm -f compile_commands.json
 
-# TODO compiler warning for integer division that's assigned to a float
-CmnFlags="-g -std=c++11 -DENABLE_ASSERTS -fPIC -fno-rtti
-          -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts
-          -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "
-# other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings
-# -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing
-# -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses
-# -Wno-return-type -Wno-array-bounds -maes msse4.1
-CmnIncludes="-I./src/ "
-CmnLibs="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/ "
+# creates compile_commands.json file
+command -v bear >/dev/null && DB="bear --append --"
 
-# precompiled header for game layer
-# TODO get rid of the pch for the game layer - even if it's a bit slower: just to simplify compilation
-# TODO here's how to do it in a way that is compatible with gcc/clang:
-# $ gcc -x c-header test.h -o test.h.gch
-# $ clang -x c-header test.h -o test.h.pch
-clang++ -MJ json.a -c ${CmnFlags} ${CmnIncludes} ./src/game.hpp -o game.pch &&
+# other useful flags: -Werror -Wno-comment -Wno-multichar -Wno-write-strings -Wno-sign-compare -Wno-unused-result -Wno-strict-aliasing -Wno-int-to-pointer-cast -Wno-switch Wno-logical-not-parentheses -Wno-return-type -Wno-array-bounds -maes msse4.1
+CmnCompilerFlags="-I./src/ -g -DENABLE_ASSERTS -fPIC -fno-rtti -Wall -Wfatal-errors -Wno-missing-braces -Wno-char-subscripts -Wno-unused-function -Wno-unused-variable -fno-exceptions -std=c++14 "
+CmnLinkerFlags="-L$(pwd)/dep -Wl,-rpath=$(pwd)/dep/"
 
 # build game as dll
-clang++ -MJ json.b ${CmnFlags} --shared -include ./src/base.h ${CmnIncludes} ${CmnLibs} \
-        -include-pch game.pch ./src/game.cpp -o ./dep/libgame.so &&
+${DB} ${CC} --shared -include ./src/base.h ${CmnCompilerFlags} ${CmnLinkerFlags} ./src/game.cpp -o ./dep/libgame.so
 
 # add platform specific flags
-CmnFlags+=$(sdl2-config --cflags)
-SDL2Libs="$(sdl2-config --libs) "
+CmnCompilerFlags="$(sdl2-config --cflags) ${CmnCompilerFlags}"
+CmnLinkerFlags="$(sdl2-config --libs) -ldl ${CmnLinkerFlags}"
 
-# add opengl flags (comment out to use SDL renderer)
-CmnFlags+=" -DUSE_OPENGL -I/usr/include/GL "
-GLLibs=" -lGL -lGLU "
+# precompiled header for platform layer (saves 1.5 seconds w/ clang)
+${DB} ${CC} -c -pthread ${CmnCompilerFlags} -DUSE_OPENGL -x c++-header ./src/platform_sdl.hpp -o platform_sdl.pch
 
-# pch for platform layer (sdl headers) (see https://clang.llvm.org/docs/PCHInternals.html)
-clang++ -MJ json.c -c -pthread ${CmnFlags} ${CmnIncludes} ./src/platform_sdl.hpp -o platform_sdl.pch &&
+if [ $CC == "clang++" ]; then
+  CmnCompilerFlags+=" -include-pch platform_sdl.pch "
+fi
 
-# build platform layer as executable
-clang++ -MJ json.d ${CmnFlags} ${CmnIncludes} ${SDL2Libs} ${GLLibs} -ldl ${CmnLibs} \
-           -include-pch platform_sdl.pch ./src/platform_sdl.cpp -o ./bin/megastruct &&
+# build platform layer as executable (SDL + OpenGL)
+${DB} ${CC} ${CmnCompilerFlags} -DUSE_OPENGL -I/usr/include/GL ${CmnLinkerFlags} -lGL -lGLU ./src/platform_sdl.cpp -o ./bin/megastruct
 
-# put together compile_commands.json
-# see https://github.com/Sarcasm/notes/blob/master/dev/compilation-database.rst#clang
-sed -e '1s/^/[\'$'\n''/' -e '$s/,$/\'$'\n'']/' json.* > compile_commands.json &&
-rm json.* &&
-end_timer=$(date +%s.%N)
-compile_time=$(echo "$end_timer - $start_timer" | bc -l)
-echo "Compile time (real): ${compile_time}s" \
-&& ./bin/megastruct # TODO don't start if a 'megastruct' process is already running
+# build SDL + SDL_renderer
+# NOTE: pch needs to be compiled without -DUSE_OPENGL
+#${DB} ${CC} ${CmnCompilerFlags} ${CmnLinkerFlags} ./src/platform_sdl.cpp -o ./bin/megastruct

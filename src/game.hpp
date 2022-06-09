@@ -1,13 +1,11 @@
 #pragma once
 
-//----------------------------------------------------------------------------------------------//
-// NOTE: this file acts as a precompiled header (extension is .hpp so the compiler sees it as a //
-// C++-header) if you change something here, make sure you build the pch again                  //
-// ---------------------------------------------------------------------------------------------//
+/* external includes */
 
-#include <cstring> // for memset
-#include <cmath>   // for std::round
-#include <new>     // for placement new
-#include <stdio.h> // for printf
+#include <new> // for placement new
+
+#include <string.h> // for memset
+#include <math.h>   // for std::round
+#include <stdio.h>  // for printf
 
 #include "ext/json.h"

@@ -68,7 +68,7 @@ void Rewind::update(f32 dt, Entity& e, f32 loop_time, b32 is_rewinding)
 internal_fn u32 TimeToIndex(f32 dt, f32 loop_time) // translate looptime into index in array
 {
     u32 index = 0;
-    index = (u32) std::round(loop_time / dt); // TODO fixed delta time
+    index = (u32) roundf(loop_time / dt); // TODO fixed delta time
     return index;
 }
 

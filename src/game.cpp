@@ -518,7 +518,6 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
         f32 top    = (f32) state->cam.rect.top;
         f32 near   = -50;
         f32 far    = 50;
-        cam_mtx_t cam_mtx = {0};
         //f32 matrix[4][4] = {{1,0,0,0},
         //                    {0,1,0,0},
         //                    {0,0,1,0},
@@ -527,13 +526,11 @@ extern "C" EXPORT void game_main_loop(game_state_t* state, platform_api_t platfo
         //                     {             0, 2/(top-bottom),               0, -((top+bottom)/(top-bottom))},
         //                     {             0,              0, (-2)/(far-near),     -((far+near)/(far-near))},
         //                     {             0,              0,               0,                            1}};
-        f32 matrix[4][4] = { {2/(right-left),              0,               0, 0},
-                             {             0, 2/(top-bottom),               0, 0},
-                             {             0,              0, (2)/(far-near), 0},
-                             {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}};
-        //cam_mtx.mtx = matrix;
-        memcpy(&cam_mtx.mtx, matrix, sizeof(f32) * 4 * 4);
-        renderer.upload_camera(cam_mtx, zoom); // TODO should be Push... command
+        m4f cam_mtx = {{ {2/(right-left),              0,               0, 0},
+                         {             0, 2/(top-bottom),               0, 0},
+                         {             0,              0, (2)/(far-near), 0},
+                         {-((right+left)/(right-left)),-((top+bottom)/(top-bottom)), -((far+near)/(far-near)), 1}}};
+        RENDERER_PUSH_CAMERA(cam_mtx);
 
         // RENDER TILES ////////////////////////////////////////////////////////////////////////////
         for (u32 i = 0; i < state->tile_count; i++) // TODO tilemap culling

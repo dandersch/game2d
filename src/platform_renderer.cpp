@@ -74,19 +74,24 @@ void renderer_push_rect(render_entry_rect_t rect)
     PUSH_CMD(RENDER_ENTRY_TYPE_RECT, rect);
 }
 
-void renderer_push_rect_outline(render_entry_rect_t rect, i32 thickness)
+
+void renderer_push_transform(render_entry_transform_t mtx)
 {
-    render_entry_rect_t top    = { { rect.rect.left, rect.rect.top, rect.rect.w, thickness}, -1, rect.color };
-    render_entry_rect_t left   = { { rect.rect.left, rect.rect.top, thickness, rect.rect.h}, -1, rect.color };
-    render_entry_rect_t right  = { { rect.rect.left + rect.rect.w - thickness, rect.rect.top, thickness, rect.rect.h},
-                                   -1, rect.color };
-    render_entry_rect_t bottom = { { rect.rect.left, rect.rect.top + rect.rect.h - thickness, rect.rect.w, thickness },
-                                   -1, rect.color };
-    renderer_push_rect(top);
-    renderer_push_rect(bottom);
-    renderer_push_rect(left);
-    renderer_push_rect(right);
+    sort_buf[sort_entry_count].key1  = I32_MIN;
+    sort_buf[sort_entry_count].key2  = I32_MIN;
+    sort_buf[sort_entry_count].z_key = I32_MAX;
+    PUSH_CMD(RENDER_ENTRY_TYPE_TRANSFORM, mtx);
 }
+
+
+renderer_api_t renderer_api =
+{
+  &renderer_cmd_buf_process,
+    &renderer_push_texture,
+    &renderer_push_rect,
+    &renderer_push_transform,
+    &renderer_load_texture,
+};
 
 
 internal_fn void renderer_push_clear(render_entry_clear_t clear)
@@ -105,16 +110,6 @@ internal_fn void renderer_push_present(render_entry_present_t present)
     sort_buf[sort_entry_count].z_key = I32_MIN;
     PUSH_CMD(RENDER_ENTRY_TYPE_PRESENT, present);
 }
-
-renderer_api_t renderer_api =
-{
-  &renderer_cmd_buf_process,
-  &renderer_push_texture,
-  &renderer_push_rect,
-  &renderer_load_texture,
-
-  &renderer_upload_camera,
-};
 
 #ifdef USE_OPENGL // NOTE we could compile the renderer as a dll in the future...
   #include "platform_renderer_opengl.cpp"

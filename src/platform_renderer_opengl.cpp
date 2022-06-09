@@ -28,7 +28,6 @@ struct texture_t
     f32 unit_idx; // NOTE unused
 };
 
-// TODO pass in or calculate a zoom factor
 const char* vertex_shader_src =
     "#version 330 core\n"
     "uniform mat4  u_camera;\n"
@@ -53,7 +52,6 @@ const char* fragment_shader_src =
     "in float o_tex_index;\n"
     "in vec4 o_color;\n"
     "uniform sampler2D u_tex_units[16];\n"
-    "uniform float u_zoom;\n"
     "void main()\n"
     "{\n"
         /* SUBPIXEL FILTERING **************************************************************/
@@ -122,7 +120,6 @@ global_var u32 prog_id;
 #define MAX_TEX_UNITS 16 // NOTE also needs to be changed in fragment shader if changed!
 global_var i32 uni_loc_tex_units;
 global_var i32 uni_loc_camera;
-global_var i32 uni_loc_zoom;
 global_var u32 vao;
 
 // GLEW_OK = 0
@@ -195,9 +192,6 @@ void renderer_init(mem_arena_t* platform_mem_arena, renderer_api_t* renderer)
     uni_loc_camera = glGetUniformLocation(prog_id, "u_camera");
     if (uni_loc_camera == -1) { UNREACHABLE("uniform '%s' not found\n", "u_camera"); }
 
-    //uni_loc_zoom = glGetUniformLocation(prog_id, "u_zoom");
-    //if (uni_loc_zoom == -1) { UNREACHABLE("uniform '%s' not found\n", "u_zoom"); }
-
     uni_loc_tex_units = glGetUniformLocation(prog_id, "u_tex_units");
     if (uni_loc_tex_units == -1) { UNREACHABLE("uniform '%s' not found\n", "u_tex_units"); }
     i32 samplers[MAX_TEX_UNITS] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -234,15 +228,6 @@ void renderer_init(mem_arena_t* platform_mem_arena, renderer_api_t* renderer)
     if (err != GL_NO_ERROR) printf("%s\n", glewGetErrorString(err));
 
     *renderer = renderer_api;
-}
-
-
-void renderer_upload_camera(cam_mtx_t mtx, f32 zoom)
-{
-    glUseProgram(prog_id);
-    glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &mtx.mtx[0][0]);
-
-    //glUniform1fv(uni_loc_camera, 1, &zoom);
 }
 
 
@@ -317,15 +302,6 @@ texture_t* renderer_load_texture(const char* filename)
     //glBindTexture(GL_TEXTURE_2D, 0); // unbind texture
 
     return tex;
-}
-
-
-i32 renderer_texture_query(texture_t* tex, u32* format, i32* access, i32* w, i32* h)
-{
-    // TODO handle nullpointers being passed
-    *w = tex->width;
-    *h = tex->height;
-    return 0;
 }
 
 
@@ -501,17 +477,15 @@ void renderer_cmd_buf_process(platform_window_t* window)
                 curr_entry += sizeof(render_entry_rect_t);
             } break;
 
-            /*
-            case RENDER_ENTRY_TYPE_TEXTURE_MOD:
+            case RENDER_ENTRY_TYPE_TRANSFORM:
             {
-                render_entry_texture_mod_t* mod = (render_entry_texture_mod_t*) curr_entry;
+                render_entry_transform_t* transform = (render_entry_transform_t*) curr_entry;
 
-                // TODO opengl code here
-                // ...
+                glUseProgram(prog_id);
+                glUniformMatrix4fv(uni_loc_camera, 1, GL_FALSE, &transform->mat.e[0][0]);
 
-                curr_entry += sizeof(render_entry_texture_mod_t);
+                curr_entry += sizeof(render_entry_rect_t);
             } break;
-            */
 
             case RENDER_ENTRY_TYPE_CLEAR:
             {
