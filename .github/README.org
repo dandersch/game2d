@@ -15,3 +15,9 @@ and OpenGL/SDL_Renderer backend for the renderer.
 - platform api with SDL backend
 - renderer api with OpenGL/SDL_Render backend
 - time rewind and replay
+
+* Dependencies
+- SDL2
+
+* Credits
+- [[https://opengameart.org/content/ascii-bitmap-font-cellphone][ASCII Bitmap Font "cellphone"]]

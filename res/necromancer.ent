@@ -1,0 +1,9 @@
+ENT_ASSET
+type        = "necromancer"
+spritesheet = "tileset.png"
+width       = 1
+height      = 2
+coll_size   = 3.4f
+tilewidth   = 16
+tileheight  = 16
+sprite      = {4,2}
