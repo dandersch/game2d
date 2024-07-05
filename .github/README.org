@@ -1,0 +1,17 @@
+#+TITLE: game2d
+
+An engine for 2D games written in C-style C++. Uses SDL as a platform backend
+and OpenGL/SDL_Renderer backend for the renderer.
+
+[[./preview.gif]]
+
+* Features
+- sprite batching
+- custom immediate-mode UI
+- DLL-based code hot-reloading
+- custom TMX parser using ~json.h~
+- custom ~.ent~ file format for entity descriptions
+- physics system with basic AABB collisions
+- platform api with SDL backend
+- renderer api with OpenGL/SDL_Render backend
+- time rewind and replay
